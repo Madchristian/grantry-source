@@ -1,0 +1,2037 @@
+========================
+ Records for UID -2 : 00000000-0000-4000-8000-000000000001
+========================
+
+ ServiceManagement migrated: true
+ LaunchServices registered: false
+
+ Items:
+
+ #1:
+                 UUID: 00000000-0000-4000-8000-000000000002
+                 Name: (null)
+       Developer Name: (null)
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Unknown Developer
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.carriez.RustDesk_service
+
+ #2:
+                 UUID: 00000000-0000-4000-8000-000000000003
+                 Name: sh
+       Developer Name: (null)
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.carriez.RustDesk_service
+                  URL: /Library/LaunchDaemons/com.carriez.RustDesk_service.plist
+      Executable Path: /bin/sh
+           Generation: 105
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: Unknown Developer
+
+ #3:
+                 UUID: 00000000-0000-4000-8000-000000000004
+                 Name: Bjango Pty Ltd
+       Developer Name: Bjango Pty Ltd
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Bjango Pty Ltd
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.bjango.istatmenus.installer
+
+ #4:
+                 UUID: 00000000-0000-4000-8000-000000000005
+                 Name: com.bjango.istatmenus.installer
+       Developer Name: Bjango Pty Ltd
+      Team Identifier: Y93TK974AT
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.bjango.istatmenus.installer
+                  URL: /Library/LaunchDaemons/com.bjango.istatmenus.installer.plist
+      Executable Path: /Library/PrivilegedHelperTools/com.bjango.istatmenus.installer
+           Generation: 1
+    Parent Identifier: Bjango Pty Ltd
+
+ #5:
+                 UUID: 00000000-0000-4000-8000-000000000006
+                 Name: Example Developer
+       Developer Name: Example Developer
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Example Developer
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.de.cstrube.ACCpromAdapterDaemon
+
+ #6:
+                 UUID: 00000000-0000-4000-8000-000000000007
+                 Name: ACCpromAdapterDaemon
+       Developer Name: Example Developer
+      Team Identifier: 73SP5UXC3Q
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.de.cstrube.ACCpromAdapterDaemon
+                  URL: /Library/LaunchDaemons/de.cstrube.ACCpromAdapterDaemon.plist
+      Executable Path: /usr/local/bin/ACCpromAdapterDaemon
+           Generation: 91
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: Example Developer
+
+ #7:
+                 UUID: 00000000-0000-4000-8000-000000000008
+                 Name: Corsair Memory, Inc.
+       Developer Name: Corsair Memory, Inc.
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Corsair Memory, Inc.
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.corsair.cue.updateService
+
+ #8:
+                 UUID: 00000000-0000-4000-8000-000000000009
+                 Name: iCUE
+       Developer Name: Corsair Memory, Inc.
+      Team Identifier: Y93VXCB8Q5
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.corsair.cue.updateService
+                  URL: /Library/LaunchDaemons/com.corsair.cue.updateService.plist
+      Executable Path: /Applications/Corsair iCUE5 Software/iCUE.app/Contents/Services/iCUEUpdateService
+           Generation: 95
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: Corsair Memory, Inc.
+
+ #9:
+                 UUID: 00000000-0000-4000-8000-00000000000A
+                 Name: Docker
+       Developer Name: Docker
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Docker
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.docker.vmnetd
+
+ #10:
+                 UUID: 00000000-0000-4000-8000-00000000000B
+                 Name: com.docker.vmnetd
+       Developer Name: Docker
+      Team Identifier: 9BNSXJN65R
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy, curated ] (0x5)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.docker.vmnetd
+                  URL: /Library/LaunchDaemons/com.docker.vmnetd.plist
+      Executable Path: /Library/PrivilegedHelperTools/com.docker.vmnetd
+           Generation: 90
+             Last Use: 2026-09-26 16:59:09+02:00
+    Assoc. Bundle IDs: [ com.docker.docker ]
+    Parent Identifier: Docker
+
+ #11:
+                 UUID: 00000000-0000-4000-8000-00000000000C
+                 Name: Docker Inc
+       Developer Name: Docker Inc
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Docker Inc
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.docker.socket
+
+ #12:
+                 UUID: 00000000-0000-4000-8000-00000000000D
+                 Name: com.docker.socket
+       Developer Name: Docker Inc
+      Team Identifier: 9BNSXJN65R
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.docker.socket
+                  URL: /Library/LaunchDaemons/com.docker.socket.plist
+      Executable Path: /Library/PrivilegedHelperTools/com.docker.socket
+           Generation: 10
+             Last Use: 2026-09-22 10:57:24+02:00
+    Assoc. Bundle IDs: [ com.docker.docker ]
+    Parent Identifier: Docker Inc
+
+ #13:
+                 UUID: 00000000-0000-4000-8000-00000000000E
+                 Name: Fabrice Leyne
+       Developer Name: Fabrice Leyne
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Fabrice Leyne
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.fabriceleyne.powermetrics
+
+ #14:
+                 UUID: 00000000-0000-4000-8000-00000000000F
+                 Name: com.fabriceleyne.powermetrics
+       Developer Name: Fabrice Leyne
+      Team Identifier: 3EYN7PPTPF
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.fabriceleyne.powermetrics
+                  URL: /Library/LaunchDaemons/com.fabriceleyne.powermetrics.plist
+      Executable Path: /Library/PrivilegedHelperTools/com.fabriceleyne.powermetrics
+           Generation: 1
+    Parent Identifier: Fabrice Leyne
+
+ #15:
+                 UUID: 00000000-0000-4000-8000-000000000010
+                 Name: GL Technologies (Hong Kong) Limited
+       Developer Name: GL Technologies (Hong Kong) Limited
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: GL Technologies (Hong Kong) Limited
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.glkvm.wireguard-helper
+
+ #16:
+                 UUID: 00000000-0000-4000-8000-000000000011
+                 Name: com.glkvm.wireguard-helper
+       Developer Name: GL Technologies (Hong Kong) Limited
+      Team Identifier: BG9375V7F9
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.glkvm.wireguard-helper
+                  URL: /Library/LaunchDaemons/com.glkvm.wireguard-helper.plist
+      Executable Path: /Library/PrivilegedHelperTools/com.glkvm.wireguard-helper
+           Generation: 7
+             Last Use: 2026-09-22 10:57:24+02:00
+    Parent Identifier: GL Technologies (Hong Kong) Limited
+
+ #17:
+                 UUID: 00000000-0000-4000-8000-000000000012
+                 Name: Grantry
+       Developer Name: Example Developer
+      Team Identifier: 73SP5UXC3Q
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.de.cstrube.Grantry
+                  URL: /Applications/Grantry.app
+           Generation: 0
+    Bundle Identifier: de.cstrube.Grantry
+  Embedded Item Identifiers:
+    #1: 16.de.cstrube.Grantry.Helper
+
+ #18:
+                 UUID: 00000000-0000-4000-8000-000000000013
+                 Name: GrantryHelper
+       Developer Name: (null)
+      Team Identifier: 73SP5UXC3Q
+                 Type: daemon (0x10)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.de.cstrube.Grantry.Helper
+                  URL: Contents/Library/LaunchDaemons/de.cstrube.Grantry.Helper.plist
+      Executable Path: Contents/MacOS/GrantryHelper
+           Generation: 2
+             Last Use: 2026-09-26 18:25:59+02:00
+    Assoc. Bundle IDs: [ de.cstrube.Grantry ]
+    Parent Identifier: 2.de.cstrube.Grantry
+
+ #19:
+                 UUID: 00000000-0000-4000-8000-000000000014
+                 Name: Microsoft AutoUpdate
+       Developer Name: Microsoft AutoUpdate
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Microsoft AutoUpdate
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.microsoft.autoupdate.helper
+
+ #20:
+                 UUID: 00000000-0000-4000-8000-000000000015
+                 Name: com.microsoft.autoupdate.helper
+       Developer Name: Microsoft AutoUpdate
+      Team Identifier: UBF8T346G9
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy, curated ] (0x5)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.microsoft.autoupdate.helper
+                  URL: /Library/LaunchDaemons/com.microsoft.autoupdate.helper.plist
+      Executable Path: /Library/PrivilegedHelperTools/com.microsoft.autoupdate.helper
+           Generation: 515
+             Last Use: 2026-09-26 18:02:28+02:00
+    Assoc. Bundle IDs: [ com.microsoft.autoupdate2 ]
+    Parent Identifier: Microsoft AutoUpdate
+
+ #21:
+                 UUID: 00000000-0000-4000-8000-000000000016
+                 Name: Microsoft Corporation
+       Developer Name: Microsoft Corporation
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Microsoft Corporation
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.microsoft.fresno.uninstall
+
+ #22:
+                 UUID: 00000000-0000-4000-8000-000000000017
+                 Name: install_helper
+       Developer Name: Microsoft Corporation
+      Team Identifier: UBF8T346G9
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.microsoft.fresno.uninstall
+                  URL: /Library/LaunchDaemons/com.microsoft.fresno.uninstall.plist
+      Executable Path: /Library/Application Support/Microsoft/Defender/uninstall/install_helper
+           Generation: 35
+             Last Use: 2026-09-23 19:14:50+02:00
+    Parent Identifier: Microsoft Corporation
+
+ #23:
+                 UUID: 00000000-0000-4000-8000-000000000018
+                 Name: install_helper
+       Developer Name: Microsoft Corporation
+      Team Identifier: UBF8T346G9
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.microsoft.wdav.tracer_install_monitor
+                  URL: /Library/LaunchDaemons/com.microsoft.wdav.tracer_install_monitor.plist
+      Executable Path: /Library/Application Support/Microsoft/Defender/uninstall/install_helper
+           Generation: 42
+    Parent Identifier: Microsoft Corporation
+
+ #24:
+                 UUID: 00000000-0000-4000-8000-000000000019
+                 Name: install_helper
+       Developer Name: Microsoft Corporation
+      Team Identifier: UBF8T346G9
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.microsoft.wdav.dlp_processor_install_monitor
+                  URL: /Library/LaunchDaemons/com.microsoft.wdav.dlp_processor_install_monitor.plist
+      Executable Path: /Library/Application Support/Microsoft/Defender/uninstall/install_helper
+           Generation: 13
+    Parent Identifier: Microsoft Corporation
+
+ #25:
+                 UUID: 00000000-0000-4000-8000-00000000001A
+                 Name: Microsoft Defender
+       Developer Name: Microsoft Defender
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Microsoft Defender
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.microsoft.fresno
+
+ #26:
+                 UUID: 00000000-0000-4000-8000-00000000001B
+                 Name: Microsoft Defender
+       Developer Name: Microsoft Defender
+      Team Identifier: UBF8T346G9
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy, curated ] (0x5)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.microsoft.fresno
+                  URL: /Library/LaunchDaemons/com.microsoft.fresno.plist
+      Executable Path: /Applications/Microsoft Defender.app/Contents/MacOS/wdavdaemon
+           Generation: 121
+             Last Use: 2026-09-26 16:59:09+02:00
+    Assoc. Bundle IDs: [ com.microsoft.wdav ]
+    Parent Identifier: Microsoft Defender
+
+ #27:
+                 UUID: 00000000-0000-4000-8000-00000000001C
+                 Name: Microsoft Defender
+       Developer Name: (null)
+      Team Identifier: UBF8T346G9
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.microsoft.wdav
+                  URL: /Applications/Microsoft Defender.app
+           Generation: 21
+    Bundle Identifier: com.microsoft.wdav
+  Embedded Item Identifiers:
+    #1: 16.com.microsoft.dlp.install_monitor
+
+ #28:
+                 UUID: 00000000-0000-4000-8000-00000000001D
+                 Name: install_helper
+       Developer Name: Microsoft Corporation
+      Team Identifier: UBF8T346G9
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.microsoft.dlp.install_monitor
+                  URL: /Library/LaunchDaemons/com.microsoft.dlp.install_monitor.plist
+      Executable Path: /Library/Application Support/Microsoft/DLP/scripts/install_helper
+           Generation: 30
+    Assoc. Bundle IDs: [ com.microsoft.wdav ]
+    Parent Identifier: 2.com.microsoft.wdav
+
+ #29:
+                 UUID: 00000000-0000-4000-8000-00000000001E
+                 Name: RustDesk
+       Developer Name: (null)
+      Team Identifier: HZF9JMC8YN
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.carriez.rustdesk
+                  URL: /Applications/RustDesk.app
+           Generation: 4
+    Bundle Identifier: com.carriez.rustdesk
+
+ #30:
+                 UUID: 00000000-0000-4000-8000-00000000001F
+                 Name: RustDesk
+       Developer Name: zhou huabing
+      Team Identifier: HZF9JMC8YN
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, not notified] (0x3)
+           Identifier: 8.com.carriez.RustDesk_server
+                  URL: /Library/LaunchAgents/com.carriez.RustDesk_server.plist
+      Executable Path: /Applications/RustDesk.app/Contents/MacOS/RustDesk
+           Generation: 1
+    Assoc. Bundle IDs: [ com.carriez.rustdesk ]
+    Parent Identifier: 2.com.carriez.rustdesk
+
+ #31:
+                 UUID: 00000000-0000-4000-8000-000000000020
+                 Name: Ubiquiti Inc.
+       Developer Name: Ubiquiti Inc.
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Ubiquiti Inc.
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.wifiman-desktop
+
+ #32:
+                 UUID: 00000000-0000-4000-8000-000000000021
+                 Name: WiFiman Desktop
+       Developer Name: Ubiquiti Inc.
+      Team Identifier: 4P645293E8
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.wifiman-desktop
+                  URL: /Library/LaunchDaemons/wifiman-desktop.plist
+      Executable Path: /Applications/WiFiman Desktop.app/Contents/Resources/wifiman-desktopd
+           Generation: 90
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: Ubiquiti Inc.
+
+ #33:
+                 UUID: 00000000-0000-4000-8000-000000000022
+                 Name: Wazuh Inc
+       Developer Name: Wazuh Inc
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Wazuh Inc
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 16.com.wazuh.agent
+
+ #34:
+                 UUID: 00000000-0000-4000-8000-000000000023
+                 Name: Wazuh-launcher
+       Developer Name: Wazuh Inc
+      Team Identifier: KLZK8P68R5
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.wazuh.agent
+                  URL: /Library/LaunchDaemons/com.wazuh.agent.plist
+      Executable Path: /Library/StartupItems/WAZUH/Wazuh-launcher
+           Generation: 91
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: Wazuh Inc
+
+ #35:
+                 UUID: 00000000-0000-4000-8000-000000000024
+                 Name: com.bjango.istatmenus.daemon
+       Developer Name: Bjango Pty Ltd
+      Team Identifier: Y93TK974AT
+                 Type: legacy daemon (0x10010)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 16.com.bjango.istatmenus.daemon
+                  URL: /Library/LaunchDaemons/com.bjango.istatmenus.daemon.plist
+      Executable Path: /Library/Application Support/iStat Menus 7/com.bjango.istatmenus.daemon
+           Generation: 94
+             Last Use: 2026-09-26 16:59:09+02:00
+    Assoc. Bundle IDs: [ com.bjango.istatmenus ]
+    Parent Identifier: 2.com.bjango.istatmenus
+
+
+========================
+ Records for UID 0 : 00000000-0000-4000-8000-000000000025
+========================
+
+ ServiceManagement migrated: false
+ LaunchServices registered: false
+
+ Items:
+
+ #1:
+                 UUID: 00000000-0000-4000-8000-000000000002
+                 Name: (null)
+       Developer Name: (null)
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Unknown Developer
+                  URL: (null)
+           Generation: 3
+
+ #2:
+                 UUID: 00000000-0000-4000-8000-000000000004
+                 Name: Bjango Pty Ltd
+       Developer Name: Bjango Pty Ltd
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Bjango Pty Ltd
+                  URL: (null)
+           Generation: 1
+
+ #3:
+                 UUID: 00000000-0000-4000-8000-000000000006
+                 Name: Example Developer
+       Developer Name: Example Developer
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Example Developer
+                  URL: (null)
+           Generation: 4
+
+ #4:
+                 UUID: 00000000-0000-4000-8000-000000000008
+                 Name: Corsair Memory, Inc.
+       Developer Name: Corsair Memory, Inc.
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Corsair Memory, Inc.
+                  URL: (null)
+           Generation: 4
+
+ #5:
+                 UUID: 00000000-0000-4000-8000-00000000000A
+                 Name: Docker
+       Developer Name: Docker
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Docker
+                  URL: (null)
+           Generation: 1
+
+ #6:
+                 UUID: 00000000-0000-4000-8000-00000000000C
+                 Name: Docker Inc
+       Developer Name: Docker Inc
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Docker Inc
+                  URL: (null)
+           Generation: 3
+
+ #7:
+                 UUID: 00000000-0000-4000-8000-00000000000E
+                 Name: Fabrice Leyne
+       Developer Name: Fabrice Leyne
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Fabrice Leyne
+                  URL: (null)
+           Generation: 1
+
+ #8:
+                 UUID: 00000000-0000-4000-8000-000000000010
+                 Name: GL Technologies (Hong Kong) Limited
+       Developer Name: GL Technologies (Hong Kong) Limited
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: GL Technologies (Hong Kong) Limited
+                  URL: (null)
+           Generation: 1
+
+ #9:
+                 UUID: 00000000-0000-4000-8000-000000000026
+                 Name: Grantry
+       Developer Name: Example Developer
+      Team Identifier: 73SP5UXC3Q
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.de.cstrube.Grantry
+                  URL: /Applications/Grantry.app
+           Generation: 1
+    Bundle Identifier: de.cstrube.Grantry
+
+ #10:
+                 UUID: 00000000-0000-4000-8000-000000000014
+                 Name: Microsoft AutoUpdate
+       Developer Name: Microsoft AutoUpdate
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Microsoft AutoUpdate
+                  URL: (null)
+           Generation: 15
+
+ #11:
+                 UUID: 00000000-0000-4000-8000-000000000016
+                 Name: Microsoft Corporation
+       Developer Name: Microsoft Corporation
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Microsoft Corporation
+                  URL: (null)
+           Generation: 86
+
+ #12:
+                 UUID: 00000000-0000-4000-8000-00000000001A
+                 Name: Microsoft Defender
+       Developer Name: Microsoft Defender
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Microsoft Defender
+                  URL: (null)
+           Generation: 30
+
+ #13:
+                 UUID: 00000000-0000-4000-8000-00000000001C
+                 Name: Microsoft Defender
+       Developer Name: (null)
+      Team Identifier: UBF8T346G9
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.microsoft.wdav
+                  URL: /Applications/Microsoft Defender.app
+           Generation: 51
+    Bundle Identifier: com.microsoft.wdav
+
+ #14:
+                 UUID: 00000000-0000-4000-8000-000000000020
+                 Name: Ubiquiti Inc.
+       Developer Name: Ubiquiti Inc.
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Ubiquiti Inc.
+                  URL: (null)
+           Generation: 1
+
+ #15:
+                 UUID: 00000000-0000-4000-8000-000000000022
+                 Name: Wazuh Inc
+       Developer Name: Wazuh Inc
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Wazuh Inc
+                  URL: (null)
+           Generation: 14
+
+ #16:
+                 UUID: 00000000-0000-4000-8000-000000000027
+                 Name: iStat Menus
+       Developer Name: (null)
+      Team Identifier: Y93TK974AT
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.bjango.istatmenus
+                  URL: /Applications/iStat Menus.app
+           Generation: 2
+    Bundle Identifier: com.bjango.istatmenus
+  Embedded Item Identifiers:
+    #1: 16.com.bjango.istatmenus.daemon
+
+
+========================
+ Records for UID 82 : 00000000-0000-4000-8000-000000000028
+========================
+
+ ServiceManagement migrated: false
+ LaunchServices registered: false
+
+ Items:
+
+ #1:
+                 UUID: 00000000-0000-4000-8000-000000000029
+                 Name: Bjango Pty Ltd
+       Developer Name: Bjango Pty Ltd
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Bjango Pty Ltd
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.bjango.istatmenus.installer
+
+ #2:
+                 UUID: 00000000-0000-4000-8000-00000000002A
+                 Name: Docker Inc
+       Developer Name: Docker Inc
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Docker Inc
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.docker.socket
+
+ #3:
+                 UUID: 00000000-0000-4000-8000-00000000002B
+                 Name: Fabrice Leyne
+       Developer Name: Fabrice Leyne
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Fabrice Leyne
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.fabriceleyne.powermetrics
+
+ #4:
+                 UUID: 00000000-0000-4000-8000-00000000002C
+                 Name: GarageBand
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.garageband10
+                  URL: /Applications/GarageBand.app
+           Generation: 1
+    Bundle Identifier: com.apple.garageband10
+
+ #5:
+                 UUID: 00000000-0000-4000-8000-00000000002D
+                 Name: GarageBandSpotlightImporter.mdimporter
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.garageband.spotlightimporter
+                  URL: Contents/Library/Spotlight/GarageBandSpotlightImporter.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.garageband.spotlightimporter
+    Parent Identifier: 2.com.apple.garageband10
+
+ #6:
+                 UUID: 00000000-0000-4000-8000-00000000002E
+                 Name: Logic Pro
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.logic10
+                  URL: /Applications/Logic Pro.app
+           Generation: 1
+    Bundle Identifier: com.apple.logic10
+
+ #7:
+                 UUID: 00000000-0000-4000-8000-00000000002F
+                 Name: LogicX_MDImport.mdimporter
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.MDImporter.LogicX
+                  URL: Contents/Library/Spotlight/LogicX_MDImport.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.MDImporter.LogicX
+    Parent Identifier: 2.com.apple.logic10
+
+ #8:
+                 UUID: 00000000-0000-4000-8000-000000000030
+                 Name: Motion
+       Developer Name: (null)
+      Team Identifier: PTN9T2S29T
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.motionapp
+                  URL: /Applications/Motion.app
+           Generation: 1
+    Bundle Identifier: com.apple.motionapp
+
+ #9:
+                 UUID: 00000000-0000-4000-8000-000000000031
+                 Name: Motion Spotlight.mdimporter
+       Developer Name: (null)
+      Team Identifier: PTN9T2S29T
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.motion.spotlight
+                  URL: Contents/Library/Spotlight/Motion Spotlight.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.motion.spotlight
+    Parent Identifier: 2.com.apple.motionapp
+
+
+========================
+ Records for UID 501 : 00000000-0000-4000-8000-000000000032
+========================
+
+ ServiceManagement migrated: true
+ LaunchServices registered: true
+
+ Items:
+
+ #1:
+                 UUID: 00000000-0000-4000-8000-000000000033
+                 Name: (null)
+       Developer Name: (null)
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Unknown Developer
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 8.com.battery.app
+
+ #2:
+                 UUID: 00000000-0000-4000-8000-000000000034
+                 Name: battery
+       Developer Name: (null)
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.battery.app
+                  URL: /Users/501/Library/LaunchAgents/battery.plist
+      Executable Path: /usr/local/bin/battery
+           Generation: 1
+    Parent Identifier: Unknown Developer
+
+ #3:
+                 UUID: 00000000-0000-4000-8000-000000000035
+                 Name: brew
+       Developer Name: (null)
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.homebrew.autoupgrade
+                  URL: /Users/501/Library/LaunchAgents/com.homebrew.autoupgrade.plist
+      Executable Path: /opt/homebrew/bin/brew
+           Generation: 25
+             Last Use: 2026-09-26 10:02:23+02:00
+    Parent Identifier: Unknown Developer
+
+ #4:
+                 UUID: 00000000-0000-4000-8000-000000000036
+                 Name: clamav-nightly-scan.sh
+       Developer Name: (null)
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, not notified] (0x3)
+           Identifier: 8.com.user.clamav-nightly
+                  URL: /Users/501/Library/LaunchAgents/com.user.clamav-nightly.plist
+      Executable Path: /opt/homebrew/bin/clamav-nightly-scan.sh
+           Generation: 28
+             Last Use: 2026-09-26 03:30:04+02:00
+    Parent Identifier: Unknown Developer
+
+ #5:
+                 UUID: 00000000-0000-4000-8000-000000000037
+                 Name: node
+       Developer Name: (null)
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.ai.openclaw.gateway
+                  URL: /Users/501/Library/LaunchAgents/ai.openclaw.gateway.plist
+      Executable Path: /opt/homebrew/bin/node
+           Generation: 1
+    Parent Identifier: Unknown Developer
+
+ #6:
+                 UUID: 00000000-0000-4000-8000-000000000038
+                 Name: python
+       Developer Name: (null)
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.ai.hermes.gateway
+                  URL: /Users/501/Library/LaunchAgents/ai.hermes.gateway.plist
+      Executable Path: /Users/501/.hermes/hermes-agent/venv/bin/python
+           Generation: 89
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: Unknown Developer
+
+ #7:
+                 UUID: 00000000-0000-4000-8000-000000000039
+                 Name: tailscale-auto-route.sh
+       Developer Name: (null)
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.tailscale.autoroute
+                  URL: /Users/501/Library/LaunchAgents/com.tailscale.autoroute.plist
+      Executable Path: /Users/501/.local/bin/tailscale-auto-route.sh
+           Generation: 35
+             Last Use: 2026-09-23 06:30:20+02:00
+    Parent Identifier: Unknown Developer
+
+ #8:
+                 UUID: 00000000-0000-4000-8000-00000000003A
+                 Name: Affinity
+       Developer Name: Canva Pty Ltd
+      Team Identifier: 5HD2ARTBFS
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.canva.affinity
+                  URL: /Applications/Affinity.app
+           Generation: 2
+    Bundle Identifier: com.canva.affinity
+
+ #9:
+                 UUID: 00000000-0000-4000-8000-00000000003B
+                 Name: QuickLookShareExtension.appex
+       Developer Name: (null)
+      Team Identifier: 5HD2ARTBFS
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.canva.affinity.quicklook
+                  URL: Contents/PlugIns/QuickLookShareExtension.appex
+           Generation: 1
+    Bundle Identifier: com.canva.affinity.quicklook
+    Parent Identifier: 2.com.canva.affinity
+
+ #10:
+                 UUID: 00000000-0000-4000-8000-00000000003C
+                 Name: ThumbnailShareExtension.appex
+       Developer Name: (null)
+      Team Identifier: 5HD2ARTBFS
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.canva.affinity.thumbnail
+                  URL: Contents/PlugIns/ThumbnailShareExtension.appex
+           Generation: 1
+    Bundle Identifier: com.canva.affinity.thumbnail
+    Parent Identifier: 2.com.canva.affinity
+
+ #11:
+                 UUID: 00000000-0000-4000-8000-00000000003D
+                 Name: Aktien
+       Developer Name: (null)
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.apple.stocks
+                  URL: /System/Applications/Stocks.app
+           Generation: 6
+    Bundle Identifier: com.apple.stocks
+
+ #12:
+                 UUID: 00000000-0000-4000-8000-00000000003E
+                 Name: Aktien - background app refresh
+       Developer Name: (null)
+                 Type: background app refresh (0x1000)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, not notified] (0x3)
+           Identifier: 4096.com.apple.stocks
+                  URL: (null)
+           Generation: 62
+             Last Use: 2026-09-13 07:37:15+02:00
+    Parent Identifier: 2.com.apple.stocks
+
+ #13:
+                 UUID: 00000000-0000-4000-8000-00000000003F
+                 Name: Apple Immersive Video-Dienstprogramm
+       Developer Name: (null)
+      Team Identifier: 2DM775A58X
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.ivu
+                  URL: /Applications/Apple Immersive Video Utility.app
+           Generation: 3
+    Bundle Identifier: com.apple.ivu
+
+ #14:
+                 UUID: 00000000-0000-4000-8000-000000000040
+                 Name: IVU-Public-QuickLook.appex
+       Developer Name: (null)
+      Team Identifier: 2DM775A58X
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.ivu.quicklook
+                  URL: Contents/PlugIns/IVU-Public-QuickLook.appex
+           Generation: 1
+    Bundle Identifier: com.apple.ivu.quicklook
+    Parent Identifier: 2.com.apple.ivu
+
+ #15:
+                 UUID: 00000000-0000-4000-8000-000000000041
+                 Name: Bjango Pty Ltd
+       Developer Name: Bjango Pty Ltd
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Bjango Pty Ltd
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.bjango.istatmenus.installer
+
+ #16:
+                 UUID: 00000000-0000-4000-8000-000000000042
+                 Name: ChatGPT
+       Developer Name: OpenAI, L.L.C.
+      Team Identifier: 2DC432GLL2
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.openai.chat
+                  URL: /Applications/ChatGPT Classic.app
+           Generation: 35
+    Bundle Identifier: com.openai.chat
+             Last Use: 2026-09-19 16:57:18+02:00
+
+ #17:
+                 UUID: 00000000-0000-4000-8000-000000000043
+                 Name: ChatGPT - background tasks
+       Developer Name: OpenAI, L.L.C.
+                 Type: background tasks (0x2000)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8192.com.openai.chat
+                  URL: (null)
+           Generation: 2
+             Last Use: 2026-09-19 16:56:41+02:00
+    Parent Identifier: 2.com.openai.chat
+
+ #18:
+                 UUID: 00000000-0000-4000-8000-000000000044
+                 Name: ChatGPTHelper
+       Developer Name: (null)
+      Team Identifier: 2DC432GLL2
+                 Type: agent (0x8)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.openai.chat-helper
+                  URL: Contents/Library/LaunchAgents/com.openai.chat-helper.plist
+      Executable Path: Contents/Resources/ChatGPTHelper
+           Generation: 99
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: 2.com.openai.chat
+
+ #19:
+                 UUID: 00000000-0000-4000-8000-000000000045
+                 Name: ChatGPT
+       Developer Name: OpenAI OpCo, LLC
+      Team Identifier: 2DC432GLL2
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.openai.codex
+                  URL: /Applications/ChatGPT.app
+           Generation: 3
+    Bundle Identifier: com.openai.codex
+             Last Use: 2026-09-22 08:22:35+02:00
+
+ #20:
+                 UUID: 00000000-0000-4000-8000-000000000046
+                 Name: CodexDockTilePlugin.docktileplugin
+       Developer Name: OpenAI OpCo, LLC
+      Team Identifier: 2DC432GLL2
+                 Type: dock tile (0x80)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 128.com.openai.codex.dock-tile-plugin
+                  URL: Contents/PlugIns/CodexDockTilePlugin.docktileplugin
+           Generation: 1
+    Bundle Identifier: com.openai.codex.dock-tile-plugin
+    Parent Identifier: 2.com.openai.codex
+
+ #21:
+                 UUID: 00000000-0000-4000-8000-000000000047
+                 Name: Example Developer
+       Developer Name: Example Developer
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Example Developer
+                  URL: (null)
+           Generation: 11
+  Embedded Item Identifiers:
+    #1: 16.de.cstrube.ACCpromAdapterDaemon
+
+ #22:
+                 UUID: 00000000-0000-4000-8000-000000000048
+                 Name: Corsair Memory, Inc.
+       Developer Name: Corsair Memory, Inc.
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Corsair Memory, Inc.
+                  URL: (null)
+           Generation: 5
+  Embedded Item Identifiers:
+    #1: 16.com.corsair.cue.updateService
+
+ #23:
+                 UUID: 00000000-0000-4000-8000-000000000049
+                 Name: iCUE
+       Developer Name: Corsair Memory, Inc.
+      Team Identifier: Y93VXCB8Q5
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.corsair.cue.launchHelper
+                  URL: /Library/LaunchAgents/com.corsair.cue.launchHelper.plist
+      Executable Path: /Applications/Corsair iCUE5 Software/iCUE.app/Contents/Helpers/iCUELaunchHelper
+           Generation: 10
+             Last Use: 2026-09-22 10:52:14+02:00
+    Parent Identifier: Corsair Memory, Inc.
+
+ #24:
+                 UUID: 00000000-0000-4000-8000-00000000004A
+                 Name: Discord
+       Developer Name: Discord, Inc.
+      Team Identifier: 53Q6R32WPB
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.hnc.Discord
+                  URL: /Applications/Discord.app
+           Generation: 5
+    Bundle Identifier: com.hnc.Discord
+             Last Use: 2026-09-18 21:25:21+02:00
+
+ #25:
+                 UUID: 00000000-0000-4000-8000-00000000004B
+                 Name: Discord - background tasks
+       Developer Name: Discord, Inc.
+                 Type: background tasks (0x2000)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8192.com.hnc.Discord
+                  URL: (null)
+           Generation: 2
+             Last Use: 2026-09-13 01:50:02+02:00
+    Parent Identifier: 2.com.hnc.Discord
+
+ #26:
+                 UUID: 00000000-0000-4000-8000-00000000004C
+                 Name: Docker
+       Developer Name: Docker Inc
+      Team Identifier: 9BNSXJN65R
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.docker.docker
+                  URL: /Applications/Docker.app
+           Generation: 11
+    Bundle Identifier: com.docker.docker
+
+ #27:
+                 UUID: 00000000-0000-4000-8000-00000000004D
+                 Name: DockerHelper
+       Developer Name: Docker Inc
+      Team Identifier: 9BNSXJN65R
+                 Type: login item (0x4)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 4.com.docker.helper
+                  URL: Contents/Library/LoginItems/DockerHelper.app
+           Generation: 1
+    Bundle Identifier: com.docker.helper
+    Parent Identifier: 2.com.docker.docker
+
+ #28:
+                 UUID: 00000000-0000-4000-8000-00000000004E
+                 Name: Docker
+       Developer Name: Docker
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Docker
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.docker.vmnetd
+
+ #29:
+                 UUID: 00000000-0000-4000-8000-00000000004F
+                 Name: Docker Inc
+       Developer Name: Docker Inc
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Docker Inc
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.docker.socket
+
+ #30:
+                 UUID: 00000000-0000-4000-8000-000000000050
+                 Name: Fabrice Leyne
+       Developer Name: Fabrice Leyne
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Fabrice Leyne
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.fabriceleyne.powermetrics
+
+ #31:
+                 UUID: 00000000-0000-4000-8000-000000000051
+                 Name: GL Technologies (Hong Kong) Limited
+       Developer Name: GL Technologies (Hong Kong) Limited
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: GL Technologies (Hong Kong) Limited
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.glkvm.wireguard-helper
+
+ #32:
+                 UUID: 00000000-0000-4000-8000-000000000052
+                 Name: GarageBand
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.garageband10
+                  URL: /Applications/GarageBand.app
+           Generation: 4
+    Bundle Identifier: com.apple.garageband10
+
+ #33:
+                 UUID: 00000000-0000-4000-8000-000000000053
+                 Name: GarageBandQuickLookExtension.appex
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, not notified] (0x3)
+           Identifier: 2048.com.apple.garageband10.GarageBandQuickLookExtension
+                  URL: Contents/PlugIns/GarageBandQuickLookExtension.appex
+           Generation: 0
+    Bundle Identifier: com.apple.garageband10.GarageBandQuickLookExtension
+    Parent Identifier: 2.com.apple.garageband10
+
+ #34:
+                 UUID: 00000000-0000-4000-8000-000000000054
+                 Name: GarageBandSpotlightImporter.mdimporter
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.garageband.spotlightimporter
+                  URL: Contents/Library/Spotlight/GarageBandSpotlightImporter.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.garageband.spotlightimporter
+    Parent Identifier: 2.com.apple.garageband10
+
+ #35:
+                 UUID: 00000000-0000-4000-8000-000000000055
+                 Name: GarageBandThumbnailExtension.appex
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, not notified] (0x3)
+           Identifier: 2048.com.apple.garageband10.GarageBandThumbnailExtension
+                  URL: Contents/PlugIns/GarageBandThumbnailExtension.appex
+           Generation: 0
+    Bundle Identifier: com.apple.garageband10.GarageBandThumbnailExtension
+    Parent Identifier: 2.com.apple.garageband10
+
+ #36:
+                 UUID: 00000000-0000-4000-8000-000000000056
+                 Name: LogicX_MDImport.mdimporter
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.MDImporter.LogicX
+                  URL: Contents/Library/Spotlight/LogicX_MDImport.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.MDImporter.LogicX
+    Parent Identifier: 2.com.apple.garageband10
+
+ #37:
+                 UUID: 00000000-0000-4000-8000-000000000057
+                 Name: Google LLC
+       Developer Name: Google LLC
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Google LLC
+                  URL: (null)
+           Generation: 0
+  Embedded Item Identifiers:
+    #1: 8.com.google.GoogleUpdater.wake
+
+ #38:
+                 UUID: 00000000-0000-4000-8000-000000000058
+                 Name: GoogleUpdater
+       Developer Name: Google LLC
+      Team Identifier: EQHXZ8M8AV
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.google.GoogleUpdater.wake
+                  URL: /Users/501/Library/LaunchAgents/com.google.GoogleUpdater.wake.plist
+      Executable Path: /Users/501/Library/Application Support/Google/GoogleUpdater/Current/GoogleUpdater.app/Contents/MacOS/GoogleUpdater
+           Generation: 15
+    Assoc. Bundle IDs: [ com.google.GoogleUpdater ]
+    Parent Identifier: Google LLC
+
+ #39:
+                 UUID: 00000000-0000-4000-8000-000000000059
+                 Name: Icon Composer
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.IconComposer
+                  URL: /Applications/Xcode.app/Contents/Applications/Icon Composer.app
+           Generation: 6
+    Bundle Identifier: com.apple.IconComposer
+
+ #40:
+                 UUID: 00000000-0000-4000-8000-00000000005A
+                 Name: Icon Composer QuickLook Preview.appex
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.IconComposerQuickLookPreviewAppExtension
+                  URL: Contents/PlugIns/Icon Composer QuickLook Preview.appex
+           Generation: 1
+    Bundle Identifier: com.apple.IconComposerQuickLookPreviewAppExtension
+    Parent Identifier: 2.com.apple.IconComposer
+
+ #41:
+                 UUID: 00000000-0000-4000-8000-00000000005B
+                 Name: Icon Composer Thumbnail.appex
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.IconComposerThumbnailExtension
+                  URL: Contents/PlugIns/Icon Composer Thumbnail.appex
+           Generation: 1
+    Bundle Identifier: com.apple.IconComposerThumbnailExtension
+    Parent Identifier: 2.com.apple.IconComposer
+
+ #42:
+                 UUID: 00000000-0000-4000-8000-00000000005C
+                 Name: Jarred Sumner
+       Developer Name: Jarred Sumner
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Jarred Sumner
+                  URL: (null)
+           Generation: 3
+
+ #43:
+                 UUID: 00000000-0000-4000-8000-00000000005D
+                 Name: bun
+       Developer Name: Jarred Sumner
+      Team Identifier: 7FRXF46ZSN
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.cstrube.claude-peers-agent
+                  URL: /Users/501/Library/LaunchAgents/com.cstrube.claude-peers-agent.plist
+      Executable Path: /Users/501/.bun/bin/bun
+           Generation: 26119
+             Last Use: 2026-09-26 16:59:09+02:00
+    Parent Identifier: Jarred Sumner
+
+ #44:
+                 UUID: 00000000-0000-4000-8000-00000000005E
+                 Name: Logic Pro
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.logic10
+                  URL: /Applications/Logic Pro.app
+           Generation: 8
+    Bundle Identifier: com.apple.logic10
+
+ #45:
+                 UUID: 00000000-0000-4000-8000-00000000005F
+                 Name: LogicProQuickLookExtension.appex
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.logic10.LogicProQuickLookExtension
+                  URL: Contents/PlugIns/LogicProQuickLookExtension.appex
+           Generation: 1
+    Bundle Identifier: com.apple.logic10.LogicProQuickLookExtension
+    Parent Identifier: 2.com.apple.logic10
+
+ #46:
+                 UUID: 00000000-0000-4000-8000-000000000060
+                 Name: LogicProThumbnailExtension.appex
+       Developer Name: (null)
+      Team Identifier: F3LWYJ7GM7
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.logic10.LogicProThumbnailExtension
+                  URL: Contents/PlugIns/LogicProThumbnailExtension.appex
+           Generation: 1
+    Bundle Identifier: com.apple.logic10.LogicProThumbnailExtension
+    Parent Identifier: 2.com.apple.logic10
+
+ #47:
+                 UUID: 00000000-0000-4000-8000-000000000012
+                 Name: Grantry
+       Developer Name: Example Developer
+      Team Identifier: 73SP5UXC3Q
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.de.cstrube.Grantry
+                  URL: /Applications/Grantry.app
+           Generation: 2
+    Bundle Identifier: de.cstrube.Grantry
+
+ #48:
+                 UUID: 00000000-0000-4000-8000-000000000061
+                 Name: Mela
+       Developer Name: (null)
+      Team Identifier: 66JC38RDUD
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.recipes.mela.appkit
+                  URL: /Applications/Mela.app
+           Generation: 3
+    Bundle Identifier: recipes.mela.appkit
+
+ #49:
+                 UUID: 00000000-0000-4000-8000-000000000062
+                 Name: Preview.appex
+       Developer Name: (null)
+      Team Identifier: 66JC38RDUD
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.recipes.mela.appkit.Preview
+                  URL: Contents/PlugIns/Preview.appex
+           Generation: 1
+    Bundle Identifier: recipes.mela.appkit.Preview
+    Parent Identifier: 2.recipes.mela.appkit
+
+ #50:
+                 UUID: 00000000-0000-4000-8000-000000000063
+                 Name: Microsoft AutoUpdate
+       Developer Name: Microsoft AutoUpdate
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Microsoft AutoUpdate
+                  URL: (null)
+           Generation: 16
+  Embedded Item Identifiers:
+    #1: 16.com.microsoft.autoupdate.helper
+
+ #51:
+                 UUID: 00000000-0000-4000-8000-000000000064
+                 Name: Microsoft AutoUpdate
+       Developer Name: Microsoft AutoUpdate
+      Team Identifier: UBF8T346G9
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy, curated ] (0x5)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.microsoft.update.agent
+                  URL: /Library/LaunchAgents/com.microsoft.update.agent.plist
+      Executable Path: /Library/Application Support/Microsoft/MAU2.0/Microsoft AutoUpdate.app/Contents/MacOS/Microsoft Update Assistant.app/Contents/MacOS/Microsoft Update Assistant
+           Generation: 510
+             Last Use: 2026-09-26 18:01:57+02:00
+    Assoc. Bundle IDs: [ com.microsoft.autoupdate2 ]
+    Parent Identifier: Microsoft AutoUpdate
+
+ #52:
+                 UUID: 00000000-0000-4000-8000-000000000065
+                 Name: Microsoft Corporation
+       Developer Name: Microsoft Corporation
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Microsoft Corporation
+                  URL: (null)
+           Generation: 4
+  Embedded Item Identifiers:
+    #1: 16.com.microsoft.fresno.uninstall
+
+ #53:
+                 UUID: 00000000-0000-4000-8000-000000000066
+                 Name: EdgeUpdater
+       Developer Name: Microsoft Corporation
+      Team Identifier: UBF8T346G9
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.microsoft.EdgeUpdater.wake
+                  URL: /Users/501/Library/LaunchAgents/com.microsoft.EdgeUpdater.wake.plist
+      Executable Path: /Users/501/Library/Application Support/Microsoft/EdgeUpdater/Current/EdgeUpdater.app/Contents/MacOS/EdgeUpdater
+           Generation: 508
+             Last Use: 2026-09-26 18:17:23+02:00
+    Assoc. Bundle IDs: [ com.microsoft.EdgeUpdater ]
+    Parent Identifier: Microsoft Corporation
+
+ #54:
+                 UUID: 00000000-0000-4000-8000-000000000067
+                 Name: Microsoft Defender
+       Developer Name: Microsoft Defender
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Microsoft Defender
+                  URL: (null)
+           Generation: 33
+
+ #55:
+                 UUID: 00000000-0000-4000-8000-000000000068
+                 Name: Microsoft Defender
+       Developer Name: Microsoft Defender
+      Team Identifier: UBF8T346G9
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy, curated ] (0x5)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.microsoft.wdav.tray
+                  URL: /Library/LaunchAgents/com.microsoft.wdav.tray.plist
+      Executable Path: /Applications/Microsoft Defender.app/Contents/MacOS/Microsoft Defender Helper.app/Contents/MacOS/Microsoft Defender Helper
+           Generation: 127
+             Last Use: 2026-09-26 16:59:09+02:00
+    Assoc. Bundle IDs: [ com.microsoft.wdav ]
+    Parent Identifier: Microsoft Defender
+
+ #56:
+                 UUID: 00000000-0000-4000-8000-000000000069
+                 Name: Microsoft Defender
+       Developer Name: (null)
+      Team Identifier: UBF8T346G9
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.microsoft.wdav
+                  URL: /Applications/Microsoft Defender.app
+           Generation: 22
+    Bundle Identifier: com.microsoft.wdav
+
+ #57:
+                 UUID: 00000000-0000-4000-8000-00000000006A
+                 Name: Motion
+       Developer Name: (null)
+      Team Identifier: PTN9T2S29T
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.motionapp
+                  URL: /Applications/Motion.app
+           Generation: 6
+    Bundle Identifier: com.apple.motionapp
+
+ #58:
+                 UUID: 00000000-0000-4000-8000-00000000006B
+                 Name: Motion Spotlight.mdimporter
+       Developer Name: (null)
+      Team Identifier: PTN9T2S29T
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.motion.spotlight
+                  URL: Contents/Library/Spotlight/Motion Spotlight.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.motion.spotlight
+    Parent Identifier: 2.com.apple.motionapp
+
+ #59:
+                 UUID: 00000000-0000-4000-8000-00000000006C
+                 Name: OneDrive
+       Developer Name: (null)
+      Team Identifier: UBF8T346G9
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.microsoft.OneDrive-mac
+                  URL: /Applications/OneDrive.app
+           Generation: 32
+    Bundle Identifier: com.microsoft.OneDrive-mac
+
+ #60:
+                 UUID: 00000000-0000-4000-8000-00000000006D
+                 Name: OneDrive Launcher
+       Developer Name: (null)
+      Team Identifier: UBF8T346G9
+                 Type: login item (0x4)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 4.com.microsoft.OneDriveLauncher
+                  URL: Contents/Library/LoginItems/OneDrive Launcher.app
+           Generation: 9
+    Bundle Identifier: com.microsoft.OneDriveLauncher
+    Parent Identifier: 2.com.microsoft.OneDrive-mac
+
+ #61:
+                 UUID: 00000000-0000-4000-8000-00000000006E
+                 Name: Orca
+       Developer Name: Lovecast LLC
+      Team Identifier: 6CX3WHS9HZ
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.stablyai.orca
+                  URL: /Applications/Orca.app
+           Generation: 10
+    Bundle Identifier: com.stablyai.orca
+             Last Use: 2026-09-26 18:28:54+02:00
+
+ #62:
+                 UUID: 00000000-0000-4000-8000-00000000006F
+                 Name: Orca - background tasks
+       Developer Name: Lovecast LLC
+                 Type: background tasks (0x2000)
+                Flags: [  ] (0x1000000000000000)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8192.com.stablyai.orca
+                  URL: (null)
+           Generation: 3
+             Last Use: 2026-09-22 08:22:40+02:00
+    Parent Identifier: 2.com.stablyai.orca
+
+ #63:
+                 UUID: 00000000-0000-4000-8000-000000000070
+                 Name: Passwörter
+       Developer Name: (null)
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.apple.Passwords
+                  URL: /System/Applications/Passwords.app
+           Generation: 7
+    Bundle Identifier: com.apple.Passwords
+
+ #64:
+                 UUID: 00000000-0000-4000-8000-000000000071
+                 Name: PasswordsMenuBarExtra
+       Developer Name: (null)
+                 Type: login item (0x4)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 4.com.apple.Passwords.MenuBarExtra
+                  URL: Contents/Library/LoginItems/PasswordsMenuBarExtra.app
+           Generation: 2
+    Bundle Identifier: com.apple.Passwords.MenuBarExtra
+    Parent Identifier: 2.com.apple.Passwords
+
+ #65:
+                 UUID: 00000000-0000-4000-8000-000000000072
+                 Name: RustDesk
+       Developer Name: (null)
+      Team Identifier: HZF9JMC8YN
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.carriez.rustdesk
+                  URL: /Applications/RustDesk.app
+           Generation: 5
+    Bundle Identifier: com.carriez.rustdesk
+
+ #66:
+                 UUID: 00000000-0000-4000-8000-000000000073
+                 Name: RustDesk
+       Developer Name: zhou huabing
+      Team Identifier: HZF9JMC8YN
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.carriez.RustDesk_server
+                  URL: /Library/LaunchAgents/com.carriez.RustDesk_server.plist
+      Executable Path: /Applications/RustDesk.app/Contents/MacOS/RustDesk
+           Generation: 3
+    Assoc. Bundle IDs: [ com.carriez.rustdesk ]
+    Parent Identifier: 2.com.carriez.rustdesk
+
+ #67:
+                 UUID: 00000000-0000-4000-8000-000000000074
+                 Name: ScreenFloat
+       Developer Name: (null)
+      Team Identifier: G78RJ6NLJU
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2.at.EternalStorms.ScreenFloat-appstore
+                  URL: /Applications/ScreenFloat.app
+           Generation: 11
+    Bundle Identifier: at.EternalStorms.ScreenFloat-appstore
+
+ #68:
+                 UUID: 00000000-0000-4000-8000-000000000075
+                 Name: Steam
+       Developer Name: Steam
+                 Type: developer (0x20)
+                Flags: [ curated ] (0x4)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: Steam
+                  URL: (null)
+           Generation: 79
+
+ #69:
+                 UUID: 00000000-0000-4000-8000-000000000076
+                 Name: steamclean
+       Developer Name: Steam
+      Team Identifier: MXGJJ98X76
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy, curated ] (0x5)
+          Disposition: [enabled, disallowed, notified] (0x9)
+           Identifier: 8.com.valvesoftware.steamclean
+                  URL: /Users/501/Library/LaunchAgents/com.valvesoftware.steamclean.plist
+      Executable Path: /Users/501/Library/Application Support/Steam/SteamApps/steamclean
+           Generation: 80
+    Assoc. Bundle IDs: [ com.valvesoftware.steam ]
+    Parent Identifier: Steam
+
+ #70:
+                 UUID: 00000000-0000-4000-8000-000000000077
+                 Name: Tailscale
+       Developer Name: (null)
+      Team Identifier: W5364U7YZB
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.io.tailscale.ipn.macos
+                  URL: /Applications/Tailscale.app
+           Generation: 21
+    Bundle Identifier: io.tailscale.ipn.macos
+
+ #71:
+                 UUID: 00000000-0000-4000-8000-000000000078
+                 Name: TailscaleLoginItemHelper
+       Developer Name: (null)
+      Team Identifier: W5364U7YZB
+                 Type: login item (0x4)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 4.io.tailscale.ipn.macos.login-item-helper
+                  URL: Contents/Library/LoginItems/TailscaleLoginItemHelper.app
+           Generation: 5
+    Bundle Identifier: io.tailscale.ipn.macos.login-item-helper
+    Parent Identifier: 2.io.tailscale.ipn.macos
+
+ #72:
+                 UUID: 00000000-0000-4000-8000-000000000079
+                 Name: Ubiquiti Inc.
+       Developer Name: Ubiquiti Inc.
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Ubiquiti Inc.
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.wifiman-desktop
+
+ #73:
+                 UUID: 00000000-0000-4000-8000-00000000007A
+                 Name: Warp
+       Developer Name: Denver Technologies, Inc
+      Team Identifier: 2BBY89MBSN
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.dev.warp.Warp-Stable
+                  URL: /Applications/Warp.app
+           Generation: 58
+    Bundle Identifier: dev.warp.Warp-Stable
+             Last Use: 2026-09-22 10:50:42+02:00
+
+ #74:
+                 UUID: 00000000-0000-4000-8000-00000000007B
+                 Name: WarpDockTilePlugin.docktileplugin
+       Developer Name: (null)
+      Team Identifier: 2BBY89MBSN
+                 Type: dock tile (0x80)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 128.dev.warp.WarpDockTilePlugin
+                  URL: Contents/Plugins/WarpDockTilePlugin.docktileplugin
+           Generation: 1
+    Bundle Identifier: dev.warp.WarpDockTilePlugin
+    Parent Identifier: 2.dev.warp.Warp-Stable
+
+ #75:
+                 UUID: 00000000-0000-4000-8000-00000000007C
+                 Name: Wazuh Inc
+       Developer Name: Wazuh Inc
+                 Type: developer (0x20)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: Wazuh Inc
+                  URL: (null)
+           Generation: 1
+  Embedded Item Identifiers:
+    #1: 16.com.wazuh.agent
+
+ #76:
+                 UUID: 00000000-0000-4000-8000-00000000007D
+                 Name: Wetter
+       Developer Name: (null)
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.apple.weather
+                  URL: /System/Applications/Weather.app
+           Generation: 10
+    Bundle Identifier: com.apple.weather
+
+ #77:
+                 UUID: 00000000-0000-4000-8000-00000000007E
+                 Name: WeatherMenu
+       Developer Name: (null)
+                 Type: login item (0x4)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, disallowed, notified] (0x9)
+           Identifier: 4.com.apple.weather.menu
+                  URL: Contents/Library/LoginItems/WeatherMenu.app
+           Generation: 6
+    Bundle Identifier: com.apple.weather.menu
+    Parent Identifier: 2.com.apple.weather
+
+ #78:
+                 UUID: 00000000-0000-4000-8000-00000000007F
+                 Name: Windows App
+       Developer Name: (null)
+      Team Identifier: UBF8T346G9
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.microsoft.rdc.macos
+                  URL: /Applications/Windows App.app
+           Generation: 8
+    Bundle Identifier: com.microsoft.rdc.macos
+
+ #79:
+                 UUID: 00000000-0000-4000-8000-000000000080
+                 Name: QuicklookExtension.appex
+       Developer Name: (null)
+      Team Identifier: UBF8T346G9
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.microsoft.rdc.macos.qlx
+                  URL: Contents/PlugIns/QuicklookExtension.appex
+           Generation: 1
+    Bundle Identifier: com.microsoft.rdc.macos.qlx
+    Parent Identifier: 2.com.microsoft.rdc.macos
+
+ #80:
+                 UUID: 00000000-0000-4000-8000-000000000081
+                 Name: WireGuard
+       Developer Name: (null)
+      Team Identifier: L82V4Y2P3C
+                 Type: app (0x2)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.wireguard.macos
+                  URL: /Applications/WireGuard.app
+           Generation: 0
+    Bundle Identifier: com.wireguard.macos
+
+ #81:
+                 UUID: 00000000-0000-4000-8000-000000000082
+                 Name: WireGuardLoginItemHelper
+       Developer Name: (null)
+      Team Identifier: L82V4Y2P3C
+                 Type: login item (0x4)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 4.com.wireguard.macos.login-item-helper
+                  URL: Contents/Library/LoginItems/WireGuardLoginItemHelper.app
+           Generation: 20
+    Bundle Identifier: com.wireguard.macos.login-item-helper
+    Parent Identifier: 2.com.wireguard.macos
+
+ #82:
+                 UUID: 00000000-0000-4000-8000-000000000083
+                 Name: WoWSync
+       Developer Name: (null)
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2.de.cstrube.wowsync
+                  URL: /Applications/WoWSync.app
+           Generation: 1
+    Bundle Identifier: de.cstrube.wowsync
+
+ #83:
+                 UUID: 00000000-0000-4000-8000-000000000084
+                 Name: Xcode
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, notified] (0xa)
+           Identifier: 2.com.apple.dt.Xcode
+                  URL: /Applications/Xcode.app
+           Generation: 13
+    Bundle Identifier: com.apple.dt.Xcode
+
+ #84:
+                 UUID: 00000000-0000-4000-8000-000000000085
+                 Name: ProvisoningProfileQuicklookExtension.appex
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: quicklook (0x800)
+                Flags: [ sandboxed ] (0x40)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 2048.com.apple.dt.DVTProvisioningProfileQuicklookExtension
+                  URL: Contents/PlugIns/ProvisoningProfileQuicklookExtension.appex
+           Generation: 1
+    Bundle Identifier: com.apple.dt.DVTProvisioningProfileQuicklookExtension
+    Parent Identifier: 2.com.apple.dt.Xcode
+
+ #85:
+                 UUID: 00000000-0000-4000-8000-000000000086
+                 Name: uuid.mdimporter
+       Developer Name: (null)
+      Team Identifier: 59GAB85EFG
+                 Type: spotlight (0x40)
+                Flags: [  ] (0)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 64.com.apple.dt.MDImporter.uuid-importer
+                  URL: Contents/Library/Spotlight/uuid.mdimporter
+           Generation: 1
+    Bundle Identifier: com.apple.dt.MDImporter.uuid-importer
+    Parent Identifier: 2.com.apple.dt.Xcode
+
+ #86:
+                 UUID: 00000000-0000-4000-8000-000000000087
+                 Name: iStat Menus
+       Developer Name: (null)
+      Team Identifier: Y93TK974AT
+                 Type: app (0x2)
+                Flags: [  ] (0)
+          Disposition: [disabled, allowed, not notified] (0x2)
+           Identifier: 2.com.bjango.istatmenus
+                  URL: /Applications/iStat Menus.app
+           Generation: 3
+    Bundle Identifier: com.bjango.istatmenus
+  Embedded Item Identifiers:
+    #1: 8.com.bjango.istatmenus.status
+
+ #87:
+                 UUID: 00000000-0000-4000-8000-000000000088
+                 Name: iStat Menus Helper
+       Developer Name: Bjango Pty Ltd
+      Team Identifier: Y93TK974AT
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.bjango.istatmenus.agent
+                  URL: /Users/501/Library/LaunchAgents/com.bjango.istatmenus.agent.plist
+      Executable Path: /Users/501/Library/Application Support/iStat Menus 7/iStat Menus Helper.app/Contents/MacOS/iStat Menus Helper
+           Generation: 95
+             Last Use: 2026-09-26 16:59:09+02:00
+    Assoc. Bundle IDs: [ com.bjango.istatmenus ]
+    Parent Identifier: 2.com.bjango.istatmenus
+
+ #88:
+                 UUID: 00000000-0000-4000-8000-000000000089
+                 Name: iStat Menus Menubar
+       Developer Name: Bjango Pty Ltd
+      Team Identifier: Y93TK974AT
+                 Type: legacy agent (0x10008)
+                Flags: [ legacy ] (0x1)
+          Disposition: [enabled, allowed, notified] (0xb)
+           Identifier: 8.com.bjango.istatmenus.status
+                  URL: /Users/501/Library/LaunchAgents/com.bjango.istatmenus.status.plist
+      Executable Path: /Users/501/Library/Application Support/iStat Menus 7/iStat Menus Menubar.app/Contents/MacOS/iStat Menus Menubar
+           Generation: 94
+             Last Use: 2026-09-26 16:59:09+02:00
+    Assoc. Bundle IDs: [ com.bjango.istatmenus ]
+    Parent Identifier: 2.com.bjango.istatmenus
+
+
+

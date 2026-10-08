@@ -1,0 +1,2 @@
+FileVault is Off.
+Decryption in progress: Percent completed = 62.00

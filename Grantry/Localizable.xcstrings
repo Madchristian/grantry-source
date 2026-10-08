@@ -1,0 +1,1087 @@
+{
+  "sourceLanguage" : "de",
+  "strings" : {
+    "%@ (Ziel: %@)" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (Ziel: %2$@)"
+          }
+        }
+      }
+    },
+    "%@ anzeigen" : {
+
+    },
+    "%@ startet diesen Server und vererbt seine Berechtigungen:" : {
+
+    },
+    "%@ startet in der Terminal-App – der Server erbt deren Berechtigungen:" : {
+
+    },
+    "%@ · geändert am %@" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ · geändert am %2$@"
+          }
+        }
+      }
+    },
+    "%lld Dienste nehmen Verbindungen aus dem Netz an." : {
+
+    },
+    "%lld Freigaben" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Freigabe"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Freigaben"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld Server" : {
+
+    },
+    "%lld neue Einträge sind nicht mehr (oder nicht mehr unverändert) vorhanden." : {
+
+    },
+    "%lld von %lld erledigt" : {
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld von %2$lld erledigt"
+          }
+        }
+      }
+    },
+    "1 Dienst nimmt Verbindungen aus dem Netz an." : {
+
+    },
+    "1 neuer Eintrag ist nicht mehr (oder nicht mehr unverändert) vorhanden." : {
+
+    },
+    "Abbrechen" : {
+
+    },
+    "Abschließender Scan läuft" : {
+
+    },
+    "Abschließender Scan läuft …" : {
+
+    },
+    "Adresse kopieren" : {
+
+    },
+    "Adressen" : {
+
+    },
+    "Agenten" : {
+
+    },
+    "Agenten durchsuchen" : {
+
+    },
+    "Aktion läuft" : {
+
+    },
+    "Aktionen" : {
+
+    },
+    "Aktivieren" : {
+
+    },
+    "Aktivität" : {
+
+    },
+    "Aktivität filtern" : {
+
+    },
+    "Alle als gelesen markieren" : {
+
+    },
+    "Alle Änderungen" : {
+
+    },
+    "Angaben" : {
+
+    },
+    "Angeboten wird, was von den neuen Einträgen heute noch existiert. Vorausgewählt ist nur, was wahrscheinlich zum Tool gehört; geänderte Einträge setzt Grantry nicht zurück. Von Apps geht nur das Programm selbst in den Papierkorb – Reste wählst du einzeln über „Mit Resten entfernen …“." : {
+
+    },
+    "Anmeldeobjekte öffnen" : {
+
+    },
+    "Ansicht" : {
+
+    },
+    "Anzeigen" : {
+
+    },
+    "Anzeigen …" : {
+
+    },
+    "App" : {
+
+    },
+    "App entfernen …" : {
+
+    },
+    "Apple-Systemdienste ausblenden" : {
+
+    },
+    "Apps" : {
+
+    },
+    "Apps durchsuchen" : {
+
+    },
+    "Apps filtern und sortieren" : {
+
+    },
+    "Apps mit Zugriff" : {
+
+    },
+    "Apps und Dienste durchsuchen" : {
+
+    },
+    "Architektur" : {
+
+    },
+    "Art" : {
+
+    },
+    "Auf dem Mac" : {
+
+    },
+    "Auffällig" : {
+
+    },
+    "Aufgeräumt" : {
+
+    },
+    "Aufräumen" : {
+
+    },
+    "Ausgangsbasis gespeichert" : {
+
+    },
+    "Ausgangsstand unvollständig" : {
+
+    },
+    "Ausgangsstand wird erfasst …" : {
+
+    },
+    "Ausgewähltes entfernen …" : {
+
+    },
+    "Automatische Freigabe" : {
+
+    },
+    "Autostart" : {
+
+    },
+    "Autostart-Eintrag" : {
+
+    },
+    "Autostart-Eintrag %@" : {
+
+    },
+    "Autostart-Einträge durchsuchen" : {
+
+    },
+    "Autostart-Einträge entfernen" : {
+
+    },
+    "Autostart-Einträge ohne Programm" : {
+
+    },
+    "Beenden" : {
+
+    },
+    "Beendet den Prozess nach Bestätigung (SIGTERM)." : {
+
+    },
+    "Befehl" : {
+
+    },
+    "Befehl kopieren" : {
+
+    },
+    "Befehl kopiert" : {
+
+    },
+    "Befehl nachher kopieren" : {
+
+    },
+    "Befehl vorher kopieren" : {
+
+    },
+    "Befehl vorher/nachher" : {
+
+    },
+    "Benutzer" : {
+
+    },
+    "Beobachtung abbrechen und löschen?" : {
+
+    },
+    "Beobachtung abbrechen …" : {
+
+    },
+    "Beobachtung beenden" : {
+
+    },
+    "Beobachtung löschen …" : {
+
+    },
+    "Beobachtung löschen?" : {
+
+    },
+    "Beobachtung nicht lesbar" : {
+
+    },
+    "Beobachtung starten" : {
+
+    },
+    "Beobachtungen" : {
+
+    },
+    "Berechtigung %@" : {
+
+    },
+    "Berechtigungen" : {
+
+    },
+    "Berechtigungen entfernter Apps: %@" : {
+
+    },
+    "Berechtigungen zurücksetzen" : {
+
+    },
+    "Bereich" : {
+
+    },
+    "Besitzer-App" : {
+
+    },
+    "Bitte MacManager beenden und Grantry erneut öffnen. Verlauf und Einstellungen werden dann übernommen." : {
+
+    },
+    "Das Ergebnis ist veraltet – Apps haben sich seit der Suche geändert oder sie liegt länger zurück. Bitte erneut suchen." : {
+
+    },
+    "Datei" : {
+
+    },
+    "Deaktivieren" : {
+
+    },
+    "Der Scan für den Ausgangsstand ist ausgeblieben – bitte erneut versuchen." : {
+
+    },
+    "Der Sicherheitsstatus erscheint nach dem nächsten Scan." : {
+
+    },
+    "Der abschließende Scan ist ausgeblieben – bitte erneut versuchen." : {
+
+    },
+    "Der erste Scan dient als Ausgangsbasis und meldet nichts; erst Änderungen danach erscheinen im Verlauf und als Benachrichtigung." : {
+
+    },
+    "Der erste Scan ist noch nicht abgeschlossen." : {
+
+    },
+    "Der erste Scan läuft. Die Übersicht erscheint, sobald er abgeschlossen ist." : {
+
+    },
+    "Details" : {
+
+    },
+    "Die Beobachtung „%@“ läuft bereits – es kann nur eine gleichzeitig laufen." : {
+
+    },
+    "Die Datei gibt es nicht mehr." : {
+
+    },
+    "Die Firewall ist an. Signierte Apps können je nach Einstellung trotzdem eingehende Verbindungen annehmen." : {
+
+    },
+    "Die Reste findet danach der Bereich „Aufräumen“." : {
+
+    },
+    "Die Reste-Suche ist erst nach dem ersten Scan möglich." : {
+
+    },
+    "Die Suche startet nur, wenn du sie anstößt. Entfernt wird erst nach deiner Bestätigung." : {
+
+    },
+    "Die gespeicherte Beobachtung ließ sich nicht laden." : {
+
+    },
+    "Dienst" : {
+
+    },
+    "Dienst nimmt Verbindungen aus dem Netz an" : {
+
+    },
+    "Dienste" : {
+
+    },
+    "Dienste durchsuchen" : {
+
+    },
+    "Dienste filtern" : {
+
+    },
+    "Dienste nehmen Verbindungen aus dem Netz an" : {
+
+    },
+    "Dienste von macOS und beendete Dienste werden nie gemeldet; der Verlauf enthält alle Änderungen." : {
+
+    },
+    "Einrichtung öffnen …" : {
+
+    },
+    "Einstellung" : {
+
+    },
+    "Empfangen" : {
+
+    },
+    "Empfangen gesamt" : {
+
+    },
+    "Empfangen pro Sekunde" : {
+
+    },
+    "Entfernen …" : {
+
+    },
+    "Entfernt diesen Eintrag – auch alle installierten Apps verlieren die Berechtigung" : {
+
+    },
+    "Erneut prüfen" : {
+
+    },
+    "Erneut suchen" : {
+
+    },
+    "Erneut versuchen" : {
+
+    },
+    "Erreichbarkeit" : {
+
+    },
+    "Erst nach dem ersten Scan möglich" : {
+
+    },
+    "Erst nach dem nächsten Scan verfügbar." : {
+
+    },
+    "Erster Scan" : {
+
+    },
+    "Fehlende Schritte lassen sich später in den Einstellungen nachholen." : {
+
+    },
+    "Fertig" : {
+
+    },
+    "Festplattenvollzugriff öffnen …" : {
+
+    },
+    "Filter" : {
+
+    },
+    "Filter zurücksetzen" : {
+
+    },
+    "Firewall ist aus" : {
+
+    },
+    "Folgt nach „Fertig“" : {
+
+    },
+    "Für alle Apps zurücksetzen …" : {
+
+    },
+    "Für dieses Tool ist nicht bekannt, welche App die Server startet." : {
+
+    },
+    "Gegenstellen" : {
+
+    },
+    "Geltungsbereich" : {
+
+    },
+    "Gelöscht wird nur das Protokoll in Grantry – auf dem Mac ändert sich nichts." : {
+
+    },
+    "Gerade keine Netzwerkaktivität" : {
+
+    },
+    "Gesamt" : {
+
+    },
+    "Gesehen seit" : {
+
+    },
+    "Gesendet" : {
+
+    },
+    "Gesendet gesamt" : {
+
+    },
+    "Gesendet pro Sekunde" : {
+
+    },
+    "Gestartet aus" : {
+
+    },
+    "Gestartet von" : {
+
+    },
+    "Gleiches Label auch in" : {
+
+    },
+    "Grantry" : {
+
+    },
+    "Grantry deinstallieren" : {
+
+    },
+    "Grantry deinstallieren …" : {
+
+    },
+    "Grantry einrichten" : {
+
+    },
+    "Grantry hat keine Reste gelöschter Apps gefunden." : {
+
+    },
+    "Grantry hält jetzt fest, was auf dem Mac eingerichtet ist. Installiere danach das Tool und starte es einmal; beim Beenden der Beobachtung zeigt Grantry, was seitdem hinzugekommen ist – und räumt es auf Wunsch wieder auf." : {
+
+    },
+    "Grantry liest die Konfigurationen von %@." : {
+
+    },
+    "Grantry meldet den Hintergrunddienst und „Beim Anmelden starten“ ab, setzt die gewählten Berechtigungen zurück, legt die Auswahl in den Papierkorb und beendet sich. Für Einträge unter /Library fragt der Finder nach dem Passwort. Einmal gestartet, lässt sich der Vorgang nicht abbrechen; der Fortschritt erscheint hier." : {
+
+    },
+    "Grantry zeigt nur die Namen, nie die Werte." : {
+
+    },
+    "Grantry öffnet nur JSON- und TOML-Dateien, keine anderen Dateiarten." : {
+
+    },
+    "Grantry überwacht Berechtigungen und Autostart-Einträge und meldet jede Änderung. Dafür braucht die App einige Freigaben." : {
+
+    },
+    "Gruppierung" : {
+
+    },
+    "Hauptfenster öffnen" : {
+
+    },
+    "Header" : {
+
+    },
+    "Herkunft" : {
+
+    },
+    "Hinweis: %@" : {
+
+    },
+    "Hinweise" : {
+
+    },
+    "Hält den aktuellen Stand fest und zeigt später, was ein Tool eingerichtet hat." : {
+
+    },
+    "Im Finder zeigen" : {
+
+    },
+    "Im Verlauf" : {
+
+    },
+    "In Anmeldeobjekten öffnen" : {
+
+    },
+    "In Systemeinstellungen öffnen" : {
+
+    },
+    "In den Papierkorb legen" : {
+
+    },
+    "In den Programme-Ordnern wurde keine App gefunden." : {
+
+    },
+    "In „Autostart“ zeigen" : {
+
+    },
+    "In „Berechtigungen“ zeigen" : {
+
+    },
+    "Installation beobachten" : {
+
+    },
+    "Installation beobachten …" : {
+
+    },
+    "Installiere und starte jetzt das Tool. Neue Einträge erscheinen hier nach jedem Scan." : {
+
+    },
+    "Interpreter (node, python …)" : {
+
+    },
+    "Interpreter – die Signatur sagt nichts über das ausgeführte Skript." : {
+
+    },
+    "Jetzt prüfen" : {
+
+    },
+    "Jetzt scannen" : {
+
+    },
+    "Kein Dienst passt zu den gewählten Filtern." : {
+
+    },
+    "Kein Eintrag hat einen Prüfhinweis." : {
+
+    },
+    "Kein Eintrag passt zu den gewählten Filtern." : {
+
+    },
+    "Kein Programm nimmt Verbindungen an (Systemdienste ausgeblendet)." : {
+
+    },
+    "Kein Prozess passt zu den gewählten Filtern." : {
+
+    },
+    "Kein Prozess sendet oder empfängt gerade Daten (Apple-Systemdienste ausgeblendet)." : {
+
+    },
+    "Keine Agenten-Konfigurationen gefunden" : {
+
+    },
+    "Keine App hat einen Prüfhinweis." : {
+
+    },
+    "Keine App passt zu den gewählten Filtern." : {
+
+    },
+    "Keine Apps" : {
+
+    },
+    "Keine Auswahl" : {
+
+    },
+    "Keine Beobachtungen" : {
+
+    },
+    "Keine Berechtigungen" : {
+
+    },
+    "Keine Dienste aus dem Netz erreichbar" : {
+
+    },
+    "Keine Einträge" : {
+
+    },
+    "Keine Messwerte" : {
+
+    },
+    "Keine Netzwerkdienste" : {
+
+    },
+    "Keine Reste gefunden" : {
+
+    },
+    "Keine Treffer" : {
+
+    },
+    "Keine erteilten Berechtigungen bekannt." : {
+
+    },
+    "Keine offenen Verbindungen." : {
+
+    },
+    "Keine Änderung passt zu den gewählten Filtern." : {
+
+    },
+    "Keine Änderungen" : {
+
+    },
+    "Keiner der neuen Einträge ist noch vorhanden." : {
+
+    },
+    "Konfiguration" : {
+
+    },
+    "Kopieren" : {
+
+    },
+    "Lauschende Dienste oder aktuelle Netzwerkaktivität zeigen" : {
+
+    },
+    "Letzte Änderungen" : {
+
+    },
+    "Liste filtern" : {
+
+    },
+    "Live über nettop, alle Prozesse dieses Programms. Summen seit Beginn der Messung." : {
+
+    },
+    "Löschen" : {
+
+    },
+    "MacManager läuft noch" : {
+
+    },
+    "Meldung schließen" : {
+
+    },
+    "Messe Netzwerkaktivität …" : {
+
+    },
+    "Mit Homebrew installiert – solange Homebrew die App verwaltet, sucht Grantry keine Reste. Zum Entfernen im Terminal:" : {
+
+    },
+    "Mit Homebrew installiert. Entferne die App im Terminal:" : {
+
+    },
+    "Mit Resten entfernen …" : {
+
+    },
+    "Nach App" : {
+
+    },
+    "Nach Berechtigung" : {
+
+    },
+    "Nach Updates suchen" : {
+
+    },
+    "Nach Updates suchen …" : {
+
+    },
+    "Nachher" : {
+
+    },
+    "Name" : {
+
+    },
+    "Name, Ziel oder Port" : {
+
+    },
+    "Netzwerk" : {
+
+    },
+    "Netzwerkaktivität" : {
+
+    },
+    "Neu seit 7 Tagen" : {
+
+    },
+    "Neue Netzwerkdienste melden" : {
+
+    },
+    "Neues Tool? Beobachte die Installation – Grantry zeigt danach, was hinzugekommen ist, und räumt es auf Wunsch wieder auf." : {
+
+    },
+    "Nicht prüfen" : {
+
+    },
+    "Nicht von Apple" : {
+
+    },
+    "Nichts Auffälliges" : {
+
+    },
+    "Noch kein Scan durchgeführt" : {
+
+    },
+    "Noch kein Scan durchgeführt." : {
+
+    },
+    "Noch keine Daten" : {
+
+    },
+    "Noch keine Sicherheitsprüfung" : {
+
+    },
+    "Noch nicht geprüft" : {
+
+    },
+    "Noch nicht gesucht" : {
+
+    },
+    "Notiz (optional)" : {
+
+    },
+    "Nur Interpreter (node, python …)" : {
+
+    },
+    "Nur aktive" : {
+
+    },
+    "Nur auf diesem Mac erreichbar" : {
+
+    },
+    "Nur auffällige" : {
+
+    },
+    "Nutzung wird ermittelt …" : {
+
+    },
+    "OK" : {
+
+    },
+    "Offene Verbindungen" : {
+
+    },
+    "Ohne nettop zeigt Grantry keine Zahlen." : {
+
+    },
+    "Ohne zugehörige App" : {
+
+    },
+    "Ort" : {
+
+    },
+    "Paketquelle" : {
+
+    },
+    "Pfad" : {
+
+    },
+    "Plist" : {
+
+    },
+    "Port" : {
+
+    },
+    "Programm" : {
+
+    },
+    "Programm auf dem Mac" : {
+
+    },
+    "Prozess" : {
+
+    },
+    "Prozess beenden …" : {
+
+    },
+    "Prozesse" : {
+
+    },
+    "Rechte des Starters" : {
+
+    },
+    "Reste anzeigen" : {
+
+    },
+    "Reste gelöschter Apps suchen" : {
+
+    },
+    "Reste gelöschter Apps werden gesucht …" : {
+
+    },
+    "Reste von „%@“" : {
+
+    },
+    "Reste werden gesucht …" : {
+
+    },
+    "Scan läuft" : {
+
+    },
+    "Scan läuft …" : {
+
+    },
+    "Schließen" : {
+
+    },
+    "Seit %@" : {
+
+    },
+    "Seit dem ersten Scan hat sich nichts geändert." : {
+
+    },
+    "Server entfernen …" : {
+
+    },
+    "Session-Typen" : {
+
+    },
+    "Sicherheit" : {
+
+    },
+    "Sicherheit anzeigen …" : {
+
+    },
+    "Signatur" : {
+
+    },
+    "Signatur des Programms" : {
+
+    },
+    "Sofort beenden (SIGKILL) …" : {
+
+    },
+    "Sortieren nach" : {
+
+    },
+    "Später" : {
+
+    },
+    "Start" : {
+
+    },
+    "Starte eine Beobachtung, bevor du ein Tool installierst – danach zeigt Grantry, was es eingerichtet hat." : {
+
+    },
+    "Suche abbrechen" : {
+
+    },
+    "Suche abgebrochen – es wird nichts angeboten." : {
+
+    },
+    "Sucht nur – entfernt nichts" : {
+
+    },
+    "System" : {
+
+    },
+    "Systemdienste anzeigen" : {
+
+    },
+    "Trotzdem starten" : {
+
+    },
+    "Täglich prüfen" : {
+
+    },
+    "Umgebung" : {
+
+    },
+    "Umgebungsvariable" : {
+
+    },
+    "Unbekannt" : {
+
+    },
+    "Updates" : {
+
+    },
+    "Verbindungen" : {
+
+    },
+    "Verlauf" : {
+
+    },
+    "Verlauf anzeigen" : {
+
+    },
+    "Verlauf der letzten 2 Minuten: empfangen (farbig) und gesendet (grau)" : {
+
+    },
+    "Verlauf dieses Programms (bis 2 Minuten): empfangen (farbig) und gesendet (grau)" : {
+
+    },
+    "Verlauf filtern" : {
+
+    },
+    "Vermutlich über Autostart-Eintrag" : {
+
+    },
+    "Von außen erreichbar" : {
+
+    },
+    "Voraussetzungen fehlen" : {
+
+    },
+    "Vorher" : {
+
+    },
+    "Weitere Kopie von Grantry – sie teilt Berechtigungen und Daten mit der laufenden Grantry. Grantry entfernt sie deshalb nicht; bitte im Finder in den Papierkorb legen." : {
+
+    },
+    "Wert steht im Klartext in der Konfigurationsdatei – Grantry zeigt ihn nicht an." : {
+
+    },
+    "Wiederherstellbar" : {
+
+    },
+    "Wiederherstellen …" : {
+
+    },
+    "Wird wiederhergestellt" : {
+
+    },
+    "Wähle links eine App, um Details zu sehen." : {
+
+    },
+    "Wähle links eine App, um ihre Berechtigungen zu sehen." : {
+
+    },
+    "Wähle links eine Beobachtung, um ihre Bilanz zu sehen." : {
+
+    },
+    "Wähle links eine Berechtigung, um die Apps damit zu sehen." : {
+
+    },
+    "Wähle links einen Autostart-Eintrag, um Details und Aktionen zu sehen." : {
+
+    },
+    "Wähle links einen Dienst, um Details zu sehen." : {
+
+    },
+    "Wähle links einen MCP-Server oder eine Freigabe, um Details zu sehen." : {
+
+    },
+    "Zeigt den Eintrag im Bereich „Autostart“." : {
+
+    },
+    "Zeigt den Sicherheitsstatus." : {
+
+    },
+    "Zeigt den Verlauf." : {
+
+    },
+    "Zeigt die Berechtigung im Bereich „Berechtigungen“." : {
+
+    },
+    "Zeigt die Berechtigungen nach App." : {
+
+    },
+    "Zeigt die von außen erreichbaren Netzwerkdienste." : {
+
+    },
+    "Zeitraum" : {
+
+    },
+    "Ziel kopieren" : {
+
+    },
+    "Ziel-URL" : {
+
+    },
+    "Zuletzt geprüft: %@" : {
+
+    },
+    "Zuletzt geändert" : {
+
+    },
+    "Zum Autostart-Eintrag" : {
+
+    },
+    "Zum Netzwerkdienst" : {
+
+    },
+    "Zur Sicherheitsprüfung" : {
+
+    },
+    "Zurücksetzen …" : {
+
+    },
+    "Zustand" : {
+
+    },
+    "aufgeräumt" : {
+
+    },
+    "beendet" : {
+
+    },
+    "entfernt" : {
+
+    },
+    "geschlossen" : {
+
+    },
+    "launchd führt je Label nur einen Dienst; Aktivieren/Deaktivieren ist dann gesperrt." : {
+
+    },
+    "lokal" : {
+
+    },
+    "läuft" : {
+
+    },
+    "mit mindestens einer erteilten Berechtigung" : {
+
+    },
+    "nettop meldet für dieses Programm gerade keinen Prozess mit Netzwerkzugriff." : {
+
+    },
+    "neu" : {
+
+    },
+    "neue Apps, Berechtigungen, Autostart und Agenten" : {
+
+    },
+    "und %lld weitere" : {
+
+    },
+    "z. B. Cursor" : {
+
+    },
+    "Ältere Änderungen laden" : {
+
+    },
+    "Änderung" : {
+
+    },
+    "Änderungen" : {
+
+    },
+    "Öffnen" : {
+
+    },
+    "Öffnet die Datei im Editor, wenn sie eine JSON- oder TOML-Datei ist." : {
+
+    },
+    "Öffnet die Datei im Editor." : {
+
+    },
+    "Übersicht" : {
+
+    },
+    "Übertragen seit Beginn der Messung" : {
+
+    },
+    "„%@“ entfernen" : {
+
+    },
+    "„%@“ läuft und hat das Beenden abgelehnt – bitte selbst beenden." : {
+
+    },
+    "„%@“ läuft – zum Entfernen zuerst beenden." : {
+
+    },
+    "„Jetzt scannen“ erfasst Berechtigungen und Autostart-Einträge." : {
+
+    }
+  },
+  "version" : "1.0"
+}

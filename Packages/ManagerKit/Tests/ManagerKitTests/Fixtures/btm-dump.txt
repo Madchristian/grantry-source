@@ -1,0 +1,58 @@
+========================
+ Records for UID 501 : 7E4B2C1A-0000-4000-8000-000000000501
+========================
+
+ ServiceManagement migrated: true
+ SharedFileList migrated: true
+
+ Items:
+
+ #1:
+                 UUID: 1C7E0001-0000-4000-8000-000000000001
+                 Name: Docker
+       Developer Name: Docker Inc
+      Team Identifier: 9BNSXJN65R
+                 Type: app (0x2)
+          Disposition: [enabled, allowed, visible, notified] (0xb)
+           Identifier: 2.com.docker.docker
+                  URL: file:///Applications/Docker.app/
+           Generation: 1
+    Bundle Identifier: com.docker.docker
+    Embedded Item Identifiers:
+        #1: 16.com.docker.helper
+        #2: 8.com.docker.socket
+
+ #2:
+                 UUID: 1C7E0002-0000-4000-8000-000000000002
+                 Name: com.docker.helper
+       Developer Name: Docker Inc
+                 Type: legacy daemon (0x10010)
+          Disposition: [enabled, allowed, visible, notified] (0xb)
+           Identifier: 16.com.docker.helper
+                  URL: file:///Library/LaunchDaemons/com.docker.helper.plist
+      Executable Path: /Library/PrivilegedHelperTools/com.docker.helper
+           Generation: 2
+    Parent Identifier: 2.com.docker.docker
+
+ #3:
+                 UUID: 1C7E0003-0000-4000-8000-000000000003
+                 Name: 1Password Launcher
+       Developer Name: AgileBits Inc.
+      Team Identifier: 2BUA8C4S2C
+                 Type: login item (0x4)
+          Disposition: [disabled, allowed, visible, notified] (0xa)
+           Identifier: 4.com.1password.1password-launcher
+                  URL: file:///Applications/1Password.app/Contents/Library/LoginItems/1Password%20Launcher.app/
+           Generation: 1
+    Bundle Identifier: com.1password.1password-launcher
+    Parent Identifier: 2.com.1password.1password
+
+ #4:
+                 UUID: 1C7E0004-0000-4000-8000-000000000004
+                 Name: de.cstrube.Grantry.Helper
+                 Type: daemon (0x10)
+          Disposition: [enabled, allowed, visible, notified] (0xb)
+           Identifier: 16.de.cstrube.Grantry.Helper
+      Executable Path: /Applications/Grantry.app/Contents/MacOS/GrantryHelper
+           Generation: 1
+    Parent Identifier: 2.de.cstrube.Grantry
