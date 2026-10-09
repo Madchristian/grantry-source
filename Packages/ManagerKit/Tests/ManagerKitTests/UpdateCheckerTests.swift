@@ -43,6 +43,30 @@ import Testing
         #expect(request.1 == "Grantry/2026.10.4 (276; macOS 27.0; arm64)")
     }
 
+    @Test func skipsImplausibleBuildJumpsButAcceptsTheBoundary() async throws {
+        let (checker, _) = checker(.success(AppcastParserTests.feed(
+            AppcastParserTests.item(build: "100277"),
+            AppcastParserTests.item(build: "100276"),
+            AppcastParserTests.item(build: "280")
+        )))
+        #expect(try await checker.check()?.build == 100_276)
+    }
+
+    @Test func ignoresAFeedContainingOnlyAnImplausibleBuildJump() async throws {
+        let (checker, _) = checker(.success(AppcastParserTests.feed(AppcastParserTests.item(build: "100277"))))
+        #expect(try await checker.check() == nil)
+    }
+
+    @Test(arguments: [Int.min, Int.max])
+    func extremeInstalledBuildDoesNotOverflow(build: Int) async throws {
+        let installed = InstalledBuild(info: ["CFBundleVersion": String(build)],
+                                       systemVersion: SystemVersion(major: 27), architecture: "arm64")
+        let checker = UpdateChecker(fetcher: FakeFetcher(result: .success(
+            AppcastParserTests.feed(AppcastParserTests.item())
+        )), installed: installed)
+        #expect(try await checker.check() == nil)
+    }
+
     @Test func nothingNewerMeansUpToDate() async throws {
         let (checker, _) = checker(.success(
             AppcastParserTests.feed(AppcastParserTests.item(version: "2026.10.4", build: "276"))

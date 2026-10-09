@@ -36,11 +36,13 @@ import Synchronization
 /// `~` liegen auf demselben APFS-Volume (Firmlinks). Kopierte er dort, erschiene ein korrekt entsorgter Eintrag als
 /// `vanishedReason`.
 ///
-/// Warum die Restgrenze keine Rechte verschafft: Ein Ersatzobjekt muss der tauschende Prozess selbst an den Pfad
-/// umbenennen – dafür braucht er Schreibrecht auf dessen bisheriges Verzeichnis und auf das des Pfads, und genau damit
-/// könnte er es auch selbst in den Papierkorb legen. Die Passwortabfrage des Finders hebt also nur Rechte für Objekte,
-/// die der Prozess ohnehin bewegen kann; Symlinks entsorgt der Finder selbst, nicht ihr Ziel, und eine harte
-/// Verknüpfung verliert nur einen Namen (`hardLinkedReason`).
+/// Ein Tausch braucht nicht zwingend Schreibrecht auf den direkten Elternordner: Schon ein beschreibbarer
+/// Großelternordner reicht, um den Elternordner durch einen Symlink zu ersetzen und die spätere Finder-Auflösung
+/// umzulenken. Deshalb prüft `RemovalGuard` vor der Freigabe die ganze Kette vom erlaubten Wurzelort bis zum
+/// Elternordner auf Eigentümer, Modusbits und ACLs (#203). Root und der ausführende Benutzer sind vertrauenswürdig;
+/// root-eigene Ordner dürfen für `admin`/`wheel` schreibbar sein (etwa `/Applications`), andere Gruppenschreibrechte,
+/// Other-Write und fremde ACL-Änderungsrechte sperren den Vorgang. Die verbleibende Grenze betrifft damit weiterhin
+/// Prozesse innerhalb dieser Vertrauensgrenze; der nachträgliche Identitätsnachweis bleibt notwendig.
 public struct FinderTrash: TrashPerforming {
     public static let finderBundleID = "com.apple.finder"
     /// Frist für das Apple Event; der Finder wartet ggf. auf die Passworteingabe.

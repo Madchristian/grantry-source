@@ -46,7 +46,8 @@ struct AppsView: View {
         return ScrollViewReader { proxy in
             List(rows, selection: $selection) { row in
                 InstalledAppRowView(row: row, badges: badges?.badges(for: row.id) ?? [],
-                                    isLoading: appDetails.details[row.id] == nil)
+                                    isLoading: appDetails.details[row.id] == nil,
+                                    isRiskAccepted: appModel.monitoring.acceptedAppIDs.contains(row.id))
                     .id(row.id)
                     .onAppear { appDetails.request(row.id) }
                     .onDisappear { appDetails.withdraw(row.id) }
@@ -109,8 +110,15 @@ struct AppsView: View {
     private var detail: some View {
         if let presentation = appModel.presentation, let app = selectedApp {
             InstalledAppDetailView(
-                detail: presentation.detail(for: app, details: appDetails.details[app.id], now: .now),
-                presentation: presentation, actions: appModel.actions
+                detail: InstalledAppDetail(
+                    app: app, details: appDetails.details[app.id],
+                    findings: appModel.monitoring.appFindings.filter { $0.recordID == app.id },
+                    links: presentation.links(for: app), now: .now
+                ),
+                presentation: presentation, actions: appModel.actions,
+                isRiskAccepted: appModel.monitoring.acceptedAppIDs.contains(app.id),
+                acceptanceError: appModel.monitoring.riskAcceptanceError,
+                setRiskAccepted: { try await appModel.setAppRiskAccepted($0, appID: app.id) }
             )
             .id(app.id)
             .onAppear { appDetails.request(app.id) }

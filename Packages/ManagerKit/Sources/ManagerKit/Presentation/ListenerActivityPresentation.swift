@@ -52,8 +52,8 @@ public struct ListenerActivity: Hashable, Sendable {
         public let isNew: Bool
         public let isGone: Bool
 
-        /// Hostname, sonst IP, sonst „Ohne Gegenstelle“.
-        public var title: String { hostName ?? connection.remote.address ?? "Ohne Gegenstelle" }
+        /// Hostname mit IP, sonst IP, sonst „Ohne Gegenstelle“.
+        public var title: String { connection.remoteTitle(hostName: hostName) }
 
         /// „192.0.2.10:443“ bzw. „[2001:db8::1]:443“.
         public var remoteEndpoint: String { connection.remote.description }
@@ -70,7 +70,7 @@ public struct ListenerActivity: Hashable, Sendable {
         /// Ziel zum Kopieren wie in der Aktivitätstabelle; nur mit Gegenstelle.
         public var target: String? { connection.target(hostName: hostName) }
 
-        /// „api.example.com, ausgehend, Port 443, TCP, empfängt 1,2 KB/s, sendet 300 B/s“, ggf. „neu“/„geschlossen“.
+        /// „api.example.com (192.0.2.10), ausgehend, Port 443, TCP, empfängt 1,2 KB/s, sendet 300 B/s“, ggf. „neu“/„geschlossen“.
         public var accessibilityLabel: String {
             var parts = [title]
             if let direction { parts.append(direction.displayName.lowercased()) }

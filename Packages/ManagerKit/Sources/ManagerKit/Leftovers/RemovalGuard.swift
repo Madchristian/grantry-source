@@ -1,5 +1,6 @@
 import Darwin
 import Foundation
+import GrantryShared
 
 public enum RemovalVerdict: Hashable, Sendable {
     case allowed
@@ -19,7 +20,8 @@ public enum RemovalVerdict: Hashable, Sendable {
 /// Pfade werden nach Bytes zerlegt (`RawPath`). Sperrorte, Reste-Orte und App-Wurzeln werden am Objekt erkannt
 /// (`FileIdentity`, `st_dev`/`st_ino` des Eintrags und aller Elternordner) – APFS faltet Schreibweisen weiter als
 /// `lowercased()`; zusätzlich sperrt die Sperrliste auch per Schreibweise (ohne Groß-/Kleinschreibung), falls ein Sperrort
-/// fehlt. Der Pfad muss bis auf den letzten Bestandteil kanonisch sein (`realpath` des Elternordners stimmt überein).
+/// fehlt. Ab dem erlaubten Wurzelort werden auch Eigentümer, Schreibrechte und ACL jedes Elternordners geprüft.
+/// Der Pfad muss bis auf den letzten Bestandteil kanonisch sein (`realpath` des Elternordners stimmt überein).
 public struct RemovalGuard: Sendable {
     /// Ergebnis mit dem geprüften Objekt (für `LeftoverCandidate.identity`).
     enum Inspection: Equatable {
@@ -103,9 +105,11 @@ public struct RemovalGuard: Sendable {
                     return .blocked("Apple-Eintrag")
                 }
             }
-            return .allowed(entry)
+            return Self.inspectDirectoryChain(components, chain: chain, trustedFrom: chain.count - 2)
         }
-        if entry.type == .directory, isAppBundle(components, chain: chain) { return .allowed(entry) }
+        if entry.type == .directory, let rootDepth = appRootDepth(components, chain: chain) {
+            return Self.inspectDirectoryChain(components, chain: chain, trustedFrom: rootDepth)
+        }
         return .blocked("Außerhalb der erlaubten Orte")
     }
 
@@ -128,16 +132,56 @@ public struct RemovalGuard: Sendable {
 
     /// `.app` unter einer App-Wurzel (am Objekt erkannt), höchstens `AppInventorySource.maximumFolderDepth` Ordner tief, Ordner weder
     /// versteckt noch Bundle.
-    private func isAppBundle(_ components: [String], chain: [FileIdentity]) -> Bool {
-        guard RawPath.hasExtension(components[components.count - 1], "app") else { return false }
+    private func appRootDepth(_ components: [String], chain: [FileIdentity]) -> Int? {
+        guard RawPath.hasExtension(components[components.count - 1], "app") else { return nil }
         let roots = layout.appRoots.compactMap(FileIdentity.of)
         // `chain[depth]` ist der Ordner aus den ersten `depth` Bestandteilen.
         guard let rootDepth = chain.indices.dropLast().first(where: { depth in
             roots.contains { $0.isSameObject(as: chain[depth]) }
-        }) else { return false }
+        }) else { return nil }
         let folders = components[rootDepth ..< components.count - 1]
-        return folders.count <= AppInventorySource.maximumFolderDepth
-            && !folders.contains { RawPath.isHidden($0) || RawPath.hasExtension($0, "app") }
+        guard folders.count <= AppInventorySource.maximumFolderDepth,
+              !folders.contains(where: { RawPath.isHidden($0) || RawPath.hasExtension($0, "app") }) else { return nil }
+        return rootDepth
+    }
+
+    /// Öffnet dieselbe Kette ab `/` relativ zu gebundenen Deskriptoren, ohne Symlinks zu folgen. Ab dem erlaubten
+    /// Wurzelort bis einschließlich Elternordner müssen Eigentümer, Modus und ACL vertrauenswürdig sein. Vorfahren
+    /// außerhalb dieses Bereichs werden nur auf Identität geprüft (auch Scratch-Wurzeln dürfen unter `/tmp` liegen).
+    private static func inspectDirectoryChain(_ components: [String], chain: [FileIdentity], trustedFrom rootDepth: Int) -> Inspection {
+        var descriptor = open("/", O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+        guard descriptor >= 0 else { return .blocked("Nicht vorhanden") }
+        defer { close(descriptor) }
+        for depth in 0..<components.count {
+            var info = stat()
+            guard fstat(descriptor, &info) == 0, FileIdentity(info) == chain[depth] else {
+                return .blocked("Eintrag wurde ersetzt")
+            }
+            if depth >= rootDepth {
+                guard hasTrustedDirectoryPermissions(info),
+                      !AccessControlList.grantsModification(toOthersThan: geteuid(), descriptor: descriptor) else {
+                    return .blocked("Ordner fremd beschreibbar")
+                }
+            }
+            if depth < components.count - 1 {
+                let next = openat(descriptor, components[depth], O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+                guard next >= 0 else { return .blocked("Eintrag wurde ersetzt") }
+                close(descriptor)
+                descriptor = next
+            }
+        }
+        var entry = stat()
+        guard fstatat(descriptor, components[components.count - 1], &entry, AT_SYMLINK_NOFOLLOW) == 0,
+              FileIdentity(entry) == chain.last else { return .blocked("Eintrag wurde ersetzt") }
+        return .allowed(FileIdentity(entry))
+    }
+
+    /// Nur root oder der ausführende Benutzer dürfen Eigentümer sein; Other-Write ist immer gesperrt. Gruppenschreibrecht
+    /// ist ausschließlich bei root-eigenen Ordnern mit macOS-Systemgruppe `wheel` (0) oder `admin` (80) erlaubt:
+    /// `/Applications` ist regulär `root:admin 0775`, und diese Gruppen liegen bereits innerhalb der Admin-Vertrauensgrenze.
+    static func hasTrustedDirectoryPermissions(_ info: stat) -> Bool {
+        guard info.st_uid == 0 || info.st_uid == geteuid(), info.st_mode & 0o002 == 0 else { return false }
+        return info.st_mode & 0o020 == 0 || (info.st_uid == 0 && (info.st_gid == 0 || info.st_gid == 80))
     }
 
     /// `lstat` von `/` und jedem Präfix aus `components`; `nil`, wenn eines fehlt.

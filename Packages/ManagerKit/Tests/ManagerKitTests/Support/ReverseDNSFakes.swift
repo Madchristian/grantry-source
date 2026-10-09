@@ -36,3 +36,13 @@ final class MutableInstant: Sendable {
 
     func advance(by duration: Duration) { instant.withLock { $0 += duration } }
 }
+
+/// Feste PTR- und A/AAAA-Antworten an der Systemgrenze, ohne echte DNS-Abfragen.
+struct FakeDNSRecords: Sendable {
+    let names: [String: String]
+    let addresses: [String: [String]]
+
+    var lookup: SystemReverseDNSLookup {
+        SystemReverseDNSLookup(reverseLookup: { names[$0] }, forwardLookup: { addresses[$0] ?? [] })
+    }
+}

@@ -7,9 +7,12 @@ struct RootView: View {
     let prerequisites: PrerequisitesModel
     @Bindable var onboarding: OnboardingModel
     let navigator: MainWindowNavigator
+    let whatsNew: WhatsNewModel
     @State private var window = MainWindowModel()
-    #if DEBUG
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var didCheckPrerequisites = false
+    #if DEBUG
     @State private var didShowRemovalPreview = false
     #endif
 
@@ -25,7 +28,11 @@ struct RootView: View {
                 .navigationSplitViewColumnWidth(min: WindowLayout.contentMin, ideal: WindowLayout.contentMin)
                 .navigationTitle(window.section.title)
                 .navigationSubtitle(ScanStatusText.subtitle(for: appModel.monitoring))
-                .toolbar { ScanToolbarItem(appModel: appModel) }
+                .toolbar {
+                    ScanToolbarItem(isScanning: appModel.monitoring.isScanning) {
+                        Task { await appModel.scanNow() }
+                    }
+                }
         }
         .sheet(isPresented: $onboarding.isPresented) {
             OnboardingView(appModel: appModel, prerequisites: prerequisites, onboarding: onboarding)
@@ -39,7 +46,16 @@ struct RootView: View {
         .environment(window)
         .environment(\.coverageSteps, coverageSteps)
         .onChange(of: onboarding.isPresented, initial: true) { _, isPresented in window.isOnboardingPresented = isPresented }
-        .task { await checkPrerequisites() }
+        .task {
+            await checkPrerequisites()
+            didCheckPrerequisites = true
+        }
+        .onChange(of: canPresentWhatsNew) { _, canPresent in
+            guard ReleaseHighlights.current != nil else { return }
+            if whatsNew.presentIfNeeded(canPresent: canPresent) {
+                openWindow(id: GrantryApp.whatsNewWindowID)
+            }
+        }
         .onChange(of: navigator.request, initial: true) { _, request in
             guard let request else { return }
             window.show(request)
@@ -49,6 +65,10 @@ struct RootView: View {
         #if DEBUG
         .onChange(of: appModel.presentation?.installedApps.count, initial: true) { _, _ in showRemovalPreviewIfRequested() }
         #endif
+    }
+
+    private var canPresentWhatsNew: Bool {
+        didCheckPrerequisites && scenePhase == .active && !onboarding.isPresented && !window.presentsSheet
     }
 
     /// Nächste Schritte der Abdeckungshinweise (#142): Festplattenvollzugriff in den Systemeinstellungen, sonst die
@@ -122,27 +142,6 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-    }
-}
-
-/// „Jetzt scannen“ mit Fortschrittsanzeige, solange ein Scan läuft.
-struct ScanToolbarItem: ToolbarContent {
-    let appModel: AppModel
-
-    var body: some ToolbarContent {
-        ToolbarItem(placement: .primaryAction) {
-            if appModel.monitoring.isScanning {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel("Scan läuft")
-                    .help("Scan läuft")
-            } else {
-                Button("Jetzt scannen", systemImage: "arrow.clockwise") {
-                    Task { await appModel.scanNow() }
-                }
-                .help("Jetzt scannen")
-            }
-        }
     }
 }
 

@@ -65,7 +65,7 @@ import TestSupport
         let row = try #require(model.rows.first)
         #expect(row.title == "curl")
         #expect(row.downloadRate == 1000)
-        #expect(row.children?.first?.title == "api.example.com")
+        #expect(row.children?.first?.title == "api.example.com (192.0.2.10)")
         #expect(model.notice == nil)
 
         model.stop()
@@ -202,7 +202,7 @@ import TestSupport
         try await eventually("Hostname übernommen") { model.hostNames["192.0.2.10"] == "api.example.com" }
 
         #expect(model.frame.report.history.isEmpty)
-        #expect(model.rows.first?.children?.first?.title == "api.example.com")
+        #expect(model.rows.first?.children?.first?.title == "api.example.com (192.0.2.10)")
         await model.stopAndWait()
     }
 
@@ -228,7 +228,7 @@ import TestSupport
             model.frame.report.processes.first?.connections.first?.isGone == true
         }
         #expect(model.hostNames["192.0.2.10"] == "api.example.com")
-        #expect(model.rows.first?.children?.first?.title == "api.example.com")
+        #expect(model.rows.first?.children?.first?.title == "api.example.com (192.0.2.10)")
 
         model.stop()
         streamer.closeAll()

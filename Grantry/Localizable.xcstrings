@@ -1,6 +1,33 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "Dock-Symbol anzeigen" : {},
+    "Grantry bleibt über die Menüleiste erreichbar, auch ohne Dock-Symbol." : {},
+    "Einstellungen …" : {},
+    "Was ist neu?" : {},
+    "Grantry %@" : {},
+    "Los geht’s" : {},
+    "Wenn du diese App kennst und ihr vertraust, kannst du ihre App-Warnungen ausblenden. Die Prüfergebnisse bleiben einsehbar." : {
+
+    },
+    "Du vertraust dieser App. Ihre App-Warnungen sind ausgeblendet. Bei einem Wechsel des Entwicklerteams wird erneut gewarnt." : {
+
+    },
+    "Akzeptierte Prüfhinweise" : {
+
+    },
+    "Eigene Einschätzung" : {
+
+    },
+    "Akzeptanz aufheben" : {
+
+    },
+    "Risiko akzeptieren" : {
+
+    },
+    "Risiko akzeptiert" : {
+
+    },
     "%@ (Ziel: %@)" : {
       "localizations" : {
         "de" : {

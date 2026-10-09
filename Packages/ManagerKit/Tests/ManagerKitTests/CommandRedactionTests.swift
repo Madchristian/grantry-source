@@ -145,12 +145,26 @@ import TestSupport
         }
     }
 
-    @Test func manyOrdinaryArgumentsRemainReadableWithoutQuadraticCopies() {
-        let arguments = ["tool"] + Array(repeating: "ordinary", count: 20_000)
+    @Test(arguments: ["ordinary", "a b"])
+    func manyOrdinaryArgumentsRemainReadableWithoutQuadraticCopies(_ argument: String) {
+        let arguments = ["tool"] + Array(repeating: argument, count: ArgumentRedactor.maximumArgumentCount - 1)
         let elapsed = ContinuousClock().measure {
             #expect(ArgumentRedactor.redact(arguments: arguments).values == arguments)
         }
         #expect(elapsed < .seconds(5))
+    }
+
+    @Test(arguments: [
+        ["env", "-Spython3 -W", "ignore", "-c", "password='fixture199'"],
+        ["env", "--split-string=node --require", "module", "--eval", "const token='fixture199'"],
+        ["env", "-Sperl -I", "lib", "-e", "$password='fixture199'"],
+        ["env", "-Sruby -r", "library", "-e", "password='fixture199'"],
+        ["env", "-Sosascript -l", "AppleScript", "-e", "set password to \"fixture199\""],
+    ])
+    func inlineOptionsContinueAcrossSplitStringAndArgumentList(_ arguments: [String]) {
+        let result = ArgumentRedactor.redact(arguments: arguments, resolvingPath: { _ in nil })
+        #expect(result.values.last == ArgumentRedactor.mask)
+        #expect(result.hasHiddenScript)
     }
 
     private func legacyData(_ value: some Encodable) throws -> Data {

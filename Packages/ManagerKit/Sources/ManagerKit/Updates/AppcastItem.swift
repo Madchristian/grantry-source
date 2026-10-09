@@ -2,6 +2,9 @@ import Foundation
 
 /// Ein gültiger Eintrag des Update-Feeds (Spec Update-Hinweis §2).
 public struct AppcastItem: Equatable, Sendable {
+    /// Plausibilitätsgrenze für den Git-Commit-Zähler; der Checker begrenzt zusätzlich den Abstand zur Installation.
+    static let maximumBuild = 10_000_000
+
     public let version: String
     public let build: Int
     public let minimumSystemVersion: SystemVersion?
@@ -43,8 +46,9 @@ public struct AppcastItem: Equatable, Sendable {
 
     /// `nil`, wenn ein Pflichtfeld fehlt oder ungültig ist oder ein Link nicht auf `UpdateFeed.host` zeigt.
     init?(_ raw: Raw) {
-        guard let build = raw.value(.build).flatMap(Int.init),
-              let version = raw.value(.shortVersion), !version.isEmpty,
+        guard let build = raw.value(.build).flatMap(Int.init), (1...Self.maximumBuild).contains(build),
+              let version = raw.value(.shortVersion),
+              version.wholeMatch(of: /[0-9]{4}\.[0-9]{1,2}\.[0-9]{1,3}/) != nil,
               let download = raw.enclosure["url"].flatMap(URL.init(string:)), UpdateFeed.isAllowed(download)
         else { return nil }
         var releaseNotes: URL?

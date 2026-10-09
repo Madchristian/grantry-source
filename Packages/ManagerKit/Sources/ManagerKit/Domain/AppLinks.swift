@@ -9,7 +9,7 @@ import Foundation
 public struct AppLinks: Hashable, Sendable {
     public let grants: [PermissionGrant]
     public let autostartItems: [AutostartItem]
-    /// IDs (`PermissionGrant.id`, `AutostartItem.id`) der Einträge, die auch eine der `otherInstallations` träfen –
+    /// IDs (`PermissionGrant.id`, `AutostartItem.id`) der Einträge mit mehrdeutiger oder nicht belegter Eigentümerschaft –
     /// nicht vorausgewählt, nur bewusst wählbar.
     public let sharedIDs: Set<String>
     /// Weitere installierte Apps mit derselben Bundle-ID.
@@ -50,9 +50,9 @@ enum LinkAssignment: Hashable, Sendable {
     case unrelated
     /// Gehört nur zu dieser Installation.
     case exclusive
-    /// Gehört dazu, träfe aber auch eine weitere Installation derselben Bundle-ID.
+    /// Passt zur App, ist aber wegen weiterer Installationen oder fehlendem Signaturbeleg nicht eindeutig.
     case shared
-    /// Ein belastbarer Pfad liegt in einer anderen installierten App – gehört nicht dazu.
+    /// Ein belastbarer Pfad liegt in einer anderen App (auch außerhalb des Inventars) – gehört nicht dazu.
     case conflict
 
     /// Gehört zur App (allein oder gemeinsam mit weiteren Installationen).
@@ -102,33 +102,53 @@ struct InstallationIndex {
     /// Anker einer Berechtigung: der TCC-Client selbst, wenn er ein Pfad ist; ein Client nach Bundle-ID gilt für jede
     /// Installation mit dieser Bundle-ID (`tccutil` setzt nur nach Bundle-ID zurück).
     func assignment(of grant: PermissionGrant, to app: InstalledApp) -> LinkAssignment {
-        assignment(owner: grant.client, anchor: grant.clientID.hasPrefix("/") ? grant.clientID : nil, to: app)
+        assignment(owner: grant.client, anchor: grant.clientID.hasPrefix("/") ? grant.clientID : nil,
+                   requiringSameTeam: true, to: app)
     }
 
     /// Anker eines Autostart-Eintrags: sein Programmpfad.
     func assignment(of item: AutostartItem, to app: InstalledApp) -> LinkAssignment {
-        item.owner.map { assignment(owner: $0, anchor: item.program, to: app) } ?? .unrelated
+        item.owner.map { assignment(owner: $0, anchor: item.program, requiringSameTeam: item.domain == .system, to: app) }
+            ?? .unrelated
     }
 
-    private func assignment(owner: AppIdentity, anchor: String?, to app: InstalledApp) -> LinkAssignment {
+    private func assignment(
+        owner: AppIdentity, anchor: String?, requiringSameTeam: Bool, to app: InstalledApp
+    ) -> LinkAssignment {
         let appPath = Self.canonical(app.path)
         let byBundleID = Self.key(app.bundleID) != nil && Self.key(owner.bundleID) == Self.key(app.bundleID)
         guard byBundleID || owner.path.map(Self.canonical) == appPath else { return .unrelated }
-        let anchorApp = anchor.flatMap(installation(containing:))
-        if let anchorApp, Self.canonical(anchorApp.path) != appPath { return .conflict }
+        let anchorApp = anchor.flatMap(bundlePath(containing:))
+        if let anchorApp, anchorApp != appPath { return .conflict }
+        if requiringSameTeam && !Self.hasSameVerifiedTeam(app.signing, owner.signing) { return .shared }
         guard !otherInstallations(of: app).isEmpty else { return .exclusive }
         return anchorApp == nil ? .shared : .exclusive
     }
 
-    /// Innerste installierte App, in deren Bundle `path` liegt (oder die es ist). Jede Stufe wird kanonisiert, damit
-    /// auch nicht vorhandene Pfade unter einem Symlink (`/var` → `/private/var`) ihre App finden.
-    private func installation(containing path: String) -> InstalledApp? {
-        var candidate = path
+    /// Nur zertifikatsgebundene, nicht leere Team-IDs belegen denselben Hersteller. Ad-hoc-Signaturen können
+    /// Metadaten selbst wählen; zwei fehlende Team-IDs sind ebenfalls kein Herkunftsbeleg.
+    private static func hasSameVerifiedTeam(_ app: SigningInfo, _ owner: SigningInfo) -> Bool {
+        let verifiedKinds: Set<SigningInfo.Kind> = [.developerID, .appStore, .development]
+        guard verifiedKinds.contains(app.kind), verifiedKinds.contains(owner.kind),
+              let team = app.teamID, !team.isEmpty else { return false }
+        return team == owner.teamID
+    }
+
+    /// Innerste installierte App am Anker; ohne Inventartreffer das nächste `.app`-Bundle. Eingebettete Helfer
+    /// bleiben Teil ihrer inventarisierten Haupt-App. Jede Stufe wird kanonisiert, auch unter einem Symlink.
+    private func bundlePath(containing path: String) -> String? {
+        guard path.hasPrefix("/") else { return nil }
+        var candidate = Self.canonical(path)
+        var unlistedBundle: String?
         while candidate.count > 1 {
-            if let app = byPath[Self.canonical(candidate)] { return app }
+            let canonical = Self.canonical(candidate)
+            if let app = byPath[canonical] { return Self.canonical(app.path) }
+            if unlistedBundle == nil && (canonical as NSString).pathExtension.lowercased() == "app" {
+                unlistedBundle = canonical
+            }
             candidate = (candidate as NSString).deletingLastPathComponent
         }
-        return nil
+        return unlistedBundle
     }
 
     static func canonical(_ path: String) -> String {

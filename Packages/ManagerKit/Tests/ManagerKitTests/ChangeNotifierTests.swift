@@ -5,6 +5,16 @@ import TestSupport
 
 @Suite(.timeLimit(.minutes(1)))
 struct ChangeNotifierTests {
+    @Test func acceptingAppRemovesQueuedNotificationsButKeepsOtherChanges() async {
+        let notifier = makeNotifier()
+        let app = TestData.installedApp()
+        let other = events(1)
+        await notifier.notify([TestData.historyEvent(.modified, .installedApp(app))] + other)
+        await notifier.discardAppNotifications(for: [app.id])
+        await notifier.flushNow()
+        #expect(fake.all.map(\.identifier) == other.map { $0.id.uuidString })
+    }
+
     private let fake = RecordingNotifier()
     private let clock = TestClock()
 

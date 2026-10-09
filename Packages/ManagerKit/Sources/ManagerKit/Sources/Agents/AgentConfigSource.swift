@@ -106,7 +106,8 @@ public struct AgentConfigSource: InventorySource {
 
         func stamp(_ file: AgentConfigFile, of tool: AgentToolDefinition) -> Int? {
             let path = file.expandedPath(home: home)
-            guard let fingerprint = FileFingerprint(of: FileFingerprint.target(of: path)) else {
+            guard let target = LocalPathResolver.resolve(path, volumes: MountedVolume.current()),
+                  let fingerprint = FileFingerprint(of: target.path) else {
                 entries.withLock { $0[path] = nil }
                 return nil
             }
@@ -126,7 +127,8 @@ public struct AgentConfigSource: InventorySource {
     static func contentStamp(of file: AgentConfigFile, tool: AgentToolDefinition, home: String) -> Int? {
         let path = file.expandedPath(home: home)
         var collected = Collected()
-        let outcome = load(path, as: file, tool: tool, home: AgentConfigReader.Home(home), into: &collected)
+        let context = ScanContext(home: home, volumes: MountedVolume.current())
+        let outcome = load(path, as: file, tool: tool, home: context.home, volumes: context.volumes, into: &collected)
         if case .missing = outcome { return nil }
         var hasher = Hasher()
         if case .loaded(let loaded) = outcome {
@@ -164,11 +166,17 @@ public struct AgentConfigSource: InventorySource {
     private struct ScanContext {
         let home: AgentConfigReader.Home
         let volumes: [MountedVolume]
+
+        init(home: String, volumes: [MountedVolume]) {
+            self.volumes = volumes
+            self.home = LocalPathResolver.resolve(home, volumes: volumes) != nil
+                ? AgentConfigReader.Home(home) : AgentConfigReader.Home(path: home, canonicalPath: nil)
+        }
     }
 
     private func scan() -> InventoryContribution {
         var collected = Collected()
-        let context = ScanContext(home: AgentConfigReader.Home(home), volumes: volumes())
+        let context = ScanContext(home: home, volumes: volumes())
         for tool in catalog.tools {
             scan(tool, context: context, into: &collected)
         }
@@ -195,7 +203,7 @@ public struct AgentConfigSource: InventorySource {
         var registries: [Registry] = []
         for file in tool.files {
             let path = file.expandedPath(home: home)
-            let outcome = Self.load(path, as: file, tool: tool, home: context.home, into: &collected)
+            let outcome = Self.load(path, as: file, tool: tool, home: context.home, volumes: context.volumes, into: &collected)
             if outcome.isFailure, file.projectServerApprovals != nil { sharedApprovals = nil }
             guard let loaded = outcome.loaded else { continue }
             let extraction = AgentConfigExtractor.extract(
@@ -210,7 +218,7 @@ public struct AgentConfigSource: InventorySource {
             }
         }
         guard !registries.isEmpty else { return }
-        let catalogFiles = CatalogFiles(tool.files.map { $0.expandedPath(home: home) })
+        let catalogFiles = CatalogFiles(tool.files.map { $0.expandedPath(home: home) }, volumes: context.volumes)
         for registry in registries {
             guard let location = registry.file.projects else { continue }
             for project in registry.projects where project.path.hasPrefix("/") {
@@ -226,13 +234,15 @@ public struct AgentConfigSource: InventorySource {
     /// Lesen meldete jede Freigabe doppelt.
     private struct CatalogFiles {
         private let paths: Set<String>
+        private let volumes: [MountedVolume]
 
-        init(_ paths: [String]) {
-            self.paths = Set(paths + paths.compactMap(AgentConfigReader.canonicalPath))
+        init(_ paths: [String], volumes: [MountedVolume]) {
+            self.volumes = volumes
+            self.paths = Set(paths + paths.compactMap { LocalPathResolver.resolve($0, volumes: volumes)?.path })
         }
 
         func contains(_ path: String) -> Bool {
-            paths.contains(path) || AgentConfigReader.canonicalPath(path).map(paths.contains) == true
+            paths.contains(path) || LocalPathResolver.resolve(path, volumes: volumes).map { paths.contains($0.path) } == true
         }
     }
 
@@ -248,7 +258,7 @@ public struct AgentConfigSource: InventorySource {
         func path(_ relativePath: String) -> String { (project.path as NSString).appendingPathComponent(relativePath) }
         let projectFilePath = location.projectFile.map { path($0.relativePath) }
         let settingsPaths = location.settingsFiles.map { path($0.relativePath) }
-        guard isReadable(project: project.path, files: [projectFilePath].compactMap(\.self) + settingsPaths,
+        guard Self.isReadable(path: project.path, files: [projectFilePath].compactMap(\.self) + settingsPaths,
                          volumes: context.volumes, into: &collected) else { return }
         var approvalState = sharedApprovals ?? ProjectApprovalState()
         if let projectFile = location.projectFile {
@@ -257,7 +267,7 @@ public struct AgentConfigSource: InventorySource {
         var settingsAreComplete = sharedApprovals != nil
         for (settingsFile, settingsPath) in zip(location.settingsFiles, settingsPaths)
         where !catalogFiles.contains(settingsPath) {
-            let outcome = Self.load(settingsPath, as: settingsFile, tool: tool, home: context.home, into: &collected)
+            let outcome = Self.load(settingsPath, as: settingsFile, tool: tool, home: context.home, volumes: context.volumes, into: &collected)
             if outcome.isFailure { settingsAreComplete = false }
             guard let loaded = outcome.loaded else { continue }
             approvalState = approvalState.overlaid(with: loaded.document, paths: settingsFile)
@@ -274,7 +284,7 @@ public struct AgentConfigSource: InventorySource {
             collected.gaps.append(projectFilePath)
             return
         }
-        guard let loaded = Self.load(projectFilePath, as: projectFile, tool: tool, home: context.home,
+        guard let loaded = Self.load(projectFilePath, as: projectFile, tool: tool, home: context.home, volumes: context.volumes,
                                      into: &collected).loaded else { return }
         let projectExtraction = AgentConfigExtractor.extractProjectFile(
             loaded.document, projectFile: projectFile, projectPath: project.path, approvalState: approvalState, tool: tool,
@@ -285,10 +295,10 @@ public struct AgentConfigSource: InventorySource {
 
     /// `false` (und Lücke für alle `files`), wenn das Projekt auf einem Netzlaufwerk liegt – dann zusätzlich eine
     /// Einschränkung je Volume – oder auf einem nicht eingehängten Volume unter `/Volumes` (`Placement`).
-    private func isReadable(
-        project: String, files: [String], volumes: [MountedVolume], into collected: inout Collected
+    private static func isReadable(
+        path: String, files: [String], volumes: [MountedVolume], into collected: inout Collected
     ) -> Bool {
-        switch Placement(of: project, volumes: volumes) {
+        switch Placement(of: path, volumes: volumes) {
         case .local:
             return true
         case .network(let volume):
@@ -300,28 +310,44 @@ public struct AgentConfigSource: InventorySource {
         case .unmounted:
             collected.gaps += files
             return false
+        case .unknown:
+            collected.gaps += files
+            let volume = MountedVolume.containing(path, in: volumes)?.path ?? "unbekannt"
+            if collected.notedNetworkVolumes.insert(volume).inserted {
+                collected.limitations.append("Konfiguration auf nicht sicher lokalem Volume \(volume) nicht gelesen")
+            }
+            return false
         }
     }
 
     /// Wo ein Pfad liegt – entscheidet, ob der Scan ihn berühren darf.
     enum Placement: Equatable {
-        /// Lokal (oder unbekanntes Volume) – wird normal gelesen.
+        /// Alle Komponenten und Symlink-Ziele sind sicher lokal.
         case local
         /// Auf einem Netzlaufwerk (ohne `MNT_LOCAL`): nicht berühren, ein hängender Server hielte den Scan an.
         case network(MountedVolume)
-        /// Unter `/Volumes/<name>`, das nicht eingehängt ist (und der Pfad fehlt).
+        /// Unter `/Volumes/<name>`, das nicht eingehängt ist.
         case unmounted
+        /// Nicht sicher lokal (etwa eine unbekannte Einhängetabelle oder eine unauflösbare Symlink-Kette).
+        case unknown
 
-        /// Netzlaufwerke werden nur anhand der Einhängetabelle erkannt, ohne ihr Dateisystem zu berühren; bei einem
-        /// nicht eingehängten `/Volumes/<name>` wird nur der (lokale) Pfad auf dem Wurzel-Volume geprüft.
+        /// Wörtliche, nicht eingehängte Volumes bleiben stille Lücken; alle anderen Pfade werden komponentenweise
+        /// geprüft. Der Resolver meldet auch das Netz-Volume eines Symlink-Ziels, ohne es zu berühren.
         init(of path: String, volumes: [MountedVolume]) {
             if let volume = MountedVolume.containing(path, in: volumes), !volume.isLocal {
                 self = .network(volume)
-            } else if let mountPoint = MountedVolume.volumesMountPoint(of: path),
-                      !volumes.contains(where: { $0.path == mountPoint }), Presence(ofItemAt: path) == .missing {
+                return
+            }
+            if let mountPoint = MountedVolume.volumesMountPoint(of: path),
+               !volumes.contains(where: { $0.path == mountPoint }) {
                 self = .unmounted
-            } else {
+                return
+            }
+            var network: MountedVolume?
+            if LocalPathResolver.resolve(path, volumes: volumes, onNetworkVolume: { network = $0 }) != nil {
                 self = .local
+            } else {
+                self = network.map(Self.network) ?? .unknown
             }
         }
     }
@@ -353,8 +379,9 @@ public struct AgentConfigSource: InventorySource {
     /// Einschränkung und Lücke.
     static func load(
         _ path: String, as file: some ParsedConfigFile, tool: AgentToolDefinition, home: AgentConfigReader.Home,
-        into collected: inout Collected
+        volumes: [MountedVolume], into collected: inout Collected
     ) -> LoadOutcome {
+        guard isReadable(path: path, files: [path], volumes: volumes, into: &collected) else { return .failed }
         func failure(_ reason: String) {
             collected.limitations.append("Konfiguration von \(tool.displayName) nicht lesbar (\(path)): \(reason)")
             collected.gaps.append(path)

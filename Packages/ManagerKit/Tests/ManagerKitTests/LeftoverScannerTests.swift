@@ -84,6 +84,25 @@ private final class ConcurrencyRecordingSizer: FileSizeMeasuring {
         }
     }
 
+    @Test(arguments: [SigningInfo.Kind.unsigned, .adHoc, .unknown, .development, .appStore])
+    func systemWideEntriesWithoutDeveloperIDAreUncertain(kind: SigningInfo.Kind) async throws {
+        try await LibraryFixture.with { fixture in
+            var tool = try app(fixture, "Tool", "com.example.tool")
+            tool.signing = SigningInfo(kind: kind)
+            let user = try fixture.file(fixture.userLibrary("Preferences/com.example.tool.plist"))
+            let system = [
+                try fixture.folder(fixture.system("Library/Application Support/com.example.tool")),
+                try fixture.folder(fixture.system("Library/Caches/com.example.tool")),
+                try fixture.file(fixture.system("Library/Preferences/com.example.tool.plist")),
+            ]
+            let candidates = await scan(fixture, for: tool, installed: [tool])
+            let systemCandidates = candidates.filter { system.contains($0.path) }
+            #expect(systemCandidates.count == 3)
+            #expect(systemCandidates.allSatisfy { !$0.isPreselected && $0.note != nil })
+            #expect(candidates.filter { [tool.path, user].contains($0.path) }.allSatisfy { $0.isPreselected })
+        }
+    }
+
     /// Bundle-IDs und Eintragsnamen ohne Groß-/Kleinschreibung (APFS).
     @Test func identifiersIgnoreCase() async throws {
         try await LibraryFixture.with { fixture in

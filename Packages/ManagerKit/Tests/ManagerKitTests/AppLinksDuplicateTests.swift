@@ -90,21 +90,33 @@ import TestSupport
         #expect(AppLinks.of(real, in: snapshot).sharedIDs == [grant.id], "Client nach Bundle-ID trifft beide")
     }
 
-    @Test func grantOfAPathClientIsExclusiveToItsInstallation() {
+    @Test func grantOfAPathClientIsExclusiveToItsSignedInstallation() {
+        let byPath = PermissionGrant(service: "kTCCServiceCamera", client: real.identity, authValue: .allowed, scope: .user,
+                                     lastModified: TestData.date, clientID: real.path)
+        let snapshot = TestData.appSnapshot([real, decoy], grants: [byPath])
+        let links = AppLinks.of(real, in: snapshot)
+        #expect(links.grants == [byPath])
+        #expect(links.sharedIDs.isEmpty, "Pfad und Signatur belegen diese Installation")
+        #expect(AppLinks.of(decoy, in: snapshot).grants.isEmpty)
+    }
+
+    @Test func grantOfAnUnsignedPathClientIsNotPreselected() {
         let byPath = PermissionGrant(service: "kTCCServiceCamera", client: decoy.identity, authValue: .allowed, scope: .user,
                                      lastModified: TestData.date, clientID: decoy.path)
         let snapshot = TestData.appSnapshot([real, decoy], grants: [byPath])
-
         let links = AppLinks.of(decoy, in: snapshot)
         #expect(links.grants == [byPath])
-        #expect(links.sharedIDs.isEmpty, "TCC-Eintrag nach Pfad trifft nur diese Installation")
+        #expect(links.sharedIDs == [byPath.id], "Auch ein Pfad-Client braucht einen Signaturbeleg")
+        #expect(review(links).initialSelection.selected.isEmpty)
         #expect(AppLinks.of(real, in: snapshot).grants.isEmpty)
     }
 
     // MARK: Eintrag ohne Pfad
 
     @Test func entryWithoutPathIsPreselectedOnlyForASingleInstallation() {
-        let grant = TestData.grant(client: bundleOnly)
+        var signedBundleOnly = bundleOnly
+        signedBundleOnly.signing = real.signing
+        let grant = TestData.grant(client: signedBundleOnly)
         let item = agent("com.example.tool.agent", owner: bundleOnly, program: nil)
 
         let single = AppLinks.of(real, in: TestData.appSnapshot([real], grants: [grant], items: [item]))
@@ -143,6 +155,59 @@ import TestSupport
         #expect(plan.grants == [realGrant, shared], "beide nur per Bundle-ID zugeordnet – gemeinsam")
         #expect(plan.acknowledgedSharedIDs == [realGrant.id, shared.id])
         #expect(plan.knownOtherInstallations == [real.path])
+    }
+
+    /// Ein Anker in einem fremden Bundle widerspricht der Bundle-ID auch ohne Inventar-Eintrag.
+    @Test func unlistedAppAnchorIsAConflictEvenWithTheSameTeam() {
+        let outside = "/Library/Application Support/Vendor/Agent.APP/Contents/MacOS/agent"
+        let item = agent("vendor.agent", owner: real.identity, program: outside)
+        let grant = PermissionGrant(service: "kTCCServiceCamera", client: real.identity, authValue: .allowed,
+                                    scope: .user, lastModified: TestData.date, clientID: outside)
+        let snapshot = TestData.appSnapshot([real], grants: [grant], items: [item])
+        let links = AppLinks.of(real, in: snapshot)
+        #expect(links.grants.isEmpty)
+        #expect(links.autostartItems.isEmpty)
+        let plan = RemovalPlanning.plan(for: real, leftovers: LeftoverScanResult(candidates: []), snapshot: snapshot,
+                                        selection: [grant.id, item.id])
+        #expect(plan.grants.isEmpty && plan.autostartItems.isEmpty)
+        #expect(AppLinks.index([real], in: snapshot)[real.id] == links)
+    }
+
+    @Test(arguments: [SigningInfo(kind: .unsigned), SigningInfo(kind: .adHoc, teamID: "TEAMA12345"),
+                      SigningInfo.unknown, SigningInfo(kind: .developerID, teamID: "OTHERTEAM"),
+                      SigningInfo(kind: .developerID), SigningInfo(kind: .developerID, teamID: "")])
+    func systemEntriesAndGrantsNeedMatchingVerifiedTeams(signing: SigningInfo) {
+        var app = real
+        app.signing = signing
+        var daemon = agent("vendor.daemon", owner: real.identity, program: "/Library/PrivilegedHelperTools/vendor")
+        daemon.domain = .system
+        let grant = TestData.grant(client: real.identity)
+        let snapshot = TestData.appSnapshot([app], grants: [grant], items: [daemon])
+        let links = AppLinks.of(app, in: snapshot)
+        #expect(links.grants == [grant] && links.autostartItems == [daemon])
+        #expect(links.sharedIDs == [grant.id, daemon.id])
+        #expect(review(links).initialSelection.selected.isEmpty)
+        #expect(review(links).sharedNotice != nil)
+        #expect(review(links).note(for: grant.id) != nil)
+        #expect(AppLinks.index([app], in: snapshot)[app.id] == links)
+    }
+
+    @Test func unknownOwnerSignatureDoesNotPreselectSystemEntriesOrGrants() {
+        var daemon = agent("vendor.daemon", owner: bundleOnly, program: real.path + "/Contents/MacOS/helper")
+        daemon.domain = .system
+        let grant = TestData.grant(client: bundleOnly)
+        let links = AppLinks.of(real, in: TestData.appSnapshot([real], grants: [grant], items: [daemon]))
+        #expect(links.sharedIDs == [grant.id, daemon.id])
+        #expect(review(links).initialSelection.selected.isEmpty)
+    }
+
+    @Test func singleDeveloperIDInstallationKeepsSystemEntriesAndGrantsPreselected() {
+        var daemon = agent("vendor.daemon", owner: real.identity, program: "/Library/PrivilegedHelperTools/vendor")
+        daemon.domain = .system
+        let grant = TestData.grant(client: real.identity)
+        let links = AppLinks.of(real, in: TestData.appSnapshot([real], grants: [grant], items: [daemon]))
+        #expect(links.sharedIDs.isEmpty)
+        #expect(review(links).initialSelection.selected == [grant.id, daemon.id])
     }
 
     // MARK: Kanonische Pfade

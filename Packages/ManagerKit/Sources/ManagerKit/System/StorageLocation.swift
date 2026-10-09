@@ -31,6 +31,8 @@ public struct StorageLocation: Hashable, Sendable {
     /// Wiederherstellungsbelege (`ReceiptStore`).
     public var receiptsURL: URL { directory.appending(path: "Receipts.json") }
 
+    public var appRiskAcceptancesURL: URL { directory.appending(path: "AppRiskAcceptances.json") }
+
     /// Backups entfernter Benutzer-LaunchAgents (`PlistBackupStore.user(root:)`).
     public var backupsDirectory: URL { directory.appending(path: "Backups", directoryHint: .isDirectory) }
 

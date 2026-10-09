@@ -9,6 +9,7 @@ struct InstalledAppRowView: View {
     let badges: [RecordBadge]
     /// Größe und Nutzung sind noch nicht geladen.
     let isLoading: Bool
+    var isRiskAccepted = false
 
     var body: some View {
         HStack(spacing: 10) {
@@ -33,13 +34,17 @@ struct InstalledAppRowView: View {
                         .foregroundStyle(.tertiary)
                         .lineLimit(1)
                     RecordBadgesRow(badges: badges)
+                    if isRiskAccepted {
+                        Text("Risiko akzeptiert").font(.caption2).foregroundStyle(.secondary)
+                    }
                 }
             }
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: row.accessibilityLabel))
-        .accessibilityValue(Text(verbatim: badges.filter { !$0.isReview }.map(\.accessibilityLabel).joined(separator: ", ")))
+        .accessibilityValue(Text(verbatim: (badges.filter { !$0.isReview }.map(\.accessibilityLabel)
+            + (isRiskAccepted ? [String(localized: "Risiko akzeptiert")] : [])).joined(separator: ", ")))
     }
 }
 

@@ -76,19 +76,35 @@ import TestSupport
 }
 
 /// `verdictIfLocal`: keine Prüfung auf Netzlaufwerken (Einhängepunkte aus dem Test, nie vom echten Mac).
+/// Kanonische Fixture-Pfade wie in der Kernel-Mount-Tabelle; Foundation kürzt dagegen `/private/var` zu `/var`.
 @Suite struct ConfigFileOpeningVolumeTests {
+    @Test func folderSymlinkIntoNetworkVolumeIsNotChecked() throws {
+        try ScratchDirectory.withCanonical { dir in
+            let share = dir.appending(path: "nas")
+            try FileManager.default.createDirectory(at: share, withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: share.appending(path: "settings.json"))
+            let link = dir.appending(path: "project")
+            try FileManager.default.createSymbolicLink(atPath: link.path, withDestinationPath: share.path)
+            let volumes = [MountedVolume(path: "/", isLocal: true), MountedVolume(path: share.path, isLocal: false)]
+            #expect(ConfigFileOpening.verdictIfLocal(for: link.path + "/settings.json", home: dir.path, volumes: volumes) == nil)
+            #expect(ConfigFileOpening.verdictIfLocal(for: link.path + "/settings.json", home: dir.path,
+                                                    volumes: [MountedVolume(path: "/", isLocal: true)])
+                == .openable(share.appending(path: "settings.json")))
+        }
+    }
+
     @Test func localFileGetsTheVerdict() throws {
-        try ScratchDirectory.with { dir in
+        try ScratchDirectory.withCanonical { dir in
             let file = dir.appending(path: "settings.json")
             try Data("{}".utf8).write(to: file)
             let volumes = [MountedVolume(path: "/", isLocal: true)]
             #expect(ConfigFileOpening.verdictIfLocal(for: file.path, home: dir.path, volumes: volumes)
-                == .openable(file.resolvingSymlinksInPath()))
+                == .openable(file))
         }
     }
 
     @Test func fileOnNetworkVolumeIsNotChecked() throws {
-        try ScratchDirectory.with { dir in
+        try ScratchDirectory.withCanonical { dir in
             let file = dir.appending(path: "settings.json")
             try Data("{}".utf8).write(to: file)
             let volumes = [MountedVolume(path: "/", isLocal: true), MountedVolume(path: dir.path, isLocal: false)]
@@ -99,7 +115,7 @@ import TestSupport
 
     /// Ein lokaler Symlink, dessen (relatives) Ziel auf einem Netzlaufwerk liegt, wird nicht aufgelöst.
     @Test func symlinkIntoNetworkVolumeIsNotResolved() throws {
-        try ScratchDirectory.with { dir in
+        try ScratchDirectory.withCanonical { dir in
             let share = dir.appending(path: "nas")
             try FileManager.default.createDirectory(at: share, withIntermediateDirectories: true)
             try Data("{}".utf8).write(to: share.appending(path: "real.json"))

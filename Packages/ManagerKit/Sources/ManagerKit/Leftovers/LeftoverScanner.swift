@@ -138,6 +138,8 @@ struct LeftoverMatcher {
         "coreparsec", "sharedfilelist", "keychains", "recents", "screen sharing",
     ]
 
+    private let layout: LibraryLayout
+    private let hasDeveloperID: Bool
     private let appID: String?
     private let names: Set<String>
     private let isAppleApp: Bool
@@ -151,6 +153,8 @@ struct LeftoverMatcher {
     private let teamContainerNote: String?
 
     init(app: InstalledApp, installedApps: [InstalledApp], verification: AppleAppVerification) {
+        layout = verification.catalog.layout
+        hasDeveloperID = app.signing.kind == .developerID
         let others = installedApps.filter { $0.id != app.id }
         let appID = app.bundleID?.lowercased()
         self.appID = appID
@@ -180,9 +184,9 @@ struct LeftoverMatcher {
     }
 
     func match(name: String, in location: LeftoverLocation) -> Match? {
-        if location.naming == .groupContainer { return groupContainerMatch(name) }
+        if location.naming == .groupContainer { return groupContainerMatch(name, in: location) }
         if let appID, let identifier = location.naming.identifier(in: name), ownership.owner(of: identifier) == appID {
-            return ownedMatch
+            return ownedMatch(in: location)
         }
         guard location.allowsNameMatches, !isAppleApp, AppleEntryName.identifier(in: name) == nil,
               ownership.owner(of: name) == nil, names.contains(Self.normalized(name))
@@ -200,18 +204,20 @@ struct LeftoverMatcher {
         app.signing.teamID != nil || [.apple, .adHoc, .unsigned].contains(app.signing.kind)
     }
 
-    /// Treffer per Bundle-ID: sicher, außer eine weitere installierte App trägt dieselbe.
-    private var ownedMatch: Match {
-        duplicateNote.map(Match.uncertain) ?? .safe
+    /// Treffer per Bundle-ID: bei Duplikaten oder systemweiten Orten ohne Developer-ID-Signatur unsicher.
+    private func ownedMatch(in location: LeftoverLocation) -> Match {
+        if let duplicateNote { return .uncertain(duplicateNote) }
+        if layout.isSystemWide(location) && !hasDeveloperID { return .uncertain(OrphanScanner.systemWideNote) }
+        return .safe
     }
 
     /// `group.<id>` wie die Bundle-ID; `<TEAM>.…` sicher nur, wenn keine andere installierte App dieses Team oder diesen
     /// Hersteller hat und alle anderen eine bekannte Team-ID haben; Apple-Kennungen nur für nachweisliche Apple-Apps.
-    private func groupContainerMatch(_ name: String) -> Match? {
+    private func groupContainerMatch(_ name: String, in location: LeftoverLocation) -> Match? {
         switch GroupContainerName(name) {
         case .group(let rest)?:
             guard let appID, ownership.owner(of: rest) == appID else { return nil }
-            return ownedMatch
+            return ownedMatch(in: location)
         case .team(let team, let rest)?:
             guard let teamID, team == teamID, isVerifiedAppleApp || !AppleEntryName.isApple(rest) else { return nil }
             return teamContainerNote.map(Match.uncertain) ?? .safe

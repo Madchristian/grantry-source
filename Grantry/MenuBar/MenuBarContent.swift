@@ -8,6 +8,7 @@ struct MenuBarContent: View {
     let prerequisites: PrerequisitesModel
     let onboarding: OnboardingModel
     let navigator: MainWindowNavigator
+    @Environment(\.openSettings) private var openSettings
     @Environment(\.openWindow) private var openWindow
     @Environment(UpdateModel.self) private var updates
 
@@ -157,14 +158,27 @@ struct MenuBarContent: View {
     }
 
     private var commands: some View {
-        HStack {
-            Button("Hauptfenster öffnen") { showMainWindow() }
-                .keyboardShortcut(.defaultAction)
-            Button("Jetzt scannen") { Task { await appModel.scanNow() } }
-                .disabled(appModel.monitoring.isScanning)
-            Spacer()
-            Button("Beenden") { NSApp.terminate(nil) }
-                .keyboardShortcut("q")
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Button("Hauptfenster öffnen") { showMainWindow() }
+                    .keyboardShortcut(.defaultAction)
+                Button("Jetzt scannen") { Task { await appModel.scanNow() } }
+                    .disabled(appModel.monitoring.isScanning)
+                Spacer()
+                Button("Beenden") { NSApp.terminate(nil) }
+                    .keyboardShortcut("q")
+            }
+            HStack {
+                Button("Einstellungen …") {
+                    openSettings()
+                    NSApp.activate()
+                }
+                Button("Was ist neu?") {
+                    openWindow(id: GrantryApp.whatsNewWindowID)
+                    NSApp.activate()
+                }
+                .disabled(ReleaseHighlights.current == nil)
+            }
         }
     }
 

@@ -4,8 +4,22 @@ public struct ChangeDescription: Hashable, Sendable {
     public let body: String
 
     public init(title: String, body: String) {
-        self.title = title
-        self.body = body
+        self.init(title: title, bodyLines: [body])
+    }
+
+    /// Nur Sammelmeldungen dürfen eigene Zeilen trennen; jeder fremde Text bleibt innerhalb einer bereinigten Zeile.
+    private init(title: String, bodyLines: [String]) {
+        self.title = Self.boundedSingleLine(title)
+        self.body = bodyLines.map(Self.boundedSingleLine).joined(separator: "\n")
+    }
+
+    /// Höchstlänge je Titel, Einzeltext und Vorschauzeile, einschließlich Auslassungszeichen.
+    private static let maximumTextLength = 240
+
+    private static func boundedSingleLine(_ text: String) -> String {
+        let line = DisplayText.singleLine(text)
+        guard line.count > maximumTextLength else { return line }
+        return String(line.prefix(maximumTextLength - 1)) + "…"
     }
 
     public init(_ event: ChangeEvent) {
@@ -34,7 +48,7 @@ public struct ChangeDescription: Hashable, Sendable {
             return "\(description.title): \(description.body)"
         }
         let lines = events.count > summaryPreviewCount ? shown + ["…"] : shown
-        return ChangeDescription(title: "\(events.count) Änderungen", body: lines.joined(separator: "\n"))
+        return ChangeDescription(title: "\(events.count) Änderungen", bodyLines: lines)
     }
 
     private static let summaryPreviewCount = 2

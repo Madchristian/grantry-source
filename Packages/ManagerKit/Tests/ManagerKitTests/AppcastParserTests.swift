@@ -52,6 +52,30 @@ import Testing
         #expect(item.publishedAt == Date(timeIntervalSince1970: 1_791_096_120))
     }
 
+    @Test(arguments: ["2026.1.1", "2026.10.81", "2026.10.301"])
+    func acceptsCalVerIncludingSameDaySuffix(version: String) throws {
+        let items = try AppcastParser.items(from: Self.feed(Self.item(version: version)))
+        #expect(items.first?.version == version)
+    }
+
+    @Test(arguments: ["", "1.2.3", "2026.100.1", "2026.10.1000", "2026.10.5-beta",
+                      "2026.10.5\ninstructions", "２０２６.10.5", "2026..5"])
+    func invalidVersionsDoNotDiscardValidEntries(version: String) throws {
+        let items = try AppcastParser.items(from: Self.feed(Self.item(version: version), Self.item()))
+        #expect(items.map(\.version) == ["2026.10.5"])
+    }
+
+    @Test(arguments: ["0", "-1", "10000001", String(Int.max)])
+    func implausibleBuildsDoNotDiscardValidEntries(build: String) throws {
+        let items = try AppcastParser.items(from: Self.feed(Self.item(build: build), Self.item()))
+        #expect(items.map(\.build) == [280])
+    }
+
+    @Test func acceptsTheAbsoluteBuildLimit() throws {
+        let items = try AppcastParser.items(from: Self.feed(Self.item(build: "10000000")))
+        #expect(items.first?.build == 10_000_000)
+    }
+
     @Test func optionalFieldsMayBeMissing() throws {
         let item = try #require(try AppcastParser.items(from: Self.feed(Self.item(minimumSystem: nil, notes: nil))).first)
         #expect(item.minimumSystemVersion == nil)
@@ -251,9 +275,11 @@ import Testing
     }
 
     @Test func readsAFieldExactlyAtTheLimit() throws {
-        let version = String(repeating: "1", count: UpdateFeed.maximumFieldLength)
-        let item = try #require(try AppcastParser.items(from: Self.feed(Self.item(shortVersion: version))).first)
-        #expect(item.version == version)
+        // Ein gültiger Link kann die Feldgrenze erreichen; eine CalVer-Version ist zwingend kürzer.
+        let prefix = "https://grantry.cstrube.de/"
+        let notes = prefix + String(repeating: "a", count: UpdateFeed.maximumFieldLength - prefix.utf8.count)
+        let item = try #require(try AppcastParser.items(from: Self.feed(Self.item(notes: notes))).first)
+        #expect(item.releaseNotesURL?.absoluteString == notes)
     }
 
     @Test func rejectsAFieldAboveTheLimit() {

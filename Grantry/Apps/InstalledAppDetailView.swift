@@ -9,6 +9,11 @@ struct InstalledAppDetailView: View {
     let detail: InstalledAppDetail
     let presentation: PresentationSnapshot
     let actions: ActionRunner
+    let isRiskAccepted: Bool
+    let acceptanceError: String?
+    let setRiskAccepted: (Bool) async throws -> Void
+    @State private var isSavingAcceptance = false
+    @State private var saveError: String?
     @Environment(MainWindowModel.self) private var window
 
     private var app: InstalledApp { detail.app }
@@ -17,6 +22,7 @@ struct InstalledAppDetailView: View {
         Form {
             header
             actionSection
+            riskAcceptanceSection
             factsSection
             placeSection
             findingsSection
@@ -24,6 +30,33 @@ struct InstalledAppDetailView: View {
             autostartSection
         }
         .formStyle(.grouped)
+    }
+
+    private var riskAcceptanceSection: some View {
+        Section("Eigene Einschätzung") {
+            if isRiskAccepted {
+                Label("Risiko akzeptiert", systemImage: "checkmark.circle")
+                Text("Du vertraust dieser App. Ihre App-Warnungen sind ausgeblendet. Bei einem Wechsel des Entwicklerteams wird erneut gewarnt.")
+                    .font(.callout).foregroundStyle(.secondary)
+            } else {
+                Text("Wenn du diese App kennst und ihr vertraust, kannst du ihre App-Warnungen ausblenden. Die Prüfergebnisse bleiben einsehbar.")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+            Button(isRiskAccepted ? "Akzeptanz aufheben" : "Risiko akzeptieren") {
+                let accepted = !isRiskAccepted
+                isSavingAcceptance = true
+                saveError = nil
+                Task {
+                    defer { isSavingAcceptance = false }
+                    do { try await setRiskAccepted(accepted) }
+                    catch { saveError = "Entscheidung nicht gespeichert: \(error.readableDescription)" }
+                }
+            }
+            .disabled(isSavingAcceptance)
+            if let error = saveError ?? acceptanceError {
+                Text(verbatim: error).foregroundStyle(.red)
+            }
+        }
     }
 
     private var header: some View {
@@ -90,7 +123,15 @@ struct InstalledAppDetailView: View {
     @ViewBuilder
     private var findingsSection: some View {
         if !detail.findings.isEmpty {
-            Section("Hinweise") { RecordHints(findings: detail.findings) }
+            Section(isRiskAccepted ? "Akzeptierte Prüfhinweise" : "Hinweise") {
+                if isRiskAccepted {
+                    ForEach(detail.findings) { finding in
+                        Text(verbatim: finding.message).foregroundStyle(.secondary)
+                    }
+                } else {
+                    RecordHints(findings: detail.findings)
+                }
+            }
         }
     }
 

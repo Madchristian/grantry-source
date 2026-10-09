@@ -47,6 +47,9 @@ enum ArgumentRedactor {
     /// Ersatz für jeden maskierten Wert.
     static let mask = "•••"
 
+    /// Oberhalb dieser Argumentzahl wird der Befehl ohne weitere Analyse vollständig verborgen (#199).
+    static let maximumArgumentCount = 4_096
+
     /// Mehrere maskierte Argumente samt Hinweis, ob darin ein Geheimnis im Klartext stand.
     struct Arguments: Equatable {
         let values: [String]
@@ -103,7 +106,12 @@ enum ArgumentRedactor {
     static func redact(
         arguments: [String], program: String? = nil, resolvingPath: ((String) -> String?)? = nil
     ) -> Arguments {
-        let scripts = ShellSyntax.scriptIndices(in: arguments, program: program, resolvingPath: resolvingPath ?? CommandInterpreterPath.resolve)
+        guard arguments.count <= maximumArgumentCount else {
+            return Arguments(values: Array(repeating: mask, count: arguments.count),
+                             containsSecret: false, hasHiddenScript: true)
+        }
+        let scripts = ShellSyntax.scriptIndices(in: arguments, program: program,
+                                               resolvingPath: resolvingPath ?? CommandInterpreterPath.makeResolver())
         let list = redactList(arguments, depth: 0)
         guard !scripts.isEmpty else { return list }
         // Mögliche Skripte: ganz oder gar nicht. Ändert schon die Argumentregel etwas (auch über ein Flag davor, etwa

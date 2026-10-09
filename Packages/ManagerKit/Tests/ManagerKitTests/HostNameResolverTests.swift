@@ -14,6 +14,63 @@ import TestSupport
         HostNameResolver(lookup: dns, now: { [time] in time.now }, sleep: sleep)
     }
 
+    /// Ein frei gesetzter PTR-Eintrag genügt nicht: A/AAAA müssen dieselbe Adresse enthalten.
+    @Test(arguments: [[], ["192.0.2.20"], ["2001:db8::10"], ["kein-host"]])
+    func rejectsReverseNameWithoutMatchingForwardAddress(addresses: [String]) async {
+        let dns = FakeDNSRecords(names: ["192.0.2.10": "api.github.com"],
+                                 addresses: ["api.github.com": addresses])
+        #expect(await dns.lookup.hostName(for: "192.0.2.10") == nil)
+    }
+
+    @Test(arguments: ["2001:db8::10", "2001:db8::11"])
+    func comparesIPv6AddressesNumerically(address: String) async {
+        let dns = FakeDNSRecords(names: [address: "api.example.com"],
+                                 addresses: ["api.example.com": ["2001:0DB8:0:0:0:0:0:0010"]])
+        let expected: String? = address == "2001:db8::10" ? "api.example.com" : nil
+        #expect(await dns.lookup.hostName(for: address) == expected)
+    }
+
+    @Test func acceptsMatchingAddressAmongSeveralForwardResults() async {
+        let dns = FakeDNSRecords(names: ["192.0.2.10": "api.example.com"],
+                                 addresses: ["api.example.com": ["2001:db8::1", "192.0.2.20", "192.0.2.10"]])
+        #expect(await dns.lookup.hostName(for: "192.0.2.10") == "api.example.com")
+    }
+
+    @Test func missingReverseNameSkipsForwardLookup() async {
+        let lookup = SystemReverseDNSLookup(reverseLookup: { _ in nil }, forwardLookup: { _ in
+            Issue.record("Ohne PTR darf keine Vorwärtsabfrage starten")
+            return []
+        })
+        #expect(await lookup.hostName(for: "192.0.2.10") == nil)
+    }
+
+    /// Der bestehende Timer umfasst auch die Vorwärtsauflösung; ihr Platz bleibt bis zum Ende belegt.
+    @Test func forwardLookupSharesTimeoutAndKeepsSlotUntilFinished() async throws {
+        let started = OneShot<Void>()
+        let gate = DispatchSemaphore(value: 0)
+        defer { gate.signal() }
+        let lookup = SystemReverseDNSLookup(reverseLookup: { _ in "api.example.com" }, forwardLookup: { _ in
+            started.resolve(())
+            guard gate.wait(timeout: .now() + 10) == .success else {
+                Issue.record("Vorwärtsauflösung wurde nicht freigegeben")
+                return []
+            }
+            return ["192.0.2.10"]
+        })
+        let resolver = HostNameResolver(lookup: lookup, maximumConcurrentLookups: 1,
+                                        sleep: { _ in await started.value })
+        #expect(await resolver.resolve("192.0.2.10") == nil)
+        #expect(resolver.cachedName(for: "192.0.2.10") == nil)
+        #expect(!resolver.needsLookup("192.0.2.20"))
+        #expect(await resolver.resolve("192.0.2.20") == nil)
+        gate.signal()
+        while resolver.cachedName(for: "192.0.2.10") == nil {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(resolver.cachedName(for: "192.0.2.10") == "api.example.com")
+        #expect(resolver.needsLookup("192.0.2.20"))
+    }
+
     @Test func cachesNamesForTenMinutes() async {
         let dns = FakeReverseDNS(["192.0.2.10": "api.example.com"])
         let resolver = resolver(dns)

@@ -36,21 +36,19 @@ public enum ConfigFileOpening {
         verdictIfLocal(for: path, home: home, volumes: MountedVolume.current())
     }
 
-    /// Höchstzahl der Symlinks, denen `verdictIfLocal` vor der Prüfung folgt.
-    private static let maximumLinkHops = 8
-
     static func verdictIfLocal(for path: String, home: String, volumes: [MountedVolume]) -> Verdict? {
-        var current = fileURL(for: path, home: home).standardized
-        for _ in 0...maximumLinkHops {
-            guard MountedVolume.containing(current.path, in: volumes)?.isLocal != false else { return nil }
-            // `readlink` liest nur den Link selbst; sein Ziel wird vor dem nächsten Zugriff geprüft. Grenze: Symlinks
-            // in Ordnern des Pfads (statt am Ende) werden nicht vorab verfolgt.
-            guard let destination = try? FileManager.default.destinationOfSymbolicLink(atPath: current.path) else {
-                return verdict(for: path, home: home)
-            }
-            current = URL(filePath: destination, relativeTo: current.deletingLastPathComponent()).absoluteURL.standardized
+        guard let target = LocalPathResolver.resolve(fileURL(for: path, home: home).path, volumes: volumes) else {
+            return nil
         }
-        return nil
+        switch target.entry {
+        case .missing:
+            return .missing
+        case .regularFile:
+            let url = URL(filePath: target.path)
+            return editableExtensions.contains(url.pathExtension.lowercased()) ? .openable(url) : .notEditable
+        default:
+            return .notEditable
+        }
     }
 
     /// Datei-URL zu `path`; ein führendes `~` steht für `home`.

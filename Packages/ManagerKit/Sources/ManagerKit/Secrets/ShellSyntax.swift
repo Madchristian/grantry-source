@@ -41,8 +41,10 @@ enum ShellSyntax {
     ) -> Set<Int> {
         guard !arguments.isEmpty else { return [] }
         let names = { (path: String) in [path] + [resolvingPath?(path)].compactMap(\.self) }
-        func startsScript(_ executable: String, following: ArraySlice<String>) -> Bool {
-            names(executable).contains { isShell($0) || hasInlineCode(program: $0, arguments: following) }
+        func startsScript<Following: Sequence>(
+            _ executable: String, following: @autoclosure () -> Following
+        ) -> Bool where Following.Element == String {
+            names(executable).contains { isShell($0) || hasInlineCode(program: $0, arguments: following()) }
         }
         if startsScript(program ?? arguments[0], following: arguments.dropFirst()) {
             return Set(1..<arguments.endIndex)
@@ -57,7 +59,8 @@ enum ShellSyntax {
             if split.hasPrefix("--split-string=") { split = String(split.dropFirst("--split-string=".count)) }
             let words = split.filter { !"'\"\\".contains($0) }.split(whereSeparator: \.isWhitespace).map(String.init)
             if !words.isEmpty, (words.count > 1 || split != arguments[index]), words.indices.contains(where: {
-                startsScript(words[$0], following: (Array(words.dropFirst($0 + 1)) + arguments.dropFirst(index + 1))[...])
+                // Nur Interpreter brauchen Folgeargumente; die beiden Slices werden ohne Kopie verkettet.
+                startsScript(words[$0], following: [words.dropFirst($0 + 1), arguments.dropFirst(index + 1)].joined())
             }) { return Set(index..<arguments.endIndex) }
         }
         return []
@@ -65,7 +68,9 @@ enum ShellSyntax {
 
     /// Nur Inline-Aufrufe der unterstützten Sprachen; `python server.py` / `node server.js` bleiben normale argv.
     /// Hinter einer Skriptdatei oder `--` werden Optionen nicht mehr als Interpreter-Optionen gelesen.
-    private static func hasInlineCode(program: String, arguments: ArraySlice<String>) -> Bool {
+    private static func hasInlineCode<Arguments: Sequence>(
+        program: String, arguments: @autoclosure () -> Arguments
+    ) -> Bool where Arguments.Element == String {
         let name = (program.split(separator: "/").last.map(String.init) ?? program).lowercased()
         let python = name.wholeMatch(of: /python[0-9.]*/) != nil
         let perl = name.wholeMatch(of: /perl[0-9.]*/) != nil
@@ -76,7 +81,7 @@ enum ShellSyntax {
             : node ? ["-r", "--require", "--import", "--loader", "--input-type"]
             : name == "osascript" ? ["-l", "-s"] : ["-I", "-r", "-M", "-m", "-F"]
         var skipValue = false
-        for argument in arguments {
+        for argument in arguments() {
             if skipValue { skipValue = false; continue }
             guard argument.hasPrefix("-"), argument != "--", argument != "-" else { return false }
             if takesValue.contains(argument) { skipValue = true; continue }
@@ -102,7 +107,8 @@ enum ShellSyntax {
     /// Ob `arguments` ein Skript enthält, das als Ganzes maskiert ist (`ArgumentRedactor.mask`) – für Hinweise in der
     /// Anzeige.
     static func hasHiddenScript(in arguments: [String], program: String? = nil) -> Bool {
-        scriptIndices(in: arguments, program: program).contains { arguments[$0] == ArgumentRedactor.mask }
+        if arguments.count > ArgumentRedactor.maximumArgumentCount { return true }
+        return scriptIndices(in: arguments, program: program).contains { arguments[$0] == ArgumentRedactor.mask }
     }
 
     /// Basename eines Shell-Programms, auch als Login-Shell-Name (`-bash`). Ohne Rücksicht auf Groß-/Kleinschreibung:

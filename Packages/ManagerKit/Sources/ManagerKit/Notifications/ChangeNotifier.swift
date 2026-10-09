@@ -47,6 +47,14 @@ public actor ChangeNotifier {
         await flush()
     }
 
+    /// Eine gerade akzeptierte App soll auch aus dem noch nicht zugestellten Sammelfenster verschwinden.
+    public func discardAppNotifications(for appIDs: Set<String>) {
+        pending.removeAll {
+            if case .installedApp(let app) = $0.event.subject { return appIDs.contains(app.id) }
+            return false
+        }
+    }
+
     private func windowElapsed(_ id: Int) async {
         guard id == windowID else { return }
         await flush()

@@ -52,6 +52,19 @@ import Testing
         #expect(preferences.isCheckDue(now: now))
     }
 
+    @Test(arguments: [Int.max, 100_000, 281])
+    func repairsAPreviouslyPoisonedNotificationBuild(build: Int) throws {
+        let store = InMemorySettingsStore()
+        let preferences = UpdatePreferences(store: store)
+        preferences.lastNotifiedBuild = build
+        // Der aktuelle gültige Feed setzt die Schranke zurück, ohne ein älteres Update erneut zu melden.
+        #expect(!preferences.claimNotification(for: try item(build: 280)))
+        #expect(UpdatePreferences(store: store).lastNotifiedBuild == 280)
+        #expect(!preferences.claimNotification(for: try item(build: 280)))
+        #expect(preferences.claimNotification(for: try item(build: 281)))
+        #expect(!preferences.claimNotification(for: try item(build: 281)))
+    }
+
     @Test func claimsEachVersionOnce() throws {
         let preferences = UpdatePreferences(store: InMemorySettingsStore())
         #expect(preferences.claimNotification(for: try item(build: 280)))

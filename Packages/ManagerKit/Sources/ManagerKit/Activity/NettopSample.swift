@@ -111,7 +111,7 @@ public struct ProcessTraffic: Hashable, Sendable {
 /// Ein Block der nettop-Ausgabe (eine Messung).
 public struct NettopSample: Hashable, Sendable {
     public let processes: [ProcessTraffic]
-    /// Verbindungszeilen, die nicht lesbar waren (unbekanntes Protokoll, unlesbare Adresse) – Hinweis, kein Abbruch.
+    /// Unlesbare Prozess- oder Verbindungszeilen sowie Verbindungen ohne lesbaren Prozess – Hinweis, kein Abbruch.
     public let skippedLineCount: Int
 
     public init(processes: [ProcessTraffic], skippedLineCount: Int = 0) {

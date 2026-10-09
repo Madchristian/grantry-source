@@ -112,7 +112,7 @@ import Testing
             ]),
         ], programs: [1: safari])
         let children = try #require(rows(frame, hostNames: ["192.0.2.10": "api.example.com"]).first?.children)
-        #expect(children[0].title == "api.example.com")
+        #expect(children[0].title == "api.example.com (192.0.2.10)")
         #expect(children[0].detail == "Port 443 · TCP · Established")
         #expect(children[0].compactDetail == "443 · TCP")
         #expect(children[0].target == "api.example.com:443")

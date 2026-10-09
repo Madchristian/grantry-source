@@ -16,6 +16,9 @@ public enum UpdateCheckError: LocalizedError, Equatable {
 
 /// Holt den Feed und wählt die neueste Version, die neuer ist als die laufende und auf diesem macOS läuft.
 public struct UpdateChecker: Sendable {
+    /// Auch ein syntaktisch gültiger Feed darf keinen beliebig großen Sprung des Commit-Zählers anbieten.
+    static let maximumBuildAdvance = 100_000
+
     public let feedURL: URL
     public let installed: InstalledBuild
     private let fetcher: any FeedFetching
@@ -46,9 +49,11 @@ public struct UpdateChecker: Sendable {
         return items.filter(isApplicable).max { $0.build < $1.build }
     }
 
-    /// Neuer als die laufende Version und lauffähig auf diesem macOS.
+    /// Plausibler Build-Abstand, neuer als die laufende Version und lauffähig auf diesem macOS.
     private func isApplicable(_ item: AppcastItem) -> Bool {
-        guard item.build > installed.build else { return false }
+        // Den Abstand vom bereits begrenzten Feed-Build abziehen: kein Überlauf bei extremen Bundle-Werten.
+        guard item.build > installed.build,
+              item.build - Self.maximumBuildAdvance <= installed.build else { return false }
         return item.minimumSystemVersion.map { $0 <= installed.systemVersion } ?? true
     }
 }

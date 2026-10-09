@@ -15,7 +15,7 @@ import TestSupport
     /// Nur Benutzerdateien; Einhängepunkte kommen aus dem Test, nie vom echten Mac.
     private func source(
         home: URL, inspector: any SigningInspecting = RecordingSigningInspector(result: .unknown),
-        volumes: [MountedVolume] = []
+        volumes: [MountedVolume] = [MountedVolume(path: "/", isLocal: true)]
     ) -> AgentConfigSource {
         AgentConfigSource(catalog: TestData.userCatalog, home: home.path, inspector: inspector, volumes: { volumes })
     }
@@ -97,7 +97,7 @@ import TestSupport
         try await ScratchDirectory.with { home in
             let volume = "/Volumes/nas-\(UUID().uuidString)"
             try register([volume + "/a", volume + "/b"], in: home)
-            let contribution = try await source(home: home, volumes: [MountedVolume(path: volume, isLocal: false)]).collect()
+            let contribution = try await source(home: home, volumes: [MountedVolume(path: "/", isLocal: true), MountedVolume(path: volume, isLocal: false)]).collect()
             #expect(Set(contribution.agents.incompleteFiles) == Set(projectFiles(of: volume + "/a") + projectFiles(of: volume + "/b")))
             #expect(contribution.limitations == ["Projekte auf Netzlaufwerk \(volume) nicht gelesen"])
         }
@@ -109,7 +109,7 @@ import TestSupport
             let project = home.appending(path: "Projekte/web").path
             try register([project], in: home)
             try write(#"{"mcpServers": {"p": {"command": "p"}}}"#, to: "Projekte/web/.mcp.json", in: home)
-            let contribution = try await source(home: home, volumes: [MountedVolume(path: home.path, isLocal: true)]).collect()
+            let contribution = try await source(home: home, volumes: [MountedVolume(path: "/", isLocal: true), MountedVolume(path: home.path, isLocal: true)]).collect()
             #expect(contribution.agents.mcpServers.map(\.name) == ["p"])
             #expect(contribution.agents.incompleteFiles.isEmpty)
         }

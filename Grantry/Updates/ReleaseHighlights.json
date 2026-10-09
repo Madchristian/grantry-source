@@ -1,0 +1,26 @@
+{
+  "version": "2026.10.94",
+  "intro": "Mehr Kontrolle. Weniger unnötige Warnungen.",
+  "highlights": [
+    {
+      "symbol": "menubar.rectangle",
+      "title": "Mehr Platz im Dock",
+      "body": "Blende das Dock-Symbol in den Einstellungen aus und zuverlässig wieder ein. Grantry bleibt über die Menüleiste erreichbar und merkt sich deine Auswahl nach einem Neustart."
+    },
+    {
+      "symbol": "checkmark.shield",
+      "title": "Bekannten Apps vertrauen",
+      "body": "Markiere eine bekannte App mit „Risiko akzeptieren“. Ihre App-Warnungen verschwinden aus der Liste und Übersicht – auch nach einem Neustart."
+    },
+    {
+      "symbol": "arrow.clockwise",
+      "title": "Stabile Scan-Anzeige",
+      "body": "Der Scan-Button behält während der Fortschrittsanzeige seine Größe. Zusätzliche Schutzprüfungen machen Aufräumen, Netzwerkdaten und Updates robuster."
+    },
+    {
+      "symbol": "sparkles",
+      "title": "Neuigkeiten auf einen Blick",
+      "body": "Nach einem Update zeigen wir dir hier die wichtigsten Änderungen. Über „Hilfe → Was ist neu?“ findest du sie jederzeit wieder."
+    }
+  ]
+}

@@ -92,18 +92,32 @@ import Testing
         }
     }
 
-    @Test func rejectsUnreadableProcessLines() {
-        for line in ["apsd,,1,2,", "apsd.577,Established,1,2,", "apsd.577,,eins,2,", ".577,,1,2,", "apsd.577,,1,2"] {
-            #expect(throws: NettopParser.Error.unrecognizedFormat, "\(line)") {
-                try NettopParser.parse(block: "\(header)\n\(line)")
-            }
-        }
+    /// Ein unlesbarer Prozess darf weder den Lauf beenden noch seine Verbindungen dem Vorgänger zuschreiben.
+    @Test(arguments: [
+        "apsd,,1,2,", "apsd.577,Established,1,2,", "apsd.577,,eins,2,", ".577,,1,2,", "apsd.577,,1,2",
+        "tcp4 a<->b.577,,eins,2,",
+    ])
+    func countsUnreadableProcessLinesAndSkipsTheirConnections(_ line: String) throws {
+        let sample = try NettopParser.parse(block: """
+            \(header)
+            Safari.100,,1,2,
+            \(line)
+            tcp4 192.0.2.1:1<->192.0.2.2:2,Established,1,2,
+            udp4 192.0.2.1:3<->192.0.2.2:4,,1,2,
+            curl.42,,3,4,
+            tcp4 192.0.2.1:5<->192.0.2.2:6,Established,3,4,
+            """)
+        #expect(sample.skippedLineCount == 3)
+        #expect(sample.processes.map(\.pid) == [100, 42])
+        #expect(sample.processes.first?.connections.isEmpty == true)
+        #expect(sample.processes.last?.connections.map(\.remote.port) == [6])
     }
 
-    @Test func rejectsConnectionBeforeFirstProcess() {
-        #expect(throws: NettopParser.Error.unrecognizedFormat) {
-            try NettopParser.parse(block: "\(header)\ntcp4 192.0.2.1:1<->192.0.2.2:2,Established,1,2,")
-        }
+    /// Ohne lesbare Prozesszeile fehlt die Zuordnung; auch diese Verbindung zählt als übersprungen.
+    @Test func countsConnectionBeforeFirstProcess() throws {
+        let sample = try NettopParser.parse(block: "\(header)\ntcp4 192.0.2.1:1<->192.0.2.2:2,Established,1,2,")
+        #expect(sample.processes.isEmpty)
+        #expect(sample.skippedLineCount == 1)
     }
 
     /// Einzelne unlesbare Verbindungszeilen werden gezählt, nicht verschluckt und nicht zum Abbruch.

@@ -2,23 +2,51 @@ import Darwin
 import Foundation
 import Synchronization
 
-/// Ein Reverse-DNS-Aufruf für eine numerische Adresse; `nil` ohne Namen.
+/// Ein vorwärtsbestätigter Reverse-DNS-Name für eine numerische Adresse; `nil` ohne bestätigten Namen.
 public protocol ReverseDNSLookup: Sendable {
     func hostName(for address: String) async -> String?
 }
 
-/// `getnameinfo` mit `NI_NAMEREQD` auf einer eigenen Queue – der blockierende Aufruf belegt keinen Thread des
-/// kooperativen Pools. Nicht abbrechbar; das Zeitlimit setzt `HostNameResolver`.
+/// PTR-Abfrage (`NI_NAMEREQD`) und Vorwärtsbestätigung (`getaddrinfo`) auf derselben eigenen Queue. Die
+/// blockierenden Aufrufe belegen keinen Thread des kooperativen Pools. Nicht abbrechbar; das gemeinsame
+/// Zeitlimit und die Belegung bis zum tatsächlichen Ende verwaltet `HostNameResolver`.
 public struct SystemReverseDNSLookup: ReverseDNSLookup {
     private static let queue = DispatchQueue(label: "\(ManagerKit.logSubsystem).reverse-dns", qos: .utility,
                                              attributes: .concurrent)
 
-    public init() {}
+    private let reverseLookup: @Sendable (String) -> String?
+    private let forwardLookup: @Sendable (String) -> [String]
+
+    public init() {
+        self.init(reverseLookup: Self.lookUp, forwardLookup: Self.addresses)
+    }
+
+    init(reverseLookup: @escaping @Sendable (String) -> String?,
+         forwardLookup: @escaping @Sendable (String) -> [String]) {
+        self.reverseLookup = reverseLookup
+        self.forwardLookup = forwardLookup
+    }
 
     public func hostName(for address: String) async -> String? {
         await withCheckedContinuation { continuation in
-            Self.queue.async { continuation.resume(returning: Self.lookUp(address)) }
+            Self.queue.async { continuation.resume(returning: confirmedName(for: address)) }
         }
+    }
+
+    private func confirmedName(for address: String) -> String? {
+        guard let expected = Self.addressBytes(address),
+              let name = reverseLookup(address), !name.isEmpty,
+              forwardLookup(name).contains(where: { Self.addressBytes($0) == expected }) else { return nil }
+        return name
+    }
+
+    /// Binär vergleichen: komprimierte IPv6-Adressen und andere Schreibweisen bezeichnen dieselbe Gegenstelle.
+    private static func addressBytes(_ address: String) -> Data? {
+        var v4 = in_addr()
+        if inet_pton(AF_INET, address, &v4) == 1 { return withUnsafeBytes(of: v4) { Data($0) } }
+        var v6 = in6_addr()
+        if inet_pton(AF_INET6, address, &v6) == 1 { return withUnsafeBytes(of: v6) { Data($0) } }
+        return nil
     }
 
     private static func lookUp(_ address: String) -> String? {
@@ -33,6 +61,26 @@ public struct SystemReverseDNSLookup: ReverseDNSLookup {
                           NI_NAMEREQD) == 0 else { return nil }
         let name = String(decoding: host.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
         return name.isEmpty ? nil : name
+    }
+
+    /// Vorwärtsauflösung mit numerischer Ausgabe; `NI_NUMERICHOST` verhindert weitere PTR-Abfragen.
+    private static func addresses(for hostName: String) -> [String] {
+        var hints = addrinfo()
+        hints.ai_family = AF_UNSPEC
+        hints.ai_socktype = SOCK_STREAM
+        var info: UnsafeMutablePointer<addrinfo>?
+        guard getaddrinfo(hostName, nil, &hints, &info) == 0, let info else { return [] }
+        defer { freeaddrinfo(info) }
+        var addresses: [String] = []
+        var current: UnsafeMutablePointer<addrinfo>? = info
+        while let entry = current {
+            defer { current = entry.pointee.ai_next }
+            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
+            guard getnameinfo(entry.pointee.ai_addr, entry.pointee.ai_addrlen, &host, socklen_t(host.count), nil, 0,
+                              NI_NUMERICHOST) == 0 else { continue }
+            addresses.append(String(decoding: host.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self))
+        }
+        return addresses
     }
 }
 

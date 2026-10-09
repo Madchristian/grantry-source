@@ -9,6 +9,32 @@ import TestSupport
                            MountedVolume(path: "/Volumes/nas", isLocal: false),
                            MountedVolume(mountPoint: "/System/Volumes/Data/home", isLocal: false)]
 
+    @Test func oneMountSnapshotPerRedactionAndFreshSnapshotForTheNext() {
+        var queries = 0
+        let snapshot = { queries += 1; return self.volumes }
+        let fileSystem = CommandInterpreterPath.FileSystem(
+            entry: { _ in .directory }, contents: { _ in Issue.record("Verzeichnisse nicht öffnen"); return nil }
+        )
+        let resolver = CommandInterpreterPath.makeResolver(volumes: snapshot, fileSystem: fileSystem)
+        let ordinary = ["tool", "a b", "relative/path"]
+        #expect(ArgumentRedactor.redact(arguments: ordinary, resolvingPath: resolver).values == ordinary)
+        #expect(queries == 0)
+        let paths = ["/local/tool", "/local/one", "/local/two /local/three"]
+        #expect(ArgumentRedactor.redact(arguments: paths, resolvingPath: resolver).values == paths)
+        #expect(queries == 1)
+        let next = CommandInterpreterPath.makeResolver(volumes: snapshot, fileSystem: fileSystem)
+        #expect(ArgumentRedactor.redact(arguments: paths, resolvingPath: next).values == paths)
+        #expect(queries == 2)
+    }
+
+    @Test func failedMountSnapshotIsAlsoCached() {
+        var queries = 0
+        let resolver = CommandInterpreterPath.makeResolver(volumes: { queries += 1; return [] })
+        #expect(resolver("/one") == "/bin/sh")
+        #expect(resolver("/two") == "/bin/sh")
+        #expect(queries == 1)
+    }
+
     /// The injected boundary fails on any filesystem access to the simulated unavailable mount.
     /// No SMB connection, sleeps or abandoned workers are needed to reproduce the scan hazard.
     @Test(arguments: ["/Volumes/nas/runner", "/Volumes/NAS/runner", "/volumes/nas/runner",

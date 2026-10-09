@@ -8,6 +8,7 @@ import UserNotifications
 /// Dock-Symbol öffnet das Fenster wieder. Gestartet wird über `AppLauncher` (nur eine Instanz).
 struct GrantryApp: App {
     static let mainWindowID = "main"
+    static let whatsNewWindowID = "whats-new"
 
     @NSApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
@@ -15,7 +16,7 @@ struct GrantryApp: App {
         Window("Grantry", id: Self.mainWindowID) {
             RootView(
                 appModel: appDelegate.appModel, prerequisites: appDelegate.prerequisites,
-                onboarding: appDelegate.onboarding, navigator: appDelegate.navigator
+                onboarding: appDelegate.onboarding, navigator: appDelegate.navigator, whatsNew: appDelegate.whatsNew
             )
                 .environment(appDelegate.updates)
                 .frame(minWidth: WindowLayout.windowMinWidth, minHeight: WindowLayout.windowMinHeight)
@@ -27,6 +28,7 @@ struct GrantryApp: App {
             AppCommands()
             UninstallCommands(appModel: appDelegate.appModel, navigator: appDelegate.navigator)
             UpdateCommands(updates: appDelegate.updates)
+            WhatsNewCommands()
             #if DEBUG
             DevelopmentCommands(tools: appDelegate.developmentTools)
             #endif
@@ -44,9 +46,18 @@ struct GrantryApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView(prerequisites: appDelegate.prerequisites)
+            SettingsView(prerequisites: appDelegate.prerequisites, dockVisibility: appDelegate.dockVisibility)
                 .environment(appDelegate.updates)
         }
+
+        Window("Was ist neu?", id: Self.whatsNewWindowID) {
+            if let content = ReleaseHighlights.current {
+                WhatsNewView(content: content, model: appDelegate.whatsNew)
+            }
+        }
+        .defaultLaunchBehavior(.suppressed)
+        .restorationBehavior(.disabled)
+        .windowResizability(.contentSize)
 
         #if DEBUG
         Window("Menüleiste (Vorschau)", id: DevelopmentLaunchOptions.menuBarPreviewWindowID) {
@@ -109,12 +120,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     let prerequisites: PrerequisitesModel
     let onboarding: OnboardingModel
     let updates: UpdateModel
+    let whatsNew: WhatsNewModel
     let navigator = MainWindowNavigator()
+    private var dockWindowToRestore: NSWindow?
+    private var dockRestoreExpiry: Task<Void, Never>?
+    lazy var dockVisibility = DockVisibilityModel { [weak self] visible in
+        self?.applyDockVisibility(visible) ?? false
+    }
     #if DEBUG
     let developmentTools: DevelopmentTools
     #endif
 
     override init() {
+        whatsNew = WhatsNewModel(version: InstalledBuild.current().version,
+                                hasCompletedOnboarding: UserDefaults.standard.bool(forKey: OnboardingModel.completedKey))
         let appModel = AppModel(storage: LaunchOptions.storage)
         self.appModel = appModel
         let scan: @MainActor () -> Void = { Task { await appModel.scanNow() } }
@@ -157,6 +176,51 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         developmentTools = DevelopmentTools(helperClient: appModel.helperClient)
         #endif
         super.init()
+    }
+
+    private func applyDockVisibility(_ visible: Bool) -> Bool {
+        dockRestoreExpiry?.cancel()
+        dockWindowToRestore = nil
+        let policy: NSApplication.ActivationPolicy = visible ? .regular : .accessory
+        // AppKit returns false for an unchanged policy. It is already applied, even
+        // when an external activation has made it differ from the saved preference.
+        guard NSApp.activationPolicy() != policy else { return true }
+        if NSApp.isActive, let window = NSApp.keyWindow {
+            dockWindowToRestore = window
+            // Some OS versions do not deactivate on a policy change. Never keep a pending
+            // restoration that could steal focus on a later, intentional app switch.
+            dockRestoreExpiry = Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                self?.dockWindowToRestore = nil
+            }
+        }
+        let applied = NSApp.setActivationPolicy(policy)
+        if !applied {
+            dockRestoreExpiry?.cancel()
+            dockWindowToRestore = nil
+        }
+        return applied
+    }
+
+    func applicationDidResignActive(_ notification: Notification) {
+        guard let window = dockWindowToRestore else { return }
+        dockWindowToRestore = nil
+        dockRestoreExpiry?.cancel()
+        // AppKit deactivates asynchronously after regular → accessory; the next main-queue
+        // turn after setActivationPolicy is still too early. Wait for the actual event.
+        DispatchQueue.main.async {
+            NSApp.unhideWithoutActivation()
+            window.makeKeyAndOrderFront(nil)
+            window.orderFrontRegardless()
+            // This restores focus lost by the user's own policy toggle. Cooperative activate()
+            // can be refused after AppKit has already handed activation to the previous app.
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        dockVisibility.applyCurrentVisibility()
     }
 
     /// Startet die Überwachung – in Release-Builds erst, nachdem die Registrierung des Helpers nach einem Austausch

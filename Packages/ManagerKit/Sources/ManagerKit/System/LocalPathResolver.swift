@@ -18,11 +18,16 @@ enum LocalPathResolver {
 
     /// `nil` means unknown or non-local, including unreadable links and bounded-out link chains.
     /// Missing local files remain distinguishable from an unavailable volume.
+    /// `onNetworkVolume` meldet das abgewiesene Netz-Volume für Hinweise, ohne weitere Dateizugriffe.
     static func resolve(
-        _ path: String, volumes: [MountedVolume], entry: (String) -> Entry = entry(at:)
+        _ path: String, volumes: [MountedVolume], onNetworkVolume: (MountedVolume) -> Void = { _ in },
+        entry: (String) -> Entry = entry(at:)
     ) -> Target? {
+        func permitsAccess(to path: String) -> Bool {
+            Self.permitsAccess(to: path, volumes: volumes, onNetworkVolume: onNetworkVolume)
+        }
         guard path.hasPrefix("/"), !path.contains("\0"), path.utf8.count < Int(PATH_MAX),
-              permitsAccess(to: path, volumes: volumes) else { return nil }
+              permitsAccess(to: path) else { return nil }
         var pending = Array(path.split(separator: "/").map(String.init).reversed())
         var components: [String] = []
         var links = 0
@@ -37,7 +42,7 @@ enum LocalPathResolver {
                 continue
             }
             let candidate = "/" + (components + [component]).joined(separator: "/")
-            guard permitsAccess(to: candidate, volumes: volumes) else { return nil }
+            guard permitsAccess(to: candidate) else { return nil }
             last = entry(candidate)
             switch last {
             case .symbolicLink(let destination):
@@ -47,7 +52,7 @@ enum LocalPathResolver {
                 // Check the whole link destination too, before reading even its local parents.
                 let absolute = destination.hasPrefix("/") ? destination
                     : "/" + (components + [destination]).joined(separator: "/")
-                guard permitsAccess(to: absolute, volumes: volumes) else { return nil }
+                guard permitsAccess(to: absolute) else { return nil }
                 if destination.hasPrefix("/") { components.removeAll() }
                 pending.append(contentsOf: destination.split(separator: "/").map(String.init).reversed())
             case .unavailable:
@@ -79,7 +84,9 @@ enum LocalPathResolver {
 
     /// Pure string operations only. Case variants are treated conservatively even on case-sensitive disks.
     /// The data-volume alias must match the same autofs/network mounts as its firmlink spelling.
-    private static func permitsAccess(to path: String, volumes: [MountedVolume]) -> Bool {
+    private static func permitsAccess(
+        to path: String, volumes: [MountedVolume], onNetworkVolume: (MountedVolume) -> Void
+    ) -> Bool {
         func mountSpelling(_ path: String) -> String {
             let path = "/" + path.split(separator: "/").joined(separator: "/").precomposedStringWithCanonicalMapping.lowercased()
             let prefix = MountedVolume.dataVolumePrefix.lowercased()
@@ -87,9 +94,12 @@ enum LocalPathResolver {
         }
         let path = mountSpelling(path)
         let mounts = volumes.map { MountedVolume(path: mountSpelling($0.path), isLocal: $0.isLocal) }
-        guard let volume = MountedVolume.containing(path, in: mounts), volume.isLocal else { return false }
+        guard let volume = MountedVolume.containing(path, in: mounts) else { return false }
         // Equal mount spellings with conflicting locality are unknown, never evidence for safe I/O.
-        guard !mounts.contains(where: { $0.path == volume.path && !$0.isLocal }) else { return false }
+        if let network = volumes.first(where: { mountSpelling($0.path) == volume.path && !$0.isLocal }) {
+            onNetworkVolume(network)
+            return false
+        }
         let volumesPath = path.replacingOccurrences(of: "/volumes/", with: "/Volumes/", options: .anchored)
         if let mountPoint = MountedVolume.volumesMountPoint(of: volumesPath), volume.path.count < mountPoint.count { return false }
         return true

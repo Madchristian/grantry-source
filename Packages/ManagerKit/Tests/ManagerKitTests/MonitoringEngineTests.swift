@@ -323,6 +323,101 @@ private func contribution(_ grants: PermissionGrant...) -> InventoryContribution
 
 @Suite(.timeLimit(.minutes(1)))
 struct MonitoringEngineTests {
+    @Test func acceptedAppStillPublishesDeepFindingsInDetails() async throws {
+        try await ScratchDirectory.with(prefix: "accepted-deep") { directory in
+            let path = directory.appending(path: "Known.app")
+            try Data("x".utf8).write(to: path)
+            let app = TestData.installedApp(path: path.path)
+            let validator = ScriptedSignatureValidator(verdicts: [app.path: .invalid(status: -67023)], holding: true)
+            let source = CountingSource(.apps, .success(InventoryContribution(installedApps: [app])))
+            let harness = try Harness(script: [contribution()], deepVerifier: DeepSignatureVerifier(validator: validator),
+                                      extraSources: [source])
+            var states = await harness.engine.states().makeAsyncIterator()
+            var starts = validator.starts.makeAsyncIterator()
+            await harness.engine.start()
+            _ = try #require(await states.next(where: scanned(at: harness.now)))
+            #expect(await starts.next() == app.path)
+            try await harness.engine.setAppRiskAccepted(true, appID: app.id)
+            _ = try #require(await states.next { $0.acceptedAppIDs.contains(app.id) })
+            validator.release()
+            let updated = try #require(await states.next { $0.appFindings.contains { $0.rule == .invalidSignature } })
+            #expect(updated.findings.isEmpty)
+            #expect(updated.acceptedAppIDs == [app.id])
+            await harness.engine.stop()
+        }
+    }
+
+    @Test func acceptedAppRemovalIsRecordedWithoutNotification() async throws {
+        let app = TestData.installedApp()
+        let source = CountingSource(.apps, script: [
+            .success(InventoryContribution(installedApps: [app])), .success(InventoryContribution())
+        ])
+        let harness = try Harness(script: [contribution()], extraSources: [source])
+        var states = await harness.engine.states().makeAsyncIterator()
+        await harness.engine.start()
+        _ = try #require(await states.next(where: scanned(at: harness.now)))
+        try await harness.engine.setAppRiskAccepted(true, appID: app.id)
+        harness.advance(seconds: 60)
+        await harness.engine.scanNow()
+        let removed = try #require(await states.next(where: scanned(at: harness.now)))
+        #expect(removed.recentEvents.first?.event.kind == .removed)
+        await harness.engine.stop()
+        #expect(harness.posted.all.isEmpty)
+    }
+
+    @Test func acceptedUpdatesStayInHistoryWithoutNotificationsAndNewTeamWarnsAgain() async throws {
+        let app = TestData.installedApp(architecture: .intel)
+        var update = app
+        update.shortVersion = "7.0"
+        var changed = update
+        changed.signing.teamID = "NEWTEAM"
+        let source = CountingSource(.apps, script: [app, update, changed].map {
+            .success(InventoryContribution(installedApps: [$0]))
+        })
+        let harness = try Harness(script: [contribution()], extraSources: [source])
+        var states = await harness.engine.states().makeAsyncIterator()
+        await harness.engine.start()
+        _ = try #require(await states.next(where: scanned(at: harness.now)))
+        try await harness.engine.setAppRiskAccepted(true, appID: app.id)
+        harness.advance(seconds: 60)
+        await harness.engine.scanNow()
+        let updated = try #require(await states.next(where: scanned(at: harness.now)))
+        #expect(updated.acceptedAppIDs == [app.id])
+        #expect(updated.findings.isEmpty)
+        #expect(updated.recentEvents.count == 1)
+        #expect(harness.posted.all.isEmpty)
+        harness.advance(seconds: 60)
+        await harness.engine.scanNow()
+        let newTeam = try #require(await states.next(where: scanned(at: harness.now)))
+        #expect(newTeam.acceptedAppIDs.isEmpty)
+        #expect(newTeam.findings.contains { $0.rule == .teamIDChanged })
+        await harness.engine.stop()
+        #expect(harness.posted.all.count == 1)
+    }
+
+    @Test func acceptedAppImmediatelyLeavesWarningsAndRevocationRestoresThem() async throws {
+        let app = TestData.installedApp(signing: SigningInfo(kind: .unsigned))
+        let store = try SwiftDataSnapshotStore.inMemory()
+        _ = try await store.record(TestData.appSnapshot([app]), events: [], checkedAt: TestData.date)
+        let harness = try Harness(script: [contribution()], extraSources: [
+            CountingSource(.apps, .success(InventoryContribution(installedApps: [app])))
+        ], store: store)
+        var states = await harness.engine.states().makeAsyncIterator()
+        await harness.engine.start()
+        _ = try #require(await states.next(where: { !$0.findings.isEmpty }))
+        try await harness.engine.setAppRiskAccepted(true, appID: app.id)
+        let accepted = try #require(await states.next(where: { $0.acceptedAppIDs.contains(app.id) }))
+        #expect(accepted.findings.isEmpty)
+        #expect(accepted.appFindings.map(\.rule) == [.unsignedApp])
+        let presentation = try #require(PresentationInput(state: accepted, recentAdditions: []).map { $0.make(now: TestData.date) })
+        #expect(presentation.metrics.flaggedCount == 0)
+        #expect(presentation.highestSeverity(for: app.id) == nil)
+        try await harness.engine.setAppRiskAccepted(false, appID: app.id)
+        let revoked = try #require(await states.next(where: { !$0.findings.isEmpty && $0.acceptedAppIDs.isEmpty }))
+        #expect(revoked.findings.map(\.rule) == [.unsignedApp])
+        await harness.engine.stop()
+    }
+
     @Test func firstScanIsBaselineWithoutEventsOrNotifications() async throws {
         let unsigned = TestData.grant(client: TestData.app("com.example.unsigned", signing: SigningInfo(kind: .unsigned)))
         let harness = try Harness(script: [contribution(grantA, unsigned)])

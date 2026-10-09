@@ -25,12 +25,15 @@ enum AppleEntryName {
 /// Bundle-IDs und Namen der Apps des versiegelten Systems (`/System/Applications`, CoreServices). Gelesen wird nur
 /// `Info.plist`, ohne Blockieren (`BundleLayout.info`) – keine Systemdienste.
 struct SystemAppCatalog: Sendable {
+    /// Suchumgebung, damit auch Herkunftsprüfungen systemweite Orte wie die Inventur erkennen.
+    let layout: LibraryLayout
     /// Bundle-IDs in Kleinschreibung.
     let bundleIDs: Set<String>
     /// Bundle-Namen ohne `.app` und `CFBundleName`.
     let names: Set<String>
 
-    init(bundleIDs: Set<String> = [], names: Set<String> = []) {
+    init(bundleIDs: Set<String> = [], names: Set<String> = [], layout: LibraryLayout = .standard) {
+        self.layout = layout
         self.bundleIDs = bundleIDs
         self.names = names
     }
@@ -46,7 +49,7 @@ struct SystemAppCatalog: Sendable {
                 names.insert(String(entry.dropLast(".app".count)))
             }
         }
-        self.init(bundleIDs: bundleIDs, names: names)
+        self.init(bundleIDs: bundleIDs, names: names, layout: layout)
     }
 }
 

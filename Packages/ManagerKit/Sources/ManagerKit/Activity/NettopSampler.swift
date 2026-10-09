@@ -5,7 +5,7 @@ import Synchronization
 public enum NettopSamplerError: Error, Equatable, Sendable {
     /// nettop ließ sich nicht starten (fehlt, keine Ausführungsrechte) – ein Neustart hilft nicht.
     case launchFailed(reason: String)
-    /// Kopfzeile oder Prozesszeile unbekannt (`NettopParser.Error.unrecognizedFormat`); ein Neustart hilft nicht.
+    /// Kopfzeile unbekannt (`NettopParser.Error.unrecognizedFormat`); ein Neustart hilft nicht.
     case unrecognizedFormat
     /// nettop endete `count`-mal in Folge ohne Messung oder ohne stabil zu laufen.
     case endedRepeatedly(count: Int)
@@ -115,7 +115,7 @@ struct NettopBlock: Hashable, Sendable {
     var startTimes: [Int32: UInt64] = [:]
 }
 
-/// Schneidet nettops Zeilen an den Kopfzeilen (erstes Feld leer: `,state,…`) in Blöcke. Zeilen vor der ersten
+/// Schneidet nettops Zeilen ausschließlich an der exakten `NettopParser.header` in Blöcke. Zeilen vor der ersten
 /// Kopfzeile bilden einen eigenen Block, den der Parser als unbekanntes Format ablehnt. Ein Block über `maximumLines`
 /// wird ohne Kopfzeile abgegeben, damit eine fremde Ausgabe den Speicher nicht füllt.
 struct NettopBlockSplitter {
@@ -130,7 +130,7 @@ struct NettopBlockSplitter {
     mutating func append(_ line: String, at instant: ContinuousClock.Instant,
                          process: (pid: Int32, startTime: UInt64)? = nil) -> NettopBlock? {
         guard !line.isEmpty else { return nil }
-        if line.hasPrefix(",") {
+        if line == NettopParser.header {
             let finished = flush()
             lines = [line]
             startedAt = instant
@@ -193,11 +193,16 @@ final class NettopSampleAssembler: Sendable {
 
     /// Die fertige Messung, sobald `line` einen Block abschließt; wirft `NettopParser.Error` bei unbekanntem Format.
     func consume(_ line: String, at instant: ContinuousClock.Instant) throws -> TimedNettopSample? {
+        guard !line.isEmpty else { return nil }
         let process = NettopParser.processID(ofLine: line[...]).flatMap { pid in
             startTime(pid).map { (pid: pid, startTime: $0) }
         }
-        let block = state.withLock { state in
-            if state.firstLineAt == nil { state.firstLineAt = instant }
+        let block = try state.withLock { state in
+            if state.firstLineAt == nil {
+                // Ein unbekanntes Format sofort ablehnen, auch wenn nie eine gültige Kopfzeile folgt.
+                guard line == NettopParser.header else { throw NettopParser.Error.unrecognizedFormat }
+                state.firstLineAt = instant
+            }
             state.lastLineAt = instant
             return state.splitter.append(line, at: instant, process: process)
         }

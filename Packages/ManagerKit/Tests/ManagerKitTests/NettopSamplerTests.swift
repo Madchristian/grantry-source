@@ -64,6 +64,18 @@ import Testing
         #expect(sample.sample.processes.map(\.startTime) == [100, nil])
     }
 
+    /// Auch täuschende Namen brauchen die beim Zeileneingang erfasste Startzeit für die PID-Zuordnung.
+    @Test func capturesStartTimesForHostileProcessNames() throws {
+        let assembler = NettopSampleAssembler(startTime: { UInt64($0) * 100 })
+        let now = ContinuousClock.now
+        for line in [header, ",x.42,,1,2,", "tcp4 a<->b.43,,3,4,"] {
+            _ = try assembler.consume(line, at: now)
+        }
+        let sample = try #require(try assembler.consume(header, at: now + .seconds(2)))
+        #expect(sample.sample.processes.map(\.pid) == [42, 43])
+        #expect(sample.sample.processes.map(\.startTime) == [4200, 4300])
+    }
+
     @Test func restartsWithBackoffAndGivesUpAfterThreeFailures() async {
         let streamer = ScriptedLineStreamer([.init(ending: .exit(1)), .init(ending: .exit(0)), .init(ending: .exit(1))])
         await #expect(throws: NettopSamplerError.endedRepeatedly(count: 3)) {

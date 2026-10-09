@@ -9,6 +9,10 @@ public struct MonitoringState: Sendable, Equatable {
     /// zuletzt **gespeicherten** Snapshot, bis der erste Scan ihn auffrischt.
     public var snapshot: Snapshot?
     public var findings: [RiskFinding]
+    /// Ungefilterte App-Befunde für die technischen Details, auch nach einer Nutzerentscheidung.
+    public var appFindings: [RiskFinding] = []
+    public var acceptedAppIDs: Set<String> = []
+    public var riskAcceptanceError: String?
     /// Beginn des letzten abgeschlossenen Vollscans – auch wenn er nichts Neues ergab (Teilscans zählen nicht).
     public var lastCheckedAt: Date?
     public var isScanning: Bool
@@ -89,6 +93,7 @@ public actor MonitoringEngine {
     private let notificationPolicy: NotificationPolicy
     private let deepVerifier: DeepSignatureVerifier?
     private let now: @Sendable () -> Date
+    private var appRiskAcceptances: AppRiskAcceptanceStore
 
     private var state = MonitoringState()
     /// Der Snapshot, wie er zuletzt nachweislich in der Ablage lag (geladen, gespeichert oder aufgefrischt); `nil`,
@@ -116,6 +121,7 @@ public actor MonitoringEngine {
         differ: SnapshotDiffer = SnapshotDiffer(),
         notificationPolicy: NotificationPolicy = NotificationPolicy(),
         deepVerifier: DeepSignatureVerifier? = nil,
+        appRiskAcceptances: AppRiskAcceptanceStore = AppRiskAcceptanceStore(),
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.coordinator = coordinator
@@ -126,6 +132,7 @@ public actor MonitoringEngine {
         self.differ = differ
         self.notificationPolicy = notificationPolicy
         self.deepVerifier = deepVerifier
+        self.appRiskAcceptances = appRiskAcceptances
         self.now = now
         state.activeSources = coordinator.sourceIDs
     }
@@ -194,6 +201,18 @@ public actor MonitoringEngine {
         }
         await refreshHistory()
         publish()
+    }
+
+    /// Speichert vor Veröffentlichung der neuen Bewertung. Bei Fehler bleibt die bisherige Entscheidung sichtbar.
+    public func setAppRiskAccepted(_ accepted: Bool, appID: String) async throws {
+        guard let snapshot = state.snapshot,
+              let app = snapshot.installedApps.first(where: { $0.id == appID }) else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        try appRiskAcceptances.setAccepted(accepted, for: app)
+        state.findings = findings(for: snapshot)
+        publish()
+        if accepted { await notifier.discardAppNotifications(for: [appID]) }
     }
 
     /// Aktueller Zustand sofort, danach jede Änderung; ein Abonnent, der nicht mitkommt, erhält den jüngsten Zustand.
@@ -339,14 +358,25 @@ public actor MonitoringEngine {
     private func record(_ verdict: DeepSignatureVerdict, for path: String) {
         guard verificationTargets.contains(path), let snapshot = state.snapshot else { return }
         signatureVerdicts[path] = verdict
+        let previousAppFindings = state.appFindings
         let updated = findings(for: snapshot)
-        guard updated != state.findings else { return }
+        guard updated != state.findings || previousAppFindings != state.appFindings else { return }
         state.findings = updated
         publish()
     }
 
     private func findings(for snapshot: Snapshot) -> [RiskFinding] {
-        evaluator.evaluate(snapshot, signatures: signatureVerdicts)
+        let all = evaluator.evaluate(snapshot, signatures: signatureVerdicts)
+        let appIDs = Set(snapshot.installedApps.map(\.id))
+        state.appFindings = all.filter { appIDs.contains($0.recordID) }
+        do {
+            state.acceptedAppIDs = try appRiskAcceptances.acceptedIDs(in: snapshot.installedApps)
+            state.riskAcceptanceError = nil
+        } catch {
+            state.acceptedAppIDs = []
+            state.riskAcceptanceError = "Akzeptierte App-Risiken konnten nicht geladen oder gespeichert werden: \(error.readableDescription)"
+        }
+        return all.filter { !state.acceptedAppIDs.contains($0.recordID) }
     }
 
     /// Äquivalenter Vollscan: Der aufgefrischte Snapshot (Sichtungszeiten der Lauscher) ersetzt den gespeicherten,
@@ -375,7 +405,11 @@ public actor MonitoringEngine {
             Self.logger.error("Snapshot nicht gespeichert: \(error.readableDescription, privacy: .public)")
             history = events.map { HistoryEvent(id: UUID(), event: $0, isRead: false) }
         }
-        let notifiable = history.filter { notificationPolicy.shouldNotify($0.event) }
+        let notifiable = history.filter {
+            if case .installedApp(let app) = $0.event.subject,
+               (try? appRiskAcceptances.isAccepted(app)) == true { return false }
+            return notificationPolicy.shouldNotify($0.event)
+        }
         if !notifiable.isEmpty {
             await notifier.notify(notifiable)
         }

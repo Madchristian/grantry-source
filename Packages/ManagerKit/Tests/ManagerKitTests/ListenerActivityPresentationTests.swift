@@ -88,7 +88,7 @@ import Testing
 
         let activity = ListenerActivityPresenter.activity(forProgramAt: postgres.executablePath, frame: frame,
                                                           hostNames: ["192.0.2.10": "api.example.com"])
-        #expect(activity.connections.map(\.title) == ["192.0.2.30", "api.example.com", "192.0.2.20"])
+        #expect(activity.connections.map(\.title) == ["192.0.2.30", "api.example.com (192.0.2.10)", "192.0.2.20"])
         #expect(activity.openConnections.count == 2)
         let first = try #require(activity.connections.first { $0.hostName != nil })
         #expect(first.target == "api.example.com:443")
@@ -96,7 +96,7 @@ import Testing
         #expect(first.localEndpoint == "192.0.2.1:50000")
         #expect(first.protocolText == "TCP · IPv4")
         #expect(first.state == "Established")
-        #expect(first.accessibilityLabel.hasPrefix("api.example.com, ausgehend, Port 443, TCP"))
+        #expect(first.accessibilityLabel.hasPrefix("api.example.com (192.0.2.10), ausgehend, Port 443, TCP"))
     }
 
     @Test func historySumsRightAligned() {

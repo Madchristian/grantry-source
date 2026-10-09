@@ -24,7 +24,7 @@ public struct NetworkActivityRow: Identifiable, Hashable, Sendable {
 
     public let id: String
     public let kind: Kind
-    /// App- bzw. Prozessname; bei Verbindungen das Ziel (Hostname, sonst IP).
+    /// App- bzw. Prozessname; bei Verbindungen das Ziel (Hostname mit IP, sonst IP).
     public let title: String
     /// „3 Verbindungen“ bzw. „Port 443 · TCP · Established“.
     public let detail: String
@@ -90,6 +90,12 @@ public struct NetworkActivityRow: Identifiable, Hashable, Sendable {
 }
 
 extension ConnectionTraffic {
+    /// Gegenstelle mit stets sichtbarer Adresse; ein DNS-Name ergänzt die IP, ersetzt sie aber nie.
+    func remoteTitle(hostName: String?) -> String {
+        guard let address = remote.address else { return "Ohne Gegenstelle" }
+        return hostName.map { "\($0) (\(address))" } ?? address
+    }
+
     /// Ziel zum Kopieren: „api.example.com:443“ bzw. „[2001:db8::1]:443“; `nil` ohne Gegenstelle.
     public func target(hostName: String?) -> String? {
         guard remote.address != nil else { return nil }
@@ -184,7 +190,7 @@ public enum NetworkActivityPresenter {
         let state = connection.state.isEmpty ? nil : connection.state
         return NetworkActivityRow(
             id: "p:\(process.key.id)|\(activity.key.id)", kind: .connection(connection, hostName: hostName),
-            title: hostName ?? connection.remote.address ?? "Ohne Gegenstelle",
+            title: connection.remoteTitle(hostName: hostName),
             detail: [port, connection.transport.displayName, state].compactMap(\.self).joined(separator: " · "),
             downloadRate: activity.rate.download, uploadRate: activity.rate.upload,
             totalBytes: activity.transferred.total, connectionCount: 0, isNew: activity.isNew, isGone: activity.isGone,

@@ -45,8 +45,14 @@ public struct UpdatePreferences {
         return last > now || now.timeIntervalSince(last) >= Self.checkInterval
     }
 
-    /// Liefert `true` genau einmal je neuer Version und vermerkt sie als gemeldet.
+    /// Erwartet das höchste passende Update des aktuellen Feeds (`UpdateChecker.check()`). Ein höherer Merkstand
+    /// wird darauf zurückgesetzt, damit ein früher vergifteter Feed spätere Meldungen nicht dauerhaft unterdrückt.
+    /// Das Zurücksetzen meldet die ältere Version nicht erneut; ein danach höherer Build wird wieder einmal gemeldet.
     public func claimNotification(for item: AppcastItem) -> Bool {
+        if let previous = lastNotifiedBuild, previous > item.build {
+            lastNotifiedBuild = item.build
+            return false
+        }
         guard item.build > (lastNotifiedBuild ?? 0) else { return false }
         lastNotifiedBuild = item.build
         return true

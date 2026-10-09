@@ -131,18 +131,22 @@ enum RemovalSelectionSummary {
 
 /// Reste-Auswahl im Blatt „App entfernen“: Kandidaten nach Art, Berechtigungen und Autostart-Einträge der App.
 /// Vorausgewählt sind sichere Kandidaten sowie Berechtigungen und Autostart-Einträge, die die `ActionPolicy` zulässt –
-/// außer sie träfen auch eine weitere Installation derselben Bundle-ID (`AppLinks.sharedIDs`, #97): Die sind mit Hinweis
+/// außer ihre Eigentümerschaft ist mehrdeutig oder nicht belegt (`AppLinks.sharedIDs`): Die sind mit Hinweis
 /// sichtbar und nur bewusst wählbar.
 public struct RemovalReview: Hashable, Sendable {
     static let sharedNotice = "Dieselbe App ist mehrfach installiert. macOS führt Berechtigungen und Autostart-Einträge nach "
         + "Bundle-ID – was beide Installationen träfe, ist deshalb nicht vorausgewählt."
+    static let unverifiedNotice = "Die Zugehörigkeit einzelner Berechtigungen oder Autostart-Einträge ist nicht sicher belegt. "
+        + "Eine gleiche Bundle-ID allein reicht dafür nicht; ohne übereinstimmende Team-IDs aus geprüften Signaturen "
+        + "sind diese Einträge nicht vorausgewählt."
+    static let unverifiedNote = "Zugehörigkeit nicht sicher belegt – kein übereinstimmender Hersteller in den Signaturen."
     public let sections: [LeftoverSection]
     public let grants: [PermissionGrant]
     public let autostartItems: [AutostartItem]
     /// Reste-Orte, die sich nicht lesen ließen; `nil`, wenn alle gelesen wurden.
     public let unreadableNote: String?
     public let initialSelection: RemovalSelection
-    /// Erklärung im Blatt, sobald Einträge weiterer Installationen vorkommen; sonst `nil`.
+    /// Erklärung im Blatt bei mehrdeutiger oder nicht belegter Eigentümerschaft; sonst `nil`.
     public let sharedNotice: String?
     private let sharedIDs: Set<String>
     /// „Gehört evtl. auch zu: Tool (~/Applications/Tool.app)“ für `sharedIDs`.
@@ -157,7 +161,9 @@ public struct RemovalReview: Hashable, Sendable {
         unreadableNote = RemovalSelectionSummary.unreadableNote(leftovers.unreadableLocations, home: home)
         sharedIDs = links.sharedIDs
         sharedNote = OwnershipNote.mayBelong(to: links.otherInstallations.map { OwnershipNote.installation($0, home: home) })
-        sharedNotice = links.sharedIDs.isEmpty ? nil : Self.sharedNotice
+            ?? Self.unverifiedNote
+        sharedNotice = links.sharedIDs.isEmpty ? nil
+            : (links.otherInstallations.isEmpty ? Self.unverifiedNotice : Self.sharedNotice)
         let preselectable = { (id: String, availability: ActionAvailability) in
             availability == .available && !links.sharedIDs.contains(id)
         }

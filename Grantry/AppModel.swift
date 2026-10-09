@@ -124,7 +124,8 @@ final class AppModel {
                 ),
                 // Die Einstellung wird je Event frisch gelesen; `SettingsStore` ist nicht `Sendable`, daher nichts einfangen.
                 notificationPolicy: NotificationPolicy(listenerSetting: { ListenerNotificationPreferences().setting }),
-                deepVerifier: DeepSignatureVerifier()
+                deepVerifier: DeepSignatureVerifier(),
+                appRiskAcceptances: AppRiskAcceptanceStore(url: storage.appRiskAcceptancesURL)
             )
         }
         let receipts = ReceiptStore(url: storage.receiptsURL)
@@ -227,6 +228,11 @@ final class AppModel {
 
     func markAllRead() async {
         await engine?.markAllRead()
+    }
+
+    func setAppRiskAccepted(_ accepted: Bool, appID: String) async throws {
+        guard let engine else { throw CocoaError(.featureUnsupported) }
+        try await engine.setAppRiskAccepted(accepted, appID: appID)
     }
 
     /// Übernimmt den Zustand der Engine; haben sich die Events geändert, werden die Neuzugänge neu geladen. Ein neuer
