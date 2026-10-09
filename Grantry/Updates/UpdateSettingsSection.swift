@@ -30,7 +30,10 @@ struct UpdateSettingsSection: View {
                 Text(verbatim: outcome.text)
                     .font(.callout)
                 if case .available(let item) = outcome {
-                    Button(UpdateTexts.download) { updates.openDownload(item) }
+                    HStack {
+                        Button(UpdateTexts.download) { updates.openDownload(item) }
+                        UpdateChecksumView(item: item)
+                    }
                 }
             }
         }

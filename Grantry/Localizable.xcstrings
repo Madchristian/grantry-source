@@ -284,6 +284,9 @@
     "Bitte MacManager beenden und Grantry erneut öffnen. Verlauf und Einstellungen werden dann übernommen." : {
 
     },
+    "DMG-Prüfsumme …" : {
+
+    },
     "Das Ergebnis ist veraltet – Apps haben sich seit der Suche geändert oder sie liegt länger zurück. Bitte erneut suchen." : {
 
     },
@@ -518,6 +521,9 @@
     "Im Finder zeigen" : {
 
     },
+    "Im Terminal „<DMG>“ durch den Pfad zur geladenen Datei ersetzen und das Ergebnis vergleichen." : {
+
+    },
     "Im Verlauf" : {
 
     },
@@ -546,6 +552,9 @@
 
     },
     "Installiere und starte jetzt das Tool. Neue Einträge erscheinen hier nach jedem Scan." : {
+
+    },
+    "Integritäts-Gegenprobe: Der Hash stammt aus demselben Feed und ist kein unabhängiger Echtheitsnachweis." : {
 
     },
     "Interpreter (node, python …)" : {
@@ -794,6 +803,12 @@
     "Prozesse" : {
 
     },
+    "Prüfsumme kopieren" : {
+
+    },
+    "Prüfsumme kopiert" : {
+
+    },
     "Rechte des Starters" : {
 
     },
@@ -810,6 +825,9 @@
 
     },
     "Reste werden gesucht …" : {
+
+    },
+    "SHA-256 des DMG" : {
 
     },
     "Scan läuft" : {

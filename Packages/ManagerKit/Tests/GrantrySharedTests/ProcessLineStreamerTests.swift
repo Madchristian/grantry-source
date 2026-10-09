@@ -26,6 +26,34 @@ import Testing
         #expect(executable == "/nonexistent/binary")
     }
 
+    /// Ein stilles Kind erhält weder Eingaben noch EOF und bleibt beim Warten auf stdin abbrechbar.
+    @Test func keepsStandardInputOpenUntilCancellation() async throws {
+        let lines = Mutex<[String]>([])
+        let finished = Mutex(false)
+        let (pids, continuation) = AsyncStream.makeStream(of: pid_t.self)
+        let task = Task {
+            defer {
+                finished.withLock { $0 = true }
+                continuation.finish()
+            }
+            return try await ProcessLineStreamer().run(
+                "/bin/sh", ["-c", "echo $$; if IFS= read -r line; then echo input; else echo eof; fi"]
+            ) { line in
+                if let pid = pid_t(line) { continuation.yield(pid) }
+                else { lines.withLock { $0.append(line) } }
+            }
+        }
+        defer { task.cancel() }
+        let pid = try #require(await pids.first { _ in true })
+        // Das Kind hat begonnen; ein sofortiges EOF darf es nicht aus `read` aufwecken.
+        try await Task.sleep(for: .milliseconds(200))
+        #expect(lines.withLock { $0 }.isEmpty)
+        #expect(!finished.withLock { $0 })
+        task.cancel()
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(kill(pid, 0) == -1, "Auch das auf stdin wartende Kind muss beendet sein")
+    }
+
     /// Abbruch beendet auch einen Prozess, der SIGTERM ignoriert (SIGKILL nach der Gnadenfrist), und kehrt erst nach
     /// seinem Ende zurück.
     @Test func cancellationTerminatesChild() async throws {

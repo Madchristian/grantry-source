@@ -1,7 +1,7 @@
 import Foundation
 
-/// `LineStreaming` per `Process`: stdout ereignisgesteuert über `DispatchIO` (kein blockierter Thread), stderr und
-/// stdin auf `/dev/null`. Beendet wird – wie bei `ProcessCommandRunner` – nur der direkte Kindprozess.
+/// `LineStreaming` per `Process`: stdout ereignisgesteuert über `DispatchIO` (kein blockierter Thread), stderr
+/// auf `/dev/null`, stdin bleibt ohne Eingaben offen. Beendet wird – wie bei `ProcessCommandRunner` – nur der direkte Kindprozess.
 ///
 /// Stirbt die App, ohne den Aufruf abzubrechen, schließt das System die Pipe; der Kindprozess erhält beim nächsten
 /// Schreiben SIGPIPE und endet ebenfalls.
@@ -19,7 +19,14 @@ public struct ProcessLineStreamer: LineStreaming {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
-        process.standardInput = FileHandle.nullDevice
+        // nettop dreht bei sofortigem EOF (/dev/null) in einer CPU-intensiven Schleife.
+        // Die leere Pipe bleibt bis zum Prozessende offen; defer hält beide Handles auch über await hinweg am Leben.
+        let stdinPipe = Pipe()
+        defer {
+            try? stdinPipe.fileHandleForWriting.close()
+            try? stdinPipe.fileHandleForReading.close()
+        }
+        process.standardInput = stdinPipe
         process.standardError = FileHandle.nullDevice
         let stdoutPipe = Pipe()
         process.standardOutput = stdoutPipe

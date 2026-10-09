@@ -137,10 +137,11 @@ import TestSupport
             try FileManager.default.copyItem(atPath: "/bin/echo", toPath: executable.path)
             let arguments = [executable.path, "-c", "ordinary argument"]
             #expect(ArgumentRedactor.redact(arguments: arguments).values == arguments)
-            #expect(CommandInterpreterPath.resolve(directory.path) == directory.resolvingSymlinksInPath().path)
+            // POSIX resolution may keep /private where Foundation displays /var; the file identity must agree.
+            #expect(FileFingerprint(of: try #require(CommandInterpreterPath.resolve(directory.path))) == FileFingerprint(of: directory.path))
             let fifo = directory.appending(path: "pipe")
             #expect(mkfifo(fifo.path, 0o600) == 0)
-            #expect(CommandInterpreterPath.resolve(fifo.path) == fifo.resolvingSymlinksInPath().path)
+            #expect(FileFingerprint(of: try #require(CommandInterpreterPath.resolve(fifo.path))) == FileFingerprint(of: fifo.path))
         }
     }
 

@@ -276,6 +276,11 @@ import TestSupport
                     let fresh = directory + "/fresh-\(counter).json"
                     guard (try? Data("{\"foreign\": \(counter)}".utf8).write(to: URL(filePath: fresh))) != nil else { continue }
                     if rename(fresh, path) == 0 { probe.swaps.wrappingAdd(1, ordering: .relaxed) }
+                    // Ohne Pause benennt der Nebenläufer auf schnellen Maschinen (M4) fast immer schon zwischen Lesen
+                    // und Prüfung um: Jeder Versuch endet dann in `fileChanged`, der Tausch wird nie erreicht. Eine
+                    // zufällige Pause bis 2 ms lässt das kurze Fenster bis zur Prüfung meist frei und trifft das lange
+                    // bis zum Tausch (Schreiben mit `F_FULLFSYNC`) oft – unabhängig vom Tempo der Maschine.
+                    usleep(UInt32.random(in: 0...2_000))
                 }
             }
             renamer.start()

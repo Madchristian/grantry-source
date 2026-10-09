@@ -11,6 +11,7 @@ struct UpdateBanner: View {
             systemImage: UpdateBanner.systemImage, tint: .accentColor, title: UpdateTexts.availableTitle,
             text: "\(item.availabilityText) \(UpdateTexts.installHint)"
         ) {
+            UpdateChecksumView(item: item)
             if item.hasReleaseNotes {
                 Button(UpdateTexts.releaseNotes) { updates.openReleaseNotes(item) }
             }

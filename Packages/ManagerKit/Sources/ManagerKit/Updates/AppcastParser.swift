@@ -12,6 +12,7 @@ public enum AppcastError: Error, Equatable {
 ///
 /// Setzt das Namespace-Präfix `sparkle` voraus (der Feed wird von `scripts/appcast.swift` erzeugt) und übernimmt nur
 /// direkte Kinder von `<item>`; verschachtelte Elemente wie `<sparkle:deltas>` bleiben unberücksichtigt.
+/// Die optionale DMG-Prüfsumme wird über ihre Namespace-URI erkannt, unabhängig vom Präfix.
 ///
 /// Gegen einen Feed, der Speicher und Parserzeit flutet, gelten die Grenzen aus `UpdateFeed`. Überschreitet das
 /// Dokument die Größe, ein Feld die Länge oder die Verschachtelung die Tiefe, bricht der Parser ab und wirft
@@ -29,6 +30,7 @@ public enum AppcastParser {
         }
         let collector = Collector()
         let parser = XMLParser(data: data)
+        parser.shouldReportNamespacePrefixes = true
         parser.delegate = collector
         let parsed = parser.parse()
         // Beides nach `abortParsing()`, das `parse()` scheitern lässt: eine harte Grenze hat Vorrang vor `malformed`; nach
@@ -64,6 +66,18 @@ public enum AppcastParser {
         /// Das direkte Kind von `<item>`, dessen Text gerade gesammelt wird; sonst `nil` (Text wird verworfen).
         private var collecting: Field?
         private var text = ""
+        /// Namespace-Bindungen je Präfix; lokale Deklarationen gelten nur bis zum Ende ihres Elements.
+        private var namespaces: [String: [String]] = [:]
+
+        func parser(_ parser: XMLParser, didStartMappingPrefix prefix: String, toURI namespaceURI: String) {
+            guard !isStopped else { return }
+            namespaces[prefix, default: []].append(namespaceURI)
+        }
+
+        func parser(_ parser: XMLParser, didEndMappingPrefix prefix: String) {
+            namespaces[prefix]?.removeLast()
+            if namespaces[prefix]?.isEmpty == true { namespaces[prefix] = nil }
+        }
 
         func parser(
             _ parser: XMLParser, didStartElement name: String, namespaceURI: String?, qualifiedName: String?,
@@ -135,6 +149,14 @@ public enum AppcastParser {
                 kept[name] = value
             }
             current?.enclosure = kept
+            let checksums = attributes.filter { name, _ in
+                let parts = name.split(separator: ":", omittingEmptySubsequences: false)
+                return parts.count == 2 && parts[1] == "sha256"
+                    && namespaces[String(parts[0])]?.last == AppcastItem.Raw.checksumNamespace
+            }
+            // Ungültige optionale Hashes bleiben ohne Auswirkung auf den Update-Hinweis. Auch überlange Werte
+            // nicht speichern; nur die übrigen ausgewerteten Attribute unterliegen der harten Feldgrenze.
+            current?.sha256 = checksums.count == 1 ? checksums.values.first.flatMap { $0.utf8.count == 64 ? $0 : nil } : nil
         }
 
         /// Hört bei der Eintragsgrenze auf; die bis dahin gelesenen (neuesten) Einträge bleiben erhalten.

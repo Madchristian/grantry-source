@@ -10,6 +10,21 @@ import TestSupport
         #expect(runner.calls == ["/usr/bin/tccutil reset Camera us.zoom.xos"])
     }
 
+    /// #192: Der im Dialog genannte Umfang entspricht dem appweiten AppleEvents-Aufruf.
+    /// Der Mock zeichnet nur Argumente auf; echte TCC-Berechtigungen werden nie zurückgesetzt.
+    @Test(arguments: ["com.apple.finder", "com.apple.systemevents"])
+    func automationResetAffectsTheClientRegardlessOfSelectedTarget(target: String) async throws {
+        let runner = MockCommandRunner([
+            "/usr/bin/tccutil reset AppleEvents us.zoom.xos": CommandResult(exitCode: 0, stdout: ""),
+        ])
+        var grant = TestData.grant("kTCCServiceAppleEvents")
+        grant.target = target
+
+        try await PermissionActions(runner: runner).reset(grant)
+
+        #expect(runner.calls == ["/usr/bin/tccutil reset AppleEvents us.zoom.xos"])
+    }
+
     @Test func resetRefusesReadOnlyGrant() async {
         let runner = MockCommandRunner()
         let apple = TestData.grant(client: TestData.app("com.apple.Terminal", signing: SigningInfo(kind: .apple)))

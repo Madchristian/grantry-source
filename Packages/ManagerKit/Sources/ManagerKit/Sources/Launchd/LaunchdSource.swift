@@ -91,6 +91,7 @@ public struct LaunchdSource: InventorySource {
     private let resolver: any AppResolving
     private let inspector: any SigningInspecting
     private let fingerprinter: SecretFingerprinter
+    private let volumes: @Sendable () -> [MountedVolume]
     private let queue = BlockingWorkQueue(label: "launchd-signing")
 
     /// - Parameter fingerprinter: Schlüssel der Argument-Fingerabdrücke. Die Vorgabe ist flüchtig (Tests); die App
@@ -100,6 +101,16 @@ public struct LaunchdSource: InventorySource {
         resolver: any AppResolving, inspector: any SigningInspecting = CachingSigningInspector(),
         fingerprinter: SecretFingerprinter = .ephemeral()
     ) {
+        self.init(directories: directories, runner: runner, resolver: resolver, inspector: inspector,
+                  fingerprinter: fingerprinter, volumes: MountedVolume.current)
+    }
+
+    init(
+        directories: [LaunchdDirectory], runner: any CommandRunning,
+        resolver: any AppResolving, inspector: any SigningInspecting = CachingSigningInspector(),
+        fingerprinter: SecretFingerprinter = .ephemeral(), volumes: @escaping @Sendable () -> [MountedVolume]
+    ) {
+        self.volumes = volumes
         self.directories = directories
         self.runner = runner
         self.resolver = resolver
@@ -109,6 +120,7 @@ public struct LaunchdSource: InventorySource {
 
     /// Jede launchctl-Domain wird pro Durchlauf höchstens einmal abgefragt, jeder Eigentümer nur einmal aufgelöst.
     public func collect() async throws -> InventoryContribution {
+        let volumes = volumes()
         let listings = directories.map { directory in (directory: directory, listing: Self.plists(in: directory.path)) }
         let entries = listings.flatMap { directory, listing in
             listing.plists.map { Entry(directory: directory, path: $0.path, contents: $0.contents) }
@@ -133,7 +145,7 @@ public struct LaunchdSource: InventorySource {
                 if let known = owners[key] {
                     owner = known
                 } else {
-                    owner = await resolve(key)
+                    owner = await resolve(key, volumes: volumes)
                     owners[key] = owner
                 }
             }
@@ -142,7 +154,7 @@ public struct LaunchdSource: InventorySource {
             let isLoaded = try await loadState(of: entry, in: state, isAmbiguous: isAmbiguous)
             let resolvedOwner = owner
             items.append(await queue.run {
-                item(from: entry, state: state, isLoaded: isLoaded, owner: resolvedOwner)
+                item(from: entry, state: state, isLoaded: isLoaded, owner: resolvedOwner, volumes: volumes)
             })
         }
         return InventoryContribution(
@@ -250,17 +262,17 @@ public struct LaunchdSource: InventorySource {
         )
     }
 
-    private func item(from entry: Entry, state: DomainState, isLoaded: Bool?, owner: AppIdentity?) -> AutostartItem {
+    private func item(from entry: Entry, state: DomainState, isLoaded: Bool?, owner: AppIdentity?, volumes: [MountedVolume]) -> AutostartItem {
         let (directory, path, plist) = (entry.directory, entry.path, entry.plist)
         let isDisabled = state.disabledOverrides[plist.label] ?? plist.disabled
-        let presence = plist.executable.map(Self.programPresence) ?? .unknown
+        let presence = plist.executable.map { Self.programPresence($0, volumes: volumes) } ?? .unknown
         // `.present` setzt einen absoluten Pfad voraus (siehe `programPresence`).
         let presentProgram = presence == .present ? plist.executable : nil
         // Ab hier nur noch maskiert: `plist.executable` und `plist.programArguments` dienen oben und unten allein den
         // Prüfungen in der Quelle (Vorhandensein, Signatur, Skript, Eigentümer).
         let command = MaskedCommand(
             program: plist.program, arguments: plist.programArguments ?? [],
-            resolvingPath: Self.resolvedPath, fingerprinter: fingerprinter
+            resolvingPath: { CommandInterpreterPath.resolve($0, volumes: volumes) }, fingerprinter: fingerprinter
         )
         return AutostartItem(
             kind: directory.kind,
@@ -276,7 +288,7 @@ public struct LaunchdSource: InventorySource {
             programSigning: presentProgram.map(inspector.inspect),
             sessionTypes: plist.sessionTypes,
             launchesInterpreter: plist.launchesInterpreter,
-            programScript: presentProgram.flatMap { script(at: $0, overridesPath: plist.overridesPath) },
+            programScript: presentProgram.flatMap { script(at: $0, overridesPath: plist.overridesPath, volumes: volumes) },
             plistFingerprint: entry.contents.fingerprint,
             programArguments: command.arguments,
             programArgumentsFingerprint: command.fingerprint, hasHiddenScript: command.hasHiddenScript
@@ -287,12 +299,13 @@ public struct LaunchdSource: InventorySource {
     /// absolutem, vorhandenem Pfad (wie beim Programm selbst). Bei `/usr/bin/env <name>` wird `name` gegen launchds
     /// Standard-PATH aufgelöst und geprüft, sofern die Plist keinen eigenen `PATH` setzt (`overridesPath`). Die
     /// Shebang-Argumente gehen wie die `ProgramArguments` nur maskiert ins Modell (#137).
-    private func script(at program: String, overridesPath: Bool) -> ProgramScript? {
+    private func script(at program: String, overridesPath: Bool, volumes: [MountedVolume]) -> ProgramScript? {
         ScriptFile.shebang(atPath: program).map { shebang in
             ProgramScript(
                 interpreter: shebang.interpreter,
-                arguments: Array(ArgumentRedactor.redact(arguments: [shebang.interpreter] + shebang.arguments).values.dropFirst()),
-                interpreterSigning: signing(ofProgramAt: shebang.interpreter),
+                arguments: Array(ArgumentRedactor.redact(arguments: [shebang.interpreter] + shebang.arguments,
+                    resolvingPath: { CommandInterpreterPath.resolve($0, volumes: volumes) }).values.dropFirst()),
+                interpreterSigning: signing(ofProgramAt: shebang.interpreter, volumes: volumes),
                 resolvedEnvProgram: overridesPath ? nil : shebang.envProgram
                     .flatMap { LaunchdSearchPath.executable(named: $0) }
                     .map { ProgramScript.ResolvedProgram(path: $0, signing: inspector.inspect(path: $0)) }
@@ -301,27 +314,36 @@ public struct LaunchdSource: InventorySource {
     }
 
     /// Interpreterpfad für die Maskierung: Symlinks und bytegleiche System-Shell-Kopien, nur absolute Pfade.
-    /// Keine Signaturprüfung; unerkennbare Programme fallen auf ihren Namen zurück.
+    /// Keine Signaturprüfung; nicht sicher lokale Pfade gelten konservativ als Shell-Kandidaten.
     static func resolvedPath(_ path: String) -> String? {
         CommandInterpreterPath.resolve(path)
     }
 
     /// Signatur von `path`, nur bei absolutem, vorhandenem Pfad; sonst `nil`.
-    private func signing(ofProgramAt path: String) -> SigningInfo? {
-        Self.programPresence(path) == .present ? inspector.inspect(path: path) : nil
+    private func signing(ofProgramAt path: String, volumes: [MountedVolume]) -> SigningInfo? {
+        Self.programPresence(path, volumes: volumes) == .present ? inspector.inspect(path: path) : nil
     }
 
     /// Nur absolute Pfade lassen sich zuverlässig prüfen. Nackte Programmnamen (`node`, `sh`) löst launchd über
     /// einen `PATH` auf, den die Plist per `EnvironmentVariables` überschreiben kann – ihre Existenz ist daher
-    /// unbekannt, statt sie fälschlich als verwaist zu markieren.
-    static func programPresence(_ executable: String) -> Presence {
-        executable.hasPrefix("/") ? Presence(ofItemAt: executable) : .unknown
+    /// unbekannt, statt sie fälschlich als verwaist zu markieren. Dasselbe gilt für nicht sicher lokale Pfade:
+    /// Keine Existenz-/Signatur-/Shebang-Abfrage darf die Volume-Prüfung der Maskierung vorwegnehmen (#193).
+    static func programPresence(_ executable: String, volumes: [MountedVolume] = MountedVolume.current()) -> Presence {
+        guard let target = LocalPathResolver.resolve(executable, volumes: volumes) else { return .unknown }
+        if case .missing = target.entry { return .missing }
+        return .present
     }
 
-    private func resolve(_ key: OwnerKey) async -> AppIdentity {
+    private func resolve(_ key: OwnerKey, volumes: [MountedVolume]) async -> AppIdentity {
         switch key {
-        case .bundleID(let bundleID): await resolver.resolve(bundleID: bundleID)
-        case .path(let path): await resolver.resolve(path: path)
+        case .bundleID(let bundleID): return await resolver.resolve(bundleID: bundleID)
+        case .path(let path):
+            // A remote program's inferred bundle must not trigger metadata/signature I/O before masking either.
+            guard await queue.run({ LocalPathResolver.resolve(path, volumes: volumes) != nil }) else {
+                return AppIdentity(bundleID: nil, path: path, displayName: path.split(separator: "/").last.map(String.init) ?? path,
+                                   signing: SigningInfo(kind: .unknown), presence: .unknown)
+            }
+            return await resolver.resolve(path: path)
         }
     }
 

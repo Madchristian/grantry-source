@@ -11,9 +11,16 @@ import Testing
         #expect(confirmation.confirmTitle == "Zurücksetzen" && confirmation.isDestructive)
     }
 
-    @Test func automationResetWarnsThatAllTargetsAreReset() {
-        let confirmation = ActionConfirmation.reset(TestData.grant("kTCCServiceAppleEvents"))
+    // #192: Auch beim Zurücksetzen einer konkreten Ziel-Zeile gilt der Hinweis für die ganze App.
+    @Test(arguments: [nil, "com.apple.finder", "com.apple.systemevents"] as [String?])
+    func automationResetWarnsThatAllTargetsAreReset(target: String?) {
+        var grant = TestData.grant("kTCCServiceAppleEvents")
+        grant.target = target
+        let confirmation = ActionConfirmation.reset(grant)
+        #expect(confirmation.title == "Automation-Berechtigung von us.zoom.xos zurücksetzen?")
+        #expect(confirmation.message == "Die App fragt beim nächsten Zugriff erneut nach.")
         #expect(confirmation.note == "Setzt alle Automation-Freigaben dieser App zurück.")
+        #expect(confirmation.confirmTitle == "Zurücksetzen" && confirmation.isDestructive)
     }
 
     @Test func serviceResetNamesRemovedAndAffectedApps() throws {

@@ -48,6 +48,7 @@ import Testing
         #expect(item.releaseNotesURL == URL(string: "https://grantry.cstrube.de/release-notes/2026.10.5.html"))
         #expect(item.downloadURL == URL(string: "https://grantry.cstrube.de/download/Grantry-2026.10.5.dmg"))
         #expect(item.length == 2_661_986)
+        #expect(item.sha256 == nil)
         #expect(item.publishedAt == Date(timeIntervalSince1970: 1_791_096_120))
     }
 
@@ -55,6 +56,59 @@ import Testing
         let item = try #require(try AppcastParser.items(from: Self.feed(Self.item(minimumSystem: nil, notes: nil))).first)
         #expect(item.minimumSystemVersion == nil)
         #expect(item.releaseNotesURL == nil)
+        #expect(item.sha256 == nil)
+    }
+
+    private static let checksum = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
+    private static let checksumNamespace = "https://grantry.cstrube.de/xml-namespaces/appcast"
+
+    private static func item(checksum: String, prefix: String = "grantry", namespace: String = checksumNamespace) -> String {
+        item().replacingOccurrences(
+            of: "<enclosure ", with: "<enclosure xmlns:\(prefix)=\"\(namespace)\" \(prefix):sha256=\"\(checksum)\" "
+        )
+    }
+
+    @Test(arguments: [checksum, checksum.uppercased()])
+    func readsAndNormalizesSHA256(checksum: String) throws {
+        let item = try #require(try AppcastParser.items(from: Self.feed(Self.item(checksum: checksum))).first)
+        #expect(item.sha256 == Self.checksum)
+    }
+
+    @Test(arguments: [
+        "", String(repeating: "a", count: 63), String(repeating: "a", count: 65),
+        String(repeating: "g", count: 64), String(repeating: "é", count: 64),
+        String(repeating: "Ａ", count: 64), " " + checksum, checksum + " ",
+        checksum + "&#10;", String(repeating: "a", count: UpdateFeed.maximumFieldLength + 1),
+    ])
+    func ignoresInvalidSHA256WithoutDroppingTheUpdate(checksum: String) throws {
+        let items = try AppcastParser.items(from: Self.feed(Self.item(checksum: checksum)))
+        #expect(items.map(\.build) == [280])
+        #expect(items.first?.sha256 == nil)
+    }
+
+    @Test func checksumUsesNamespaceURIAndRespectsItsScope() throws {
+        let valid = Self.item(checksum: Self.checksum, prefix: "digest")
+        let wrongNamespace = Self.item(checksum: Self.checksum, namespace: "urn:other")
+        let plain = Self.item().replacingOccurrences(of: "<enclosure ", with: "<enclosure sha256=\"\(Self.checksum)\" ")
+        let items = try AppcastParser.items(from: Self.feed(valid, wrongNamespace, plain, Self.item()))
+        #expect(items.count == 4)
+        #expect(items.map(\.sha256) == [Self.checksum, nil, nil, nil])
+    }
+
+    @Test func inheritedChecksumNamespaceIsRestoredAfterLocalOverride() throws {
+        let inherited = Self.item().replacingOccurrences(of: "<enclosure ", with: "<enclosure digest:sha256=\"\(Self.checksum)\" ")
+        let wrong = Self.item(checksum: Self.checksum, prefix: "digest", namespace: "urn:other")
+        let feed = String(decoding: Self.feed(inherited, wrong, inherited), as: UTF8.self)
+            .replacingOccurrences(of: "<channel>", with: "<channel xmlns:digest=\"\(Self.checksumNamespace)\">")
+        let items = try AppcastParser.items(from: Data(feed.utf8))
+        #expect(items.map(\.sha256) == [Self.checksum, nil, Self.checksum])
+    }
+
+    @Test func nestedChecksumDoesNotOverrideTheDownloadChecksum() throws {
+        let delta = "<sparkle:deltas>\(Self.item(checksum: String(repeating: "b", count: 64)))</sparkle:deltas>"
+        let item = Self.item(checksum: Self.checksum).replacingOccurrences(of: "</item>", with: "\(delta)</item>")
+        let parsed = try #require(try AppcastParser.items(from: Self.feed(item)).first)
+        #expect(parsed.sha256 == Self.checksum)
     }
 
     @Test func keepsAllValidItems() throws {
@@ -115,6 +169,7 @@ import Testing
         #expect(item.build == 280)
         #expect(item.version == "2026.10.5")
         #expect(item.minimumSystemVersion == SystemVersion(major: 27))
+        #expect(item.sha256 == nil)
     }
 
     @Test func nestedElementsDoNotOverrideTheMainItem() throws {

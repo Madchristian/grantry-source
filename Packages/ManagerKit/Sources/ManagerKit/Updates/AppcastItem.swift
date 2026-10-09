@@ -8,6 +8,8 @@ public struct AppcastItem: Equatable, Sendable {
     public let releaseNotesURL: URL?
     public let downloadURL: URL
     public let length: Int?
+    /// Vom Feed gelieferte SHA-256-Prüfsumme des DMG; reine Integritäts-Gegenprobe, kein Echtheitsnachweis.
+    public let sha256: String?
     public let publishedAt: Date?
 
     /// Rohwerte eines `<item>`: die ausgewerteten Kind-Elemente und die Attribute von `<enclosure>`. Alles andere im
@@ -26,8 +28,12 @@ public struct AppcastItem: Equatable, Sendable {
         /// Attribute von `<enclosure>`, die gelesen werden: `url`, `length` und die Felder der älteren Feeds.
         static let enclosureAttributes = Set(["url", "length"] + Field.allCases.map(\.rawValue))
 
+        /// Eigene RSS-Erweiterung, siehe `scripts/appcast.swift` und RSS 2.0 § Extending RSS.
+        static let checksumNamespace = "https://grantry.cstrube.de/xml-namespaces/appcast"
+
         var fields: [Field: String] = [:]
         var enclosure: [String: String] = [:]
+        var sha256: String?
 
         /// Wert aus einem Kind-Element, ersatzweise aus einem gleichnamigen `enclosure`-Attribut (ältere Feeds).
         func value(_ field: Field) -> String? {
@@ -57,7 +63,16 @@ public struct AppcastItem: Equatable, Sendable {
         releaseNotesURL = releaseNotes
         downloadURL = download
         length = raw.enclosure["length"].flatMap(Int.init)
+        sha256 = raw.sha256.flatMap(Self.validSHA256)
         publishedAt = raw.fields[.publishedAt].flatMap(Self.date(rfc822:))
+    }
+
+    /// Exakt 64 ASCII-Hexzeichen; kein Trimmen oder Akzeptieren ähnlich aussehender Unicode-Zeichen.
+    private static func validSHA256(_ text: String) -> String? {
+        guard text.utf8.count == 64, text.utf8.allSatisfy({
+            (48...57).contains($0) || (65...70).contains($0) || (97...102).contains($0)
+        }) else { return nil }
+        return text.lowercased()
     }
 
     private static func date(rfc822 text: String) -> Date? {
