@@ -22,11 +22,16 @@ import TestSupport
         return info
     }
 
-    /// Backup-Ausschluss frisch vom Dateisystem – `URL` cacht Ressourcenwerte, die ein anderer `URL`-Wert gesetzt hat.
+    /// Prüft den expliziten Datei-Marker statt der von Temp-Ordner/Time-Machine-Zustand abhängigen URL-Auskunft.
     private func isExcludedFromBackup(_ url: URL) throws -> Bool {
-        var fresh = URL(filePath: url.path)
-        fresh.removeAllCachedResourceValues()
-        return try fresh.resourceValues(forKeys: [.isExcludedFromBackupKey]).isExcludedFromBackup == true
+        let attribute = "com.apple.metadata:com_apple_backup_excludeItem"
+        let length = getxattr(url.path, attribute, nil, 0, 0, XATTR_NOFOLLOW)
+        if length == -1, errno == ENOATTR { return false }
+        try #require(length > 0)
+        var bytes = [UInt8](repeating: 0, count: length)
+        let read = bytes.withUnsafeMutableBytes { getxattr(url.path, attribute, $0.baseAddress, length, 0, XATTR_NOFOLLOW) }
+        try #require(read == length)
+        return try PropertyListSerialization.propertyList(from: Data(bytes), format: nil) as? String == "com.apple.backupd"
     }
 
     private func expectPrivateKeyFile(at url: URL) throws {
@@ -55,6 +60,7 @@ import TestSupport
             var values = URLResourceValues()
             values.isExcludedFromBackup = false
             try target.setResourceValues(values)
+            #expect(try !isExcludedFromBackup(url), "Fixture entfernt den expliziten Marker")
             #expect(SecretFingerprinter.persistent(at: url).keyID == first.keyID)
             #expect(try isExcludedFromBackup(url))
         }

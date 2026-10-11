@@ -119,7 +119,9 @@ import TestSupport
         let path = try #require(candidates.first { FileManager.default.fileExists(atPath: $0) })
         var info = SigningInfo.unknown
         let elapsed = ContinuousClock().measure { info = inspector.inspect(path: path) }
-        #expect(elapsed < .seconds(1), "\(path) brauchte \(elapsed)")
+        // Security.framework and the worker queue contend under parallel full-suite load (#214).
+        // Keep a bounded regression guard below the inspector timeout; this is not a UI latency budget.
+        #expect(elapsed < .seconds(5), "\(path) brauchte \(elapsed)")
         #expect([.apple, .appStore, .developerID].contains(info.kind), "\(path): \(info)")
     }
 

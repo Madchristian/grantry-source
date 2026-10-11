@@ -58,8 +58,12 @@ import Testing
         defer { arguments.forEach { free($0) } }
         try #require(posix_spawn(&pid, "/usr/bin/true", nil, nil, &arguments, environ) == 0)
         defer { var status: Int32 = 0; waitpid(pid, &status, 0) }
-        let deadline = Date().addingTimeInterval(5)
-        while LibprocProcessInspector().process(pid) != nil, Date() < deadline { usleep(10_000) }
+        // Unabhängiger Exitnachweis, ohne das Kind zu ernten: die eigentliche Zombie-Prüfung folgt danach.
+        var exitInfo = siginfo_t()
+        var result: Int32
+        repeat { result = waitid(P_PID, id_t(pid), &exitInfo, WEXITED | WNOWAIT) } while result == -1 && errno == EINTR
+        try #require(result == 0)
+        #expect(exitInfo.si_pid == pid)
         #expect(LibprocProcessInspector().process(pid) == nil)
         #expect(LibprocProcessInspector().liveness(of: pid) == .absent)
         #expect(kill(pid, 0) == 0, "noch nicht geerntet")

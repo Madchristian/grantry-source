@@ -51,8 +51,8 @@ import TestSupport
     }
 
     private var twoSamples: [String] {
-        [header, "curl.42,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,Established,0,0,",
-         header, "curl.42,,3000,1500,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,Established,3000,1500,", header]
+        [header, "curl.42,,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,0,0,",
+         header, "curl.42,,,3000,1500,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,3000,1500,", header]
     }
 
     @Test func showsRatesAndHostNamesAndStopsNettop() async throws {
@@ -122,17 +122,17 @@ import TestSupport
         let names = { model.frame.report.processes.map(\.shortName) }
         model.start()
         try await eventually("erster Lauf gestartet") { streamer.startedRuns == 1 }
-        streamer.send([header, "alt.42,,0,0,", header], toRun: 0)
+        streamer.send([header, "alt.42,,,0,0,", header], toRun: 0)
         try await eventually("Messung des alten Laufs") { names() == ["alt"] }
 
         model.stop()
         model.start()
         #expect(model.status == .running)
         try await eventually("zweiter Lauf gestartet") { streamer.startedRuns == 2 }
-        streamer.send([header, "neu.43,,0,0,", header], toRun: 1)
+        streamer.send([header, "neu.43,,,0,0,", header], toRun: 1)
         try await eventually("Messung des neuen Laufs") { names() == ["neu"] }
 
-        streamer.send(["spaet.44,,500,500,", header, "spaet.44,,900,900,", header], toRun: 0)
+        streamer.send(["spaet.44,,,500,500,", header, "spaet.44,,,900,900,", header], toRun: 0)
         try await eventually("alter Lauf hat seine Zeilen gelesen") { streamer.consumedLines(ofRun: 0) == 7 }
         try await Task.sleep(for: .milliseconds(50))
         #expect(names() == ["neu"])
@@ -171,8 +171,8 @@ import TestSupport
 
     /// Kopf der Ansicht: Summe ↓/↑ des Macs und Verlauf – unabhängig von Filter und Suche.
     @Test func totalsAndHistoryCoverAllProcessesRegardlessOfFilter() async throws {
-        let lines = [header, "curl.42,,0,0,", "node.43,,0,0,",
-                     header, "curl.42,,3000,1500,", "node.43,,600,300,", header]
+        let lines = [header, "curl.42,,,0,0,", "node.43,,,0,0,",
+                     header, "curl.42,,,3000,1500,", "node.43,,,600,300,", header]
         let model = model(ScriptedLineStreamer([.init(lines, ending: .hangUntilCancelled)]))
         model.query = "nichts"
         model.start()
@@ -195,7 +195,7 @@ import TestSupport
 
     /// Ein fertiger Hostname erscheint gebündelt auch ohne weitere Messung – samt neu aufgebauter Zeile.
     @Test func hostNamesArriveWithoutNextSample() async throws {
-        let lines = [header, "curl.42,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,Established,0,0,", header]
+        let lines = [header, "curl.42,,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,0,0,", header]
         let model = model(ScriptedLineStreamer([.init(lines, ending: .hangUntilCancelled)]))
         model.filter.onlyActive = false
         model.start()
@@ -219,11 +219,11 @@ import TestSupport
         model.filter.onlyActive = false
         model.start()
         try await eventually("Lauf gestartet") { streamer.startedRuns == 1 }
-        streamer.send([header, "curl.42,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,Established,0,0,", header],
+        streamer.send([header, "curl.42,,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,0,0,", header],
                       toRun: 0)
         try await eventually("Hostname übernommen") { model.hostNames["192.0.2.10"] == "api.example.com" }
 
-        streamer.send(["curl.42,,0,0,", header], toRun: 0)
+        streamer.send(["curl.42,,,0,0,", header], toRun: 0)
         try await eventually("Verbindung ausgegraut") {
             model.frame.report.processes.first?.connections.first?.isGone == true
         }
@@ -250,7 +250,7 @@ import TestSupport
 
     /// Unlesbare Verbindungszeilen: Messung läuft weiter, die Leiste meldet den Teil-Lesefehler.
     @Test func unreadableConnectionLinesShowPartialNotice() async throws {
-        let lines = [header, "curl.42,,0,0,", "tcp4 192.0.2.1<->192.0.2.10:443,Established,1,2,", header]
+        let lines = [header, "curl.42,,,0,0,", "tcp4 192.0.2.1<->192.0.2.10:443,en0,Established,1,2,", header]
         let model = model(ScriptedLineStreamer([.init(lines, ending: .hangUntilCancelled)]))
         model.start()
         try await eventually { model.frame.report.skippedLineCount > 0 }
@@ -265,7 +265,7 @@ import TestSupport
     @Test func stopDiscardsQueuedSignatureInspections() async throws {
         let inspector = HoldingSigningInspector()
         let programs = ActivityProgramResolver(executablePath: { "/opt/tool\($0)" }, inspector: inspector)
-        let lines = [header, "a.11,,0,0,", "b.12,,0,0,", "c.13,,0,0,", header]
+        let lines = [header, "a.11,,,0,0,", "b.12,,,0,0,", "c.13,,,0,0,", header]
         let model = model(ScriptedLineStreamer([.init(lines, ending: .hangUntilCancelled)]), programs: programs)
         model.start()
         try await eventually { !inspector.paths.isEmpty }

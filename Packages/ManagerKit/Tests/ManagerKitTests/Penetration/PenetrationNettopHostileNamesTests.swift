@@ -27,7 +27,7 @@ import Testing
 
     /// Befund B1a: Ein Prozess namens `,x` darf den Sampler nicht beenden; seine Zeile gehört in den laufenden Block.
     @Test func processNamedLikeAHeaderDoesNotStopTheSampler() throws {
-        let samples = try samples([header, "curl.42,,1,2,", ",x.4711,,0,0,", header, "curl.42,,3,4,", header])
+        let samples = try samples([header, "curl.42,,,1,2,", ",x.4711,,,0,0,", header, "curl.42,,,3,4,", header])
         #expect(samples.count == 2)
         #expect(samples.first?.processes.map(\.pid) == [42, 4711])
     }
@@ -37,9 +37,9 @@ import Testing
     @Test func processNamedLikeAConnectionLineKeepsItsConnectionsApart() throws {
         let sample = try NettopParser.parse(block: """
             \(header)
-            Safari.100,,1,1,
-            tcp4 a<->b.4711,,5,6,
-            tcp4 192.0.2.1:50000<->203.0.113.9:443,Established,5,6,
+            Safari.100,,,1,1,
+            tcp4 a<->b.4711,,,5,6,
+            tcp4 192.0.2.1:50000<->203.0.113.9:443,en0,Established,5,6,
             """)
         let safari = try #require(sample.processes.first { $0.pid == 100 })
         #expect(safari.connections.isEmpty, "die Verbindung des Angreifers darf nicht Safari zugeschrieben werden")
@@ -49,11 +49,11 @@ import Testing
     }
 
     /// Die Erkennung gilt auch für andere Protokollpräfixe, zusätzliche Kommas und Endpunkttexte im Namen.
-    @Test(arguments: [",x", ",state,bytes_in,bytes_out,", "tcp4 a<->b", "udp6 a<->b", "quic6 ::.1<->::.2", "a,b.c d"])
+    @Test(arguments: [",x", ",interface,state,bytes_in,bytes_out,", "tcp4 a<->b", "udp6 a<->b", "quic6 ::.1<->::.2", "quic6 ::1.1<->::2", "udp6 ::1.1<->::2", "quic6 ::1.1<->::2,en8", "a,b.c d"])
     func hostileNamesKeepTrafficAndIdentity(_ name: String) throws {
         let samples = try samples([
-            header, "Safari.100,,1,2,", "\(name).4711,,5,6,",
-            "tcp4 192.0.2.1:50000<->203.0.113.9:443,Established,5,6,", header,
+            header, "Safari.100,,,1,2,", "\(name).4711,,,5,6,",
+            "tcp4 192.0.2.1:50000<->203.0.113.9:443,en0,Established,5,6,", header,
         ])
         let sample = try #require(samples.first)
         #expect(sample.skippedLineCount == 0)
@@ -70,8 +70,8 @@ import Testing
     @Test func ordinaryHostileLookingNamesStayProcessLines() throws {
         let sample = try NettopParser.parse(block: """
             \(header)
-            a,b.c d.42,,1,2,
-            tcp4 192.0.2.1:50000<->203.0.113.9:443,Established,1,2,
+            a,b.c d.42,,,1,2,
+            tcp4 192.0.2.1:50000<->203.0.113.9:443,en0,Established,1,2,
             """)
         #expect(sample.processes.map(\.shortName) == ["a,b.c d"])
         #expect(sample.processes.first?.connections.count == 1)

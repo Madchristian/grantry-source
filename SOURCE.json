@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "version": "2026.10.94",
-  "build": 781,
-  "source_commit": "4e5e63800cfa4f2fb151d770eff4dc4c3e445cde",
-  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.10.94.dmg",
-  "dmg_sha256": "37af884d0127940baf340699199668e5db1e8c06f1f00bb278d521bffd8aa426",
+  "version": "2026.10.112",
+  "build": 787,
+  "source_commit": "7ba7c146b48ac17248681f142f93b9994d305c8f",
+  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.10.112.dmg",
+  "dmg_sha256": "efeb048b9535751be2d0836face120be3d8ab1fb6d8ed721f668f8ee2eeab278",
   "source_files": [
     {
       "path": "Grantry/Agents/AgentApprovalDetailView.swift",
@@ -493,8 +493,8 @@
     },
     {
       "path": "Grantry/Permissions/GrantsDetailForm.swift",
-      "sha256": "574191855e1070bda602401c25c7117b63708a28454944a765b3893ffb758946",
-      "source_blob": "a1f6deaa28f4c3a9073767790737b0d28b8cd0fa"
+      "sha256": "3f5135f2ffc0c4d6eef92cbbd9c1bc7e704c9c8ab9f33cb2a7e4f9f255967285",
+      "source_blob": "57de8c0cb1f8ab28a7c1e81f142af75d5523446b"
     },
     {
       "path": "Grantry/Permissions/PermissionsView.swift",
@@ -543,8 +543,8 @@
     },
     {
       "path": "Grantry/Updates/ReleaseHighlights.json",
-      "sha256": "67a6935db3aa13fafb7ccfc304b3a4048a2b6455f064acb90b4cd8fee06464b1",
-      "source_blob": "26af062486f90d0c08f57e8fa4ee191f600b68bc"
+      "sha256": "0b45ef45f52a4a156d7a750354ca353024e2abd3b6c38f0a4a848fe8ec18584f",
+      "source_blob": "bb8a52811abbf74054532ddce40b238f0d7c4fe6"
     },
     {
       "path": "Grantry/Updates/UpdateBanner.swift",
@@ -798,8 +798,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Actions/ActionConfirmation.swift",
-      "sha256": "f585aaf4b5381a1bae0f56b74e280cedccb3928f3eea3e82a6172e6d7ce3dda6",
-      "source_blob": "c9c0e66cd1c2002d4b08561c4b9a1251231c7f82"
+      "sha256": "9db2a3492ebfc0f46fc5c7cca56326dd8887cc457b71bc465592950afd83584a",
+      "source_blob": "0e557700631af28d04e3fdb0b44aa0e1853e7720"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Actions/ActionCoordinator+Agents.swift",
@@ -958,8 +958,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/NettopParser.swift",
-      "sha256": "3e0624de9e4b510fb3163d85e560fca0c4eaeb5b8fc02ec65c68367780501e79",
-      "source_blob": "aea4b0953b59510af7222624f04fcee6c42ffb4f"
+      "sha256": "214979007aaf004b21ec1dfcc042e0fd9940fca30baefd7d0a103676eddb0e85",
+      "source_blob": "505590b951e1d4a08a30b914658148bca65f98f4"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/NettopSample.swift",
@@ -968,8 +968,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/NettopSampler.swift",
-      "sha256": "e20e9759be615ec99eeaf3062979459f6a36c3bb3087d85ed883da65006b8724",
-      "source_blob": "2bcab05689197d7395fc1c780ad4de6e6747dc9a"
+      "sha256": "df88ccb43a9a4b54d6adb89b6413fb33e6a7aa4df5682e37d0e2eeb11fbac854",
+      "source_blob": "a53d0c7ad1bea51d4bdea940755fde36b8164d9a"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/TrafficReport.swift",
@@ -2223,8 +2223,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantrySharedTests/RunningProcessTests.swift",
-      "sha256": "ff40e00b1a5bf0b2587a6a345292a5dde02b1084eb82f15e187cd50f19dd4a4c",
-      "source_blob": "17432c7991460cd6cbd7d0152015a9656533f95c"
+      "sha256": "7fd90e16899743d9fd1ab118dbba6ce303986c9f9fbf2a0491d8719418adbc27",
+      "source_blob": "76bbde111059c827bc6d878d870b9890c9797999"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantrySharedTests/SecurityHardeningTests.swift",
@@ -2248,8 +2248,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ActionConfirmationTests.swift",
-      "sha256": "9556172eaacad66aec412f49f84b6556f580ca2a45e9d6132b5afbab04c4c831",
-      "source_blob": "61ef643cb79e45235d8a8975f408573c6ffa9525"
+      "sha256": "d656c5de9a440c57d5f717134fe4d0e010dbedcb62a07144f3333c78f8c3889f",
+      "source_blob": "0b0e1e438c81290fc4e33c9556769e36ac6f5ef9"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ActionCoordinatorAgentTests.swift",
@@ -2698,8 +2698,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Fixtures/nettop-block.txt",
-      "sha256": "b5ba60c68e091900089b67a37f154a5de6a9935dd96274e13c67183016573cad",
-      "source_blob": "9f1f964cd8eaa10370738ccb28b4cada679c092d"
+      "sha256": "c52b69139605c0fa4be5146659dd574bbc1b63ff597bd5abec37c80f554fdd2e",
+      "source_blob": "f828c12fe54a71309352a085ba5463aa774b6b63"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/FullDiskAccessProbeTests.swift",
@@ -2863,8 +2863,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/MCPTransportFingerprintTests.swift",
-      "sha256": "47810ec6619d70eb0eac75a25c62a03a995c0d3ef11435f69235e7fa0d378afd",
-      "source_blob": "fc6efc6d31d94fe690dacfbfd1d553696a5c6d8c"
+      "sha256": "85ef36f1c933310b7dd1409bfc4ff2b04503430a265a16c0f6a834ef70af51dd",
+      "source_blob": "b398df4f28d17d307829c42f9b5e697e20ea535a"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/MachOHeaderTests.swift",
@@ -2883,23 +2883,23 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NettopLiveTests.swift",
-      "sha256": "d478f043565b6b897b2a388caae35c3f03d120a35ba23fa74225da7cf9f63b71",
-      "source_blob": "7999b0fa62e7e22f64d0ffa552ea4e82000f3102"
+      "sha256": "722a846828630f97496d130a7178122bce1b614b17cba7966481f13ef61168d4",
+      "source_blob": "5b815563051304d277e4c41133c0744d220b10f0"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NettopParserTests.swift",
-      "sha256": "772a23d0d63557e6a4b79e46a039f2f1bd2c9db523c6ccb7e7d6556f052570ed",
-      "source_blob": "beb3bb1c81d902b316bbe007bc4e02de4678c4a6"
+      "sha256": "d58155e0465505f9c721beb5797bff0bc15affd43aa71c40729a084055a2fcc2",
+      "source_blob": "2be916e25c9cca14441f9676d0962e51d33edb40"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NettopSamplerTests.swift",
-      "sha256": "1f81457b1cead3f422e0b6c53aa0b8fb4cf38baa3b160171bd82b7599011e907",
-      "source_blob": "0c5e2b822ae039a9fda07f15c77850c101d92df2"
+      "sha256": "afdf0d53a2406c380b1f5124b29ee3caeabc60c29e2d289648273e4502d690ef",
+      "source_blob": "b8b1c327e7f1fad8a992233d8cc1e76ca36cf3e2"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NetworkActivityModelTests.swift",
-      "sha256": "134186993bc3ba6ba175fff5d889ff24f71754ccb39adfe75a5b849c3eb32ca3",
-      "source_blob": "7b4721afda5d6fe2d00221b90d74600991b384c1"
+      "sha256": "1f5314fcca8d75236ee4176001a0dfa219565eb16f7ce3d8bae7f2defa02527d",
+      "source_blob": "93d385a2957f5dcfc43965b200eb4946529d32b4"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NetworkActivityPresentationTests.swift",
@@ -2938,8 +2938,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NetworkListenerSourceTests.swift",
-      "sha256": "2b2cbaaaada06d2657b0c11c4c76517868f8c211a47ab37d4a796b24b7e5a015",
-      "source_blob": "d2282748fdce047ac087ab8475975abaebd5fa77"
+      "sha256": "ff18604b066794dc44280e27b9df32ee641ed7a4cf919e1a92ad715ea7f061c3",
+      "source_blob": "9ba09a27c4e76f3a69ee90902d7acd0900bdfcc5"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NetworkListenerTests.swift",
@@ -3038,8 +3038,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Penetration/PenetrationNettopHostileNamesTests.swift",
-      "sha256": "ff67d709f25f41eea895451185980b4955767ff2b6f4bf83411f5850c7967699",
-      "source_blob": "e8ff70a3f937924ce8209ca2db00563ca4b08460"
+      "sha256": "ac06124eaf3a1620de6f67191085e2e173da8641798d8db8f576eb7f80786df8",
+      "source_blob": "30bf995b88d6a5ac1877a255f260cd5281a5d42b"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Penetration/PenetrationNotificationTextTests.swift",
@@ -3168,8 +3168,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SecretFingerprintKeyFileTests.swift",
-      "sha256": "dc29acef55a506e48405a9a24754e49fcf2b7eab8087f16887143c287db584d5",
-      "source_blob": "796e53cc9ea6a9f282fa3df694e97d041737d58c"
+      "sha256": "f35ba4715d072a709efbec3088af57db9abab6b070b5fda7ab16ebedff6573fd",
+      "source_blob": "a730b82aaab9032d3629d13055514e921cb1c088"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SecurityActionsTests.swift",
@@ -3233,8 +3233,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SigningInspectorTests.swift",
-      "sha256": "bcee2f2aa915a2a9d0c0d8e32c66c0d0454df3aa0a20c14cd81a246e0301b5a0",
-      "source_blob": "b140ab63bb47afcf45b02e7fdfd9ab5a65218d1c"
+      "sha256": "2e63ea0a52b230b05e76b11cd87d4b454ad78cfa1600bd41dac0eb6fc32cbf07",
+      "source_blob": "0693db9a7d963354e204e6f15528541c677c49c1"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SmokeTests.swift",

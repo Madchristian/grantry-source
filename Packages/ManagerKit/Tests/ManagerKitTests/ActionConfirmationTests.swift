@@ -19,8 +19,37 @@ import Testing
         let confirmation = ActionConfirmation.reset(grant)
         #expect(confirmation.title == "Automation-Berechtigung von us.zoom.xos zurücksetzen?")
         #expect(confirmation.message == "Die App fragt beim nächsten Zugriff erneut nach.")
-        #expect(confirmation.note == "Setzt alle Automation-Freigaben dieser App zurück.")
+        #expect(confirmation.note?.hasPrefix("Setzt alle Automation-Freigaben dieser App zurück.") == true)
+        if let target { #expect(confirmation.note?.contains(target) == true) }
         #expect(confirmation.confirmTitle == "Zurücksetzen" && confirmation.isDestructive)
+    }
+
+    @Test func automationResetListsEveryKnownTargetForTheSameClient() throws {
+        var selected = TestData.grant("kTCCServiceAppleEvents")
+        selected.target = "com.apple.finder"
+        var second = selected
+        second.target = "com.apple.systemevents"
+        var unknown = selected
+        unknown.target = nil
+        var other = TestData.grant("kTCCServiceAppleEvents", client: TestData.app("other.app"))
+        other.target = "other.target"
+        let confirmation = ActionConfirmation.reset(selected, knownGrants: [second, selected, selected, unknown, other])
+        let note = try #require(confirmation.note)
+        #expect(note.contains("Setzt alle Automation-Freigaben dieser App zurück."))
+        #expect(note.contains("com.apple.finder, com.apple.systemevents"))
+        #expect(!note.contains("other.target"))
+        #expect(note.contains("Weitere Ziele können Grantry unbekannt sein."))
+        #expect(ActionConfirmation.reset(TestData.grant(), knownGrants: [selected]).note == nil)
+    }
+
+    @Test func automationResetDoesNotTruncateTargetsAcrossScopes() throws {
+        let grants = (1...20).map { index in
+            var grant = TestData.grant("kTCCServiceAppleEvents", scope: index.isMultiple(of: 2) ? .system : .user)
+            grant.target = "target-\(index)"
+            return grant
+        }
+        let note = try #require(ActionConfirmation.reset(grants[0], knownGrants: grants).note)
+        for grant in grants { #expect(note.contains(grant.target ?? "missing-target")) }
     }
 
     @Test func serviceResetNamesRemovedAndAffectedApps() throws {

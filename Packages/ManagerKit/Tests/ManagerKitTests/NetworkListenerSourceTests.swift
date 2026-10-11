@@ -299,9 +299,11 @@ import Testing
             provider: provider, local: Local(scan: ListeningSocketScan(sockets: [ownSocket])),
             mapper: NetworkListenerMapper(inspector: inspector), currentUID: 501, now: { clock.now }, schedule: schedule
         )
-        let coordinator = ScanCoordinator(sources: [source], sourceTimeout: .milliseconds(50), currentUID: 501,
+        let coordinator = ScanCoordinator(sources: [source], sourceTimeout: .seconds(5), currentUID: 501,
                                           now: { clock.now })
 
+        // Die blockierte Prüfung erzwingt den Timeout; erfolgreiche Folgescans brauchen keine 50-ms-Latenz.
+        defer { inspector.gate.release() }
         let timedOut = try await coordinator.scan()
         #expect(timedOut.failedSources == [.networkListeners])
         #expect(provider.calls == 1)
@@ -314,7 +316,9 @@ import Testing
         // Zwischenmessung 60 s später: Der verworfene Erfolg gilt nicht – der Helper ist weiter fällig.
         clock.advance(by: 60)
         var next = try await coordinator.scan(previous: timedOut, only: [.networkListeners])
-        for _ in 0..<200 where next.sourceErrors.first?.message == ScanCoordinator.stillRunningMessage {
+        let completionDeadline = ContinuousClock.now + .seconds(30)
+        while next.sourceErrors.first?.message == ScanCoordinator.stillRunningMessage,
+              ContinuousClock.now < completionDeadline {
             try await Task.sleep(for: .milliseconds(10))  // die verworfene Messung läuft im Hintergrund zu Ende
             next = try await coordinator.scan(previous: timedOut, only: [.networkListeners])
         }

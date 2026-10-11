@@ -36,7 +36,9 @@ struct GrantsDetailForm<Header: View, Extra: View>: View {
                 extra(presentation)
             }
             .formStyle(.grouped)
-            .actionConfirmation(for: $pendingReset, confirmation: ActionConfirmation.reset) { grant in
+            .actionConfirmation(for: $pendingReset, confirmation: {
+                ActionConfirmation.reset($0, knownGrants: appModel.monitoring.snapshot?.grants ?? [])
+            }) { grant in
                 Task { await appModel.actions.reset(grant, context: .permissions) }
             }
             .actionConfirmation(for: $pendingServiceReset, confirmation: { ActionConfirmation.resetService($0) }) { reset in

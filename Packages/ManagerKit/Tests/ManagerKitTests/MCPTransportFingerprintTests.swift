@@ -32,8 +32,10 @@ import TestSupport
     }
 
     @Test func changeOfAHiddenScriptIsReported() throws {
-        let old = try server("node serverA.js --token abc")
-        let new = try server("node serverB.js --token abc")
+        // A secret outside the hex alphabet cannot accidentally match the random HMAC/key ID (#214).
+        let hiddenValue = "fixture-XYZ"
+        let old = try server("node serverA.js --token \(hiddenValue)")
+        let new = try server("node serverB.js --token \(hiddenValue)")
         #expect(old.transport == .local(command: "sh", arguments: ["-c", "•••"]))
         #expect(old.transport == new.transport)
 
@@ -42,7 +44,7 @@ import TestSupport
         #expect(ChangeDescription(event).body.contains("maskierte Zugangsdaten im Befehl geändert"))
         #expect(!snapshot(old).isEquivalent(to: snapshot(new)))
         let encoded = String(decoding: try JSONEncoder().encode(event), as: UTF8.self)
-        #expect(!encoded.contains("serverA") && !encoded.contains("serverB") && !encoded.contains("abc"))
+        #expect(!encoded.contains("serverA") && !encoded.contains("serverB") && !encoded.contains(hiddenValue))
     }
 
     @Test func unchangedHiddenScriptIsQuiet() throws {

@@ -13,7 +13,7 @@ public enum NettopSamplerError: Error, Equatable, Sendable {
 
 /// Startet `nettop` als langlebigen Unterprozess und liefert jede Messung (Spec §2/§3).
 ///
-/// - Aufruf `nettop -L 0 -s <interval> -n -x -J state,bytes_in,bytes_out`.
+/// - Aufruf `nettop -L 0 -s <interval> -n -x -J interface,state,bytes_in,bytes_out -c`.
 /// - Ein Block ist vollständig, sobald die Kopfzeile des nächsten kommt – er erscheint also eine Intervalllänge nach
 ///   seinem Beginn; `TimedNettopSample.capturedAt` ist der Zeitpunkt seiner Kopfzeile. Den letzten, womöglich
 ///   unvollständigen Block beim Prozessende verwirft der Sampler.
@@ -68,7 +68,8 @@ public struct NettopSampler: Sendable {
     }
 
     public var arguments: [String] {
-        ["-L", "0", "-s", String(interval), "-n", "-x", "-J", "state,bytes_in,bytes_out"]
+        // -c reduziert nettops Zeichenaufwand; CSV-Takt (-s) und die identitätsrelevante Interface-Spalte bleiben erhalten.
+        ["-L", "0", "-s", String(interval), "-n", "-x", "-J", "interface,state,bytes_in,bytes_out", "-c"]
     }
 
     /// Wartezeit vor dem Neustart nach `restarts` instabilen Läufen in Folge: 1 s, 2 s, 4 s …, höchstens 30 s.

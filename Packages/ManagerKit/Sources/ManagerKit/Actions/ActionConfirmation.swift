@@ -1,4 +1,5 @@
 import Foundation
+import GrantryShared
 
 /// Texte des Bestätigungsdialogs vor einer verändernden Aktion (Spec §5: jede Aktion wird bestätigt).
 public struct ActionConfirmation: Hashable, Sendable {
@@ -22,12 +23,23 @@ public struct ActionConfirmation: Hashable, Sendable {
 extension ActionConfirmation {
     /// Zurücksetzen per `tccutil`; bei Automation mit dem Hinweis, dass alle Ziele der App betroffen sind
     /// (siehe `PermissionActions`).
-    public static func reset(_ grant: PermissionGrant) -> ActionConfirmation {
+    public static func reset(_ grant: PermissionGrant, knownGrants: [PermissionGrant] = []) -> ActionConfirmation {
         let service = PermissionCatalog.service(for: grant.service).displayName
+        var notes: [String] = []
+        if grant.service == PermissionCatalog.automationServiceID {
+            notes.append("Setzt alle Automation-Freigaben dieser App zurück.")
+            let targets = Set(([grant] + knownGrants).filter {
+                $0.service == PermissionCatalog.automationServiceID
+                    && ($0.clientID == grant.clientID
+                        || (grant.client.bundleID != nil && $0.client.bundleID == grant.client.bundleID))
+            }.compactMap(\.target).map(DisplayText.singleLine).filter { !$0.isEmpty }).sorted()
+            if !targets.isEmpty { notes.append("Bekannte Ziele: \(targets.joined(separator: ", ")).") }
+            notes.append("Weitere Ziele können Grantry unbekannt sein.")
+        }
         return ActionConfirmation(
             title: "\(service)-Berechtigung von \(grant.client.displayName) zurücksetzen?",
             message: "Die App fragt beim nächsten Zugriff erneut nach.",
-            note: grant.service == PermissionCatalog.automationServiceID ? "Setzt alle Automation-Freigaben dieser App zurück." : nil,
+            note: notes.isEmpty ? nil : notes.joined(separator: " "),
             confirmTitle: "Zurücksetzen",
             isDestructive: true
         )

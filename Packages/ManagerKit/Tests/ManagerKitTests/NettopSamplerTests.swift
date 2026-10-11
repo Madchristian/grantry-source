@@ -15,20 +15,20 @@ import Testing
 
     /// Ein Lauf, der `count` Messungen liefert (eine Prozesszeile je Block) und dann endet.
     private func deliveringRun(samples count: Int, linesPerBlock: Int = 1) -> ScriptedLineStreamer.Run {
-        let block = [header] + Array(repeating: "a.1,,1,2,", count: linesPerBlock)
+        let block = [header] + Array(repeating: "a.1,,,1,2,", count: linesPerBlock)
         return .init(Array(Array(repeating: block, count: count).joined()) + [header])
     }
 
     @Test func callsNettopWithCSVArguments() {
         #expect(NettopSampler.executable == "/usr/bin/nettop")
-        #expect(NettopSampler().arguments == ["-L", "0", "-s", "2", "-n", "-x", "-J", "state,bytes_in,bytes_out"])
+        #expect(NettopSampler().arguments == ["-L", "0", "-s", "2", "-n", "-x", "-J", "interface,state,bytes_in,bytes_out", "-c"])
     }
 
     /// Ein Block endet mit der nächsten Kopfzeile und trägt den Zeitpunkt seiner eigenen Kopfzeile.
     @Test func splitsOutputAtHeaders() async throws {
         let streamer = ScriptedLineStreamer([.init([
-            header, "a.1,,10,20,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,Established,10,20,",
-            header, "b.2,,5,6,", header,
+            header, "a.1,,,10,20,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,10,20,",
+            header, "b.2,,,5,6,", header,
         ], ending: .hangUntilCancelled)])
         let (samples, continuation) = AsyncStream.makeStream(of: TimedNettopSample.self)
         let task = Task { [sampler = sampler(streamer)] in try await sampler.run { continuation.yield($0) } }
@@ -56,9 +56,9 @@ import Testing
         let assembler = NettopSampleAssembler(startTime: { pid in running.withLock { $0.contains(pid) } ? 100 : nil })
         let now = ContinuousClock.now
         _ = try assembler.consume(header, at: now)
-        _ = try assembler.consume("curl.7,,1,2,", at: now)
-        _ = try assembler.consume("tcp4 192.0.2.1:50000<->192.0.2.10:443,Established,1,2,", at: now)
-        _ = try assembler.consume("weg.8,,3,4,", at: now)
+        _ = try assembler.consume("curl.7,,,1,2,", at: now)
+        _ = try assembler.consume("tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,1,2,", at: now)
+        _ = try assembler.consume("weg.8,,,3,4,", at: now)
         running.withLock { $0 = [] }
         let sample = try #require(try assembler.consume(header, at: now + .seconds(2)))
         #expect(sample.sample.processes.map(\.startTime) == [100, nil])
@@ -68,12 +68,12 @@ import Testing
     @Test func capturesStartTimesForHostileProcessNames() throws {
         let assembler = NettopSampleAssembler(startTime: { UInt64($0) * 100 })
         let now = ContinuousClock.now
-        for line in [header, ",x.42,,1,2,", "tcp4 a<->b.43,,3,4,"] {
+        for line in [header, ",x.42,,,1,2,", "tcp4 a<->b.43,,,3,4,", "quic6 ::1.1<->::2.4711,,,5,6,"] {
             _ = try assembler.consume(line, at: now)
         }
         let sample = try #require(try assembler.consume(header, at: now + .seconds(2)))
-        #expect(sample.sample.processes.map(\.pid) == [42, 43])
-        #expect(sample.sample.processes.map(\.startTime) == [4200, 4300])
+        #expect(sample.sample.processes.map(\.pid) == [42, 43, 4711])
+        #expect(sample.sample.processes.map(\.startTime) == [4200, 4300, 471100])
     }
 
     @Test func restartsWithBackoffAndGivesUpAfterThreeFailures() async {

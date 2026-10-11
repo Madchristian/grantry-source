@@ -85,27 +85,27 @@ import Testing
 
     @Test func rejectsUnknownHeader() {
         #expect(throws: NettopParser.Error.unrecognizedFormat) {
-            try NettopParser.parse(block: ",state,bytes_in,\napsd.577,,1,2,")
+            try NettopParser.parse(block: ",state,bytes_in,\napsd.577,,,1,2,")
         }
         #expect(throws: NettopParser.Error.unrecognizedFormat) {
-            try NettopParser.parse(block: "time,,interface,state,bytes_in,bytes_out,\napsd.577,,1,2,")
+            try NettopParser.parse(block: "time,,interface,state,bytes_in,bytes_out,\napsd.577,,,1,2,")
         }
     }
 
     /// Ein unlesbarer Prozess darf weder den Lauf beenden noch seine Verbindungen dem Vorgänger zuschreiben.
     @Test(arguments: [
-        "apsd,,1,2,", "apsd.577,Established,1,2,", "apsd.577,,eins,2,", ".577,,1,2,", "apsd.577,,1,2",
-        "tcp4 a<->b.577,,eins,2,",
+        "apsd,,,1,2,", "apsd.577,,Established,1,2,", "apsd.577,,,eins,2,", ".577,,,1,2,", "apsd.577,,1,2",
+        "tcp4 a<->b.577,,,eins,2,",
     ])
     func countsUnreadableProcessLinesAndSkipsTheirConnections(_ line: String) throws {
         let sample = try NettopParser.parse(block: """
             \(header)
-            Safari.100,,1,2,
+            Safari.100,,,1,2,
             \(line)
-            tcp4 192.0.2.1:1<->192.0.2.2:2,Established,1,2,
-            udp4 192.0.2.1:3<->192.0.2.2:4,,1,2,
-            curl.42,,3,4,
-            tcp4 192.0.2.1:5<->192.0.2.2:6,Established,3,4,
+            tcp4 192.0.2.1:1<->192.0.2.2:2,en0,Established,1,2,
+            udp4 192.0.2.1:3<->192.0.2.2:4,en0,,1,2,
+            curl.42,,,3,4,
+            tcp4 192.0.2.1:5<->192.0.2.2:6,en0,Established,3,4,
             """)
         #expect(sample.skippedLineCount == 3)
         #expect(sample.processes.map(\.pid) == [100, 42])
@@ -115,7 +115,7 @@ import Testing
 
     /// Ohne lesbare Prozesszeile fehlt die Zuordnung; auch diese Verbindung zählt als übersprungen.
     @Test func countsConnectionBeforeFirstProcess() throws {
-        let sample = try NettopParser.parse(block: "\(header)\ntcp4 192.0.2.1:1<->192.0.2.2:2,Established,1,2,")
+        let sample = try NettopParser.parse(block: "\(header)\ntcp4 192.0.2.1:1<->192.0.2.2:2,,Established,1,2,")
         #expect(sample.processes.isEmpty)
         #expect(sample.skippedLineCount == 1)
     }
@@ -124,11 +124,11 @@ import Testing
     @Test func countsUnreadableConnectionLines() throws {
         let sample = try NettopParser.parse(block: """
             \(header)
-            curl.42,,10,20,
-            tcp4 192.0.2.1<->192.0.2.2:443,Established,1,2,
-            sctp4 192.0.2.1:1<->192.0.2.2:2,,1,2,
-            tcp4 192.0.2.1:1<->192.0.2.2:443,Established,viel,2,
-            tcp4 192.0.2.1:50000<->192.0.2.2:443,Established,10,20,
+            curl.42,,,10,20,
+            tcp4 192.0.2.1<->192.0.2.2:443,en0,Established,1,2,
+            sctp4 192.0.2.1:1<->192.0.2.2:2,en0,,1,2,
+            tcp4 192.0.2.1:1<->192.0.2.2:443,en0,Established,viel,2,
+            tcp4 192.0.2.1:50000<->192.0.2.2:443,en0,Established,10,20,
             """)
         #expect(sample.skippedLineCount == 3)
         #expect(sample.processes.first?.connections.count == 1)
@@ -140,12 +140,12 @@ import Testing
 
     /// nettop lässt die Byte-Felder mancher Prozesse leer: unbekannt (`nil`), nicht 0.
     @Test func readsProcessWithEmptyByteFields() throws {
-        let sample = try NettopParser.parse(block: "\(header)\ncurl.42,,,,")
+        let sample = try NettopParser.parse(block: "\(header)\ncurl.42,,,,,")
         #expect(sample.processes == [ProcessTraffic(pid: 42, shortName: "curl", bytesIn: nil, bytesOut: nil)])
     }
 
     @Test func acceptsCRLFLineEndings() throws {
-        let sample = try NettopParser.parse(block: "\(header)\r\ncurl.42,,10,20,\r\n")
+        let sample = try NettopParser.parse(block: "\(header)\r\ncurl.42,,,10,20,\r\n")
         #expect(sample.processes == [ProcessTraffic(pid: 42, shortName: "curl", bytesIn: 10, bytesOut: 20)])
     }
 }

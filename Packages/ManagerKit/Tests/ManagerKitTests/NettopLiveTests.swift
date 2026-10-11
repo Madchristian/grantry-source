@@ -8,21 +8,27 @@ import Testing
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["MANAGERKIT_LIVE"] == "1"), .timeLimit(.minutes(1)))
 struct NettopLiveTests {
     @Test func samplerReadsRealNettopAndLeavesNoProcessBehind() async throws {
-        let sampler = NettopSampler(interval: 1)
+        let sampler = NettopSampler()
         let (samples, continuation) = AsyncStream.makeStream(of: TimedNettopSample.self)
         let task = Task { try await sampler.run { continuation.yield($0) } }
 
         var received: [TimedNettopSample] = []
         for await sample in samples {
             received.append(sample)
-            if received.count == 2 { break }
+            if received.count == 3 { break }
         }
         #expect(!Self.nettopChildren().isEmpty)
         task.cancel()
         await #expect(throws: CancellationError.self) { try await task.value }
 
         #expect(Self.nettopChildren().isEmpty, "nettop muss nach dem Abbruch beendet sein")
-        try #require(received.count == 2)
+        try #require(received.count == 3)
+        // CPU-schonendes nettop muss im CSV-Modus weiterhin im angeforderten 2-s-Takt liefern.
+        // Spielraum für Start und Scheduling; ein verdoppeltes Intervall ist keine gültige Abtastung.
+        for (previous, current) in zip(received, received.dropFirst()) {
+            let interval = current.capturedAt - previous.capturedAt
+            #expect(interval >= .seconds(1) && interval < .seconds(3))
+        }
         let kernel = received.first?.sample.processes.first { $0.pid == 0 }
         #expect(kernel?.shortName == "kernel_task")
         #expect(received.allSatisfy { $0.sample.skippedLineCount == 0 })
