@@ -7,11 +7,11 @@ import Synchronization
 /// Passwort.
 ///
 /// Review N2: Unmittelbar vor dem Senden – im selben Block auf der Queue des Senders – prüft `verify` jeden Kandidaten
-/// erneut (`RemovalGuard`: dasselbe Objekt, erlaubter Ort), und Ziele auf Volumes ohne Papierkorb (Netzlaufwerk,
-/// schreibgeschützt; `TrashVolumeChecking`) gehen nicht mit – der Finder löscht dort sofort endgültig. Das Ergebnis je
-/// Datei prüft danach `lstat`: fehlt der Pfad, liegt das Original im Papierkorb – sofern der Nachweis unten nicht
-/// widerspricht; liegt dort ein anderes Objekt, wurde er inzwischen neu angelegt (`.recreated`); sonst ist er noch
-/// vorhanden – der Finder meldet bei einem Teilabbruch nur einen Fehler.
+/// erneut (`RemovalGuard` bzw. für Speicher-Einträge `StoragePathGuard`: dasselbe Objekt, erlaubter Ort), und Ziele auf
+/// Volumes ohne Papierkorb (Netzlaufwerk, schreibgeschützt; `TrashVolumeChecking`) gehen nicht mit – der Finder löscht
+/// dort sofort endgültig. Das Ergebnis je Datei prüft danach `lstat`: fehlt der Pfad, liegt das Original im Papierkorb
+/// – sofern der Nachweis unten nicht widerspricht; liegt dort ein anderes Objekt, wurde er inzwischen neu angelegt
+/// (`.recreated`); sonst ist er noch vorhanden – der Finder meldet bei einem Teilabbruch nur einen Fehler.
 ///
 /// Verbleibende Grenze (#104): Das Apple Event trägt nur Pfade (`typeFileURL`), keine Inode – der Finder löst sie
 /// selbst auf. Ersetzt ein Prozess den Eintrag zwischen `verify` und dieser Auflösung, legt der Finder das Ersatzobjekt

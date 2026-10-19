@@ -191,7 +191,7 @@ public struct RemovalGuard: Sendable {
     }
 
     /// `realpath` ohne Ersatzwert: `nil`, wenn sich der Pfad nicht auflösen lässt.
-    private static func resolvedPath(_ path: String) -> String? {
+    static func resolvedPath(_ path: String) -> String? {
         guard let resolved = realpath(path, nil) else { return nil }
         defer { free(resolved) }
         return String(cString: resolved)

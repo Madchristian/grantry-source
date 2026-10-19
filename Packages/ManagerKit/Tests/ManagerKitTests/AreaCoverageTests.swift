@@ -15,6 +15,36 @@ import TestSupport
 
     // MARK: - Zustände
 
+    /// Der kopierbare Bericht darf weder die dritte Lücke abschneiden noch rohe Home-Pfade ausgeben.
+    @Test func diagnosticReportIncludesAllPreparedReasonsAndContext() {
+        var outdated = TestData.item()
+        outdated.lastVerifiedAt = Self.yesterday
+        var snapshot = TestData.snapshot(items: [outdated])
+        snapshot.lastDeliveryBySource = [.launchd: Self.now, .btm: Self.now]
+        snapshot.sourceLimitations = (1...3).map {
+            SourceLimitation(source: .launchd, message: "Plist /Users/test/Library/LaunchAgents/\($0).plist nicht auswertbar")
+        }
+        let coverage = Self.coverage(.autostart, snapshot)
+        let report = coverage.diagnosticReport(now: Self.now, calendar: Self.calendar, home: "/Users/test")
+        #expect(report.hasPrefix("Autostart: Teilweise geprüft · Geprüft heute, 14:13\n"))
+        for index in 1...3 {
+            #expect(report.contains("launchd: Plist ~/Library/LaunchAgents/\(index).plist nicht auswertbar"))
+        }
+        #expect(report.contains("1 Eintrag zeigt einen alten Stand"))
+        #expect(!report.contains("/Users/test"))
+    }
+
+    @Test func diagnosticReportIncludesExclusionsAndInterimMeasurements() {
+        var snapshot = TestData.snapshot()
+        snapshot.lastDeliveryBySource = [.launchd: Self.yesterday]
+        snapshot.lastInterimDeliveryBySource = [.launchd: Self.now]
+        let coverage = AreaCoverage(area: .autostart, snapshot: snapshot, activeSources: [.launchd])
+        let report = coverage.diagnosticReport(now: Self.now, calendar: Self.calendar)
+        #expect(report.contains("Hintergrundobjekte wird nicht ausgewertet."))
+        #expect(report.contains("Teil von launchd zuletzt gemessen: heute, 14:13"))
+        #expect(report.contains("Geprüft gestern, 14:13"))
+    }
+
     @Test func fullyDeliveredAreaIsCurrentWithItsDeliveryTime() throws {
         var snapshot = TestData.snapshot()
         snapshot.lastDeliveryBySource = [.launchd: Self.now, .btm: Self.now - 60]

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "version": "2026.10.112",
-  "build": 787,
-  "source_commit": "7ba7c146b48ac17248681f142f93b9994d305c8f",
-  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.10.112.dmg",
-  "dmg_sha256": "efeb048b9535751be2d0836face120be3d8ab1fb6d8ed721f668f8ee2eeab278",
+  "version": "2026.10.192",
+  "build": 855,
+  "source_commit": "3875980dc7a1f28376229c79697449dfd9464756",
+  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.10.192.dmg",
+  "dmg_sha256": "0c6812103c7fa9f71681908fb39c1eb1e3a9d04f8b449144c761504bceff49f2",
   "source_files": [
     {
       "path": "Grantry/Agents/AgentApprovalDetailView.swift",
@@ -43,8 +43,8 @@
     },
     {
       "path": "Grantry/AppModel.swift",
-      "sha256": "b7aebd8f85d22a1667286c22434dedbdb96bbc37663137d1c503238bff87d9c3",
-      "source_blob": "a8c1bd5e835e1da26072224ed858df2d17a9bc86"
+      "sha256": "35edba8d9c8e56918e2d8e4b60ad5622330256fa6631d65c2eb1d43f8618d4ae",
+      "source_blob": "074b87f22e3007224cedd49b2c29eec5a9e9335a"
     },
     {
       "path": "Grantry/Apps/AppCommands.swift",
@@ -178,8 +178,28 @@
     },
     {
       "path": "Grantry/Cleanup/CleanupView.swift",
-      "sha256": "f3a0f40f455dca2d50a7ec469e5c19cc890c4fe07895fee02443ca3a6dab102b",
-      "source_blob": "a9f7af74a3fe524e2e0484239e5d39cbb0c1d1a4"
+      "sha256": "1d9515e25cfe5669c10bc3fe9e557ca680643f6dbe4b8a716345017cbb7dbc90",
+      "source_blob": "746196809a56b91ea8d8f7b90de3da9e3a3588bc"
+    },
+    {
+      "path": "Grantry/Cleanup/ProcessCleanupModel.swift",
+      "sha256": "d5f4c4b577c9212ec96722340bb3e575543805ab9471942f6fc1ba4f7c7722e1",
+      "source_blob": "774a5d1c640d90368af05abed0a932f16b873962"
+    },
+    {
+      "path": "Grantry/Cleanup/ProcessCleanupView.swift",
+      "sha256": "14b192d90a88101a11bdb1af593be2eed0c5b326c9615bfdef8d7bb4404ee379",
+      "source_blob": "d00ea9f4b7c6009ff1e8accea828de09082352b3"
+    },
+    {
+      "path": "Grantry/Cleanup/StorageCleanupModel.swift",
+      "sha256": "39b7e4fc8cb2bef66cf92bcafe2272dba309a4230c2e52fab0a748f8f5557ed9",
+      "source_blob": "72812a76fe8147d99f555a5f657a4bcad4a8442f"
+    },
+    {
+      "path": "Grantry/Cleanup/StorageCleanupView.swift",
+      "sha256": "f54cca8e8dab9489108033f688bf0ba69ac2c257cf90c3e5aafe32bd5e41c940",
+      "source_blob": "0a76b028f5b8c5bd4492c8874e63678aeb552f90"
     },
     {
       "path": "Grantry/Components/ActionConfirmationDialog.swift",
@@ -198,8 +218,8 @@
     },
     {
       "path": "Grantry/Components/AreaCoverageBar.swift",
-      "sha256": "da62f922e37354d453ae14c0c2a458809aa753f54a1973af92a6667217a767e0",
-      "source_blob": "1ba4d782dcfe5a5d3a86c4960af3f3aef711f022"
+      "sha256": "6c9d9e49898dd1beafd835519b44f1cf0a769cb703afab9ffe3119dcafe07e74",
+      "source_blob": "7af0140d205058f8fa82790b4c52a43d7d4800c7"
     },
     {
       "path": "Grantry/Components/CancellableSearch.swift",
@@ -243,8 +263,8 @@
     },
     {
       "path": "Grantry/Components/NoticeBarLayout.swift",
-      "sha256": "c7e357f48548149d154f170ec9a02794ec8ac49e6b8b3caef92ac072306afebd",
-      "source_blob": "9fd6607b2160834630f7aa3627a1957fde804c69"
+      "sha256": "ad2d2ffa64ff7758f3af8e9f3cb87ea2bfc04c33ec6c4f77566082a7cd703b4f",
+      "source_blob": "a4eb92c8d33fe2a90fb9bca3689d13348cedbea1"
     },
     {
       "path": "Grantry/Components/NoticeList.swift",
@@ -343,8 +363,8 @@
     },
     {
       "path": "Grantry/Localizable.xcstrings",
-      "sha256": "9bf1329ca022f2fa8d49b5d1313f2a10de57778a1d3e81e8e3cdc3bea118d3f2",
-      "source_blob": "dff8c4f04bc077b89bc0e9ed665ee275fa835267"
+      "sha256": "36acb26040e5b2a2af9cd6d78892d8a6b4f9cdc4fef289e96980e277ef0348ba",
+      "source_blob": "f41dc2892451b3eff902d94ed413a116b3ff80cd"
     },
     {
       "path": "Grantry/MainWindow/DashboardView.swift",
@@ -363,13 +383,13 @@
     },
     {
       "path": "Grantry/MainWindow/MainWindowModel.swift",
-      "sha256": "efa4649a2235e7fc73f1b683af64443c546c206c9445ec6b75250a13a4d2ca7b",
-      "source_blob": "b20cb8187f56f4e0a73029099543cc09d9062e2f"
+      "sha256": "43bb55f1e5aad07fbb9b917bb7f7eaaecd958f10b24fd7d29007a9f37adf46b7",
+      "source_blob": "6d96119a7959f66f633231a02f65851225369425"
     },
     {
       "path": "Grantry/MainWindow/MainWindowNavigator.swift",
-      "sha256": "52c988c6215e7ea775282a6a8480d5f1224cae97efb0c0d6ade24be139793173",
-      "source_blob": "303c7195522615909eaab1cafb9e001dfdf72323"
+      "sha256": "2297ac8d4071cddbdd1232fec80c1f495da6dc625f842e8e779a3f7c0ce35001",
+      "source_blob": "650a136b475292dff24dbfa9aa2df57c2fb1de9c"
     },
     {
       "path": "Grantry/MainWindow/PrerequisitesBanner.swift",
@@ -378,8 +398,8 @@
     },
     {
       "path": "Grantry/MainWindow/RootView.swift",
-      "sha256": "47b22800cd2c8053f4d3332d2e45c799fcc73167b7d99744c912be94ee2dcc1e",
-      "source_blob": "f0fd6bccbf4be4560bac5db052629fee8e61b540"
+      "sha256": "c3589ea52538cd82ea5c336d0b49e393c7e685cc88ff85534a3e65e4de0634f1",
+      "source_blob": "017ce603a123e73eb980c1dfa50cd9eb68326b67"
     },
     {
       "path": "Grantry/MainWindow/ScanToolbarItem.swift",
@@ -388,8 +408,8 @@
     },
     {
       "path": "Grantry/MenuBar/MenuBarContent.swift",
-      "sha256": "c170edfe433799fcea90245000609f47448640633b4daf93da91e8f1ec10b4bd",
-      "source_blob": "e54fd0294ea8e524f5e3da25d0dfc380282efe16"
+      "sha256": "8e70265ebbf2e79a57a9d7a7e98c4199412e791cb2fee8884f553b47f995e9f8",
+      "source_blob": "dd638b714eaf0ea5436fa8c6dac089e8cdc2e075"
     },
     {
       "path": "Grantry/MenuBar/MenuBarIcon.swift",
@@ -532,9 +552,14 @@
       "source_blob": "6c9e2825a45fafdb80c69f795f7c84e42975e493"
     },
     {
+      "path": "Grantry/Setup/ProcessAlertSettingsSection.swift",
+      "sha256": "b066085e4002c59b325ce6b2ea0f222bd8109976af20cb1e5a14e6eb485bff94",
+      "source_blob": "ebcc7a1fabcf5308c674b29937d71d26512d4fc3"
+    },
+    {
       "path": "Grantry/Setup/SettingsView.swift",
-      "sha256": "23bf728bb791c486d165a74b32d6ab6d656da68f718a7056328c3c4cab819f83",
-      "source_blob": "0821c85ebaa7312c4374c4a3232e9592e8e6ac76"
+      "sha256": "d166754604bfda2874844bdc61e4ac591d76f5e34d52665b956a5ea160757803",
+      "source_blob": "6e9530818d221fd156f91e7883d9cfdbb215996a"
     },
     {
       "path": "Grantry/Setup/SetupChecklistView.swift",
@@ -543,8 +568,8 @@
     },
     {
       "path": "Grantry/Updates/ReleaseHighlights.json",
-      "sha256": "0b45ef45f52a4a156d7a750354ca353024e2abd3b6c38f0a4a848fe8ec18584f",
-      "source_blob": "bb8a52811abbf74054532ddce40b238f0d7c4fe6"
+      "sha256": "0988e1d9e78b17f4f40aa2128c21e0b3952ea9e766e10d4bdb9ad5d95bb9b9b5",
+      "source_blob": "52662acc423a9b006bf07209f7e7aa7d3fc0c97c"
     },
     {
       "path": "Grantry/Updates/UpdateBanner.swift",
@@ -668,8 +693,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/FilePath.swift",
-      "sha256": "5bc62bad5b89cb0fdfd11dd12e17ec19ff8955d316505bff4585340bc4605673",
-      "source_blob": "81374991fee35acca634aba96b2b7a7bbb2fd4a3"
+      "sha256": "6dfbdfb52bb72c181f8034d977ccf4151d3ce8b20c72e6777c1a99d3be9fff72",
+      "source_blob": "a72fe3b282204b1d940e01123d29fad2f2df3de0"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/GrantryIdentity.swift",
@@ -713,8 +738,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/Privileged/ProcessTerminationPolicy.swift",
-      "sha256": "d957a24758bd0e2065a582a981b8846a3c2424858578553422ace4bdac195524",
-      "source_blob": "210e90deb6671d9f30ea3bc0d3e6365a6b8bb7ce"
+      "sha256": "4d59b4bec6be8bafad28cafff34256e3016bc4d28f23f7a827a5bda571745e81",
+      "source_blob": "7655876c22f455ebb91d3725aaad4aae3cb94a1d"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/Privileged/SecurityHardening.swift",
@@ -743,8 +768,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/Process/RunningProcess.swift",
-      "sha256": "b8fe206383b88def7bc8ac05eb431af42cfd8bcf827a72f09b2c13f93be5fda7",
-      "source_blob": "97d959e96a8a27066ab1a3d7b84f677123cece0c"
+      "sha256": "4617c02838c612be205030d43d1fbfd9e1d3753a7e390852f482fb0781a418e0",
+      "source_blob": "f6d034e346f547f098e858b22aea69b0f99e9cf9"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/RegularFileReader.swift",
@@ -888,8 +913,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Actions/ProcessTerminator.swift",
-      "sha256": "53bc1e4836d0daa512c9a7a64df396d9feb0b2ca21f02888e88eb460c4673a65",
-      "source_blob": "0890ed5bae61c8ba70771aadf89f54561f1e1d48"
+      "sha256": "db9bd190434f527ef2cc9ee29338f05afdf18e38f760b61fc53cb2a6fb2f6d88",
+      "source_blob": "55b06cab8d705dee641dd712bae3faa7feb03607"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Actions/ReceiptStore.swift",
@@ -903,8 +928,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Actions/RemovalPlan.swift",
-      "sha256": "806bf53cf6b41a0a6111ce5af417f729b127db9798c563cf556d72eea668938e",
-      "source_blob": "31e7ccaaf7efb3418778cedbacd845dd48d9ad94"
+      "sha256": "b09fc0040652933b972f57bf8ee8a6863f522534add8c9c90b47f5de6375d91d",
+      "source_blob": "38718cb75db6c8cf37a20950f039936058a8a461"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Actions/SecurityActions.swift",
@@ -1353,13 +1378,13 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Leftovers/LeftoverCandidate.swift",
-      "sha256": "9b8437962f798d366bfb58e72ec16194ee0d830d95f51062985a02e1f336da66",
-      "source_blob": "07e1146e30f37fabfd37d6680367f7c8136f656a"
+      "sha256": "687882b0a40b2a6db0f19c9327589523996f58df69e1af80c6e4c58f06e0c905",
+      "source_blob": "82addf51ac36257ee8c53a430cdebe57a6cbdaec"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Leftovers/LeftoverScanner.swift",
-      "sha256": "d04e8bb926b177cfd3a5361c9ae9991bdd7ff5ac5795e2872f66d58bf4913c7d",
-      "source_blob": "7fed96bd24b2c2572335d8e68b850aab93559c78"
+      "sha256": "b2c24b73183ced5020dffd502f202adf312ff872f3064568ecd10ac553331bc7",
+      "source_blob": "1ccdc121ebad5633bb6cebbe788562257fed3a90"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Leftovers/LibraryLayout.swift",
@@ -1383,8 +1408,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Leftovers/RemovalGuard.swift",
-      "sha256": "e8db3fa01498880c82d5effa804b942db8bc63c8e63b059f3c3a7b0419ea1a52",
-      "source_blob": "0c728164bb61aad6e1544a2573aef88a33e2b428"
+      "sha256": "5b9569fdf8ad82b59edd35fe9592fa2d9d75ed0ad527c45c361c2a373f4f5b1e",
+      "source_blob": "43e4a03a1881f87f3da92d2f12412ad18d379a02"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/ManagerKit.swift",
@@ -1423,8 +1448,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Notifications/NotificationDestination.swift",
-      "sha256": "79ece6e084ab9dd0f734af5159f156c9857fe40d35db76d3f1094f651d8d3147",
-      "source_blob": "e68f289128bec8bc53864b1a8c70615ff011f5df"
+      "sha256": "a5c22ef23aa26f149bf32900c45ccd3c87d10df2a2227ab4dff4ab20b958cc7d",
+      "source_blob": "63f6d83ed10599510ede06113a4d7d8d91573f55"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Notifications/NotificationPolicy.swift",
@@ -1488,8 +1513,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/AreaCoverage.swift",
-      "sha256": "90fe89a7c201f5742a22a4da3bfd7bd2039b3fc231fc8e9039308b355be759ce",
-      "source_blob": "34d5aeb3073e1a2b8a46719aee397ba827f42810"
+      "sha256": "819fb6704d2b70e962831e7ed7b7c50c073a150aff8623cf8c1767d69180e701",
+      "source_blob": "d949f31df7fba82cd8eaeda84bba1a53725176f2"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/AutostartPresentation.swift",
@@ -1548,8 +1573,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/LeftoverPresentation.swift",
-      "sha256": "f823a5eefcb411c4c3ec9ac38196ed1616422d6f64b794c001ee0627472c3e2b",
-      "source_blob": "5f34d93ddf1e152fcea3867ea0b3d4880087494d"
+      "sha256": "7ff59ea6a644867eca4c4d5afe736c68eeda676dde5d31d2b1779bd75202a080",
+      "source_blob": "bbde990556ae905b1846474886e60bd1850132f7"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ListenerActivityPresentation.swift",
@@ -1627,6 +1652,11 @@
       "source_blob": "7ccdc2f46c990578e97b1e394d5ea9d6abe6e819"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ProcessCleanupPresentation.swift",
+      "sha256": "f2fa8732ee8e2d8a9e8eab288ac2e229032485128bfbdf45fd325734847b2bab",
+      "source_blob": "c966e0748b4e9aa36c48380f3ab9f085e263f908"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ProcessTerminationPresentation.swift",
       "sha256": "fa8136bc2c8c7535eca7f2d27a6a5568c4eff72fa906c532fd72bb52f8fad1ec",
       "source_blob": "83c5f77b4aaa4476c901e148f8ec6878b5b32217"
@@ -1672,6 +1702,11 @@
       "source_blob": "12d774d0f283cdfd26bada157104042b8dacb2af"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/StoragePresentation.swift",
+      "sha256": "dc41c6bbaef15cc2fff12615e35e5295d9b9211d670eb15e3e94f3c6af01c6c6",
+      "source_blob": "a1f5a57c4f81d9e316bf2daccc13854b9f29bca4"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/TrashedApps.swift",
       "sha256": "e0083ffb8da331c3555cfc386dfcca4a638d11ed592d196f97d3a27c7a64aafa",
       "source_blob": "94c1efa1319a888e2093bb8c0a1b3099a3dc28d8"
@@ -1690,6 +1725,56 @@
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/WhatsNewModel.swift",
       "sha256": "ad89d67faf34371d7c443f61eb12eddd1c98fee2edb4c25ffc3b1b599ee6d64a",
       "source_blob": "4a5ce1e4c9b9b072c2e49b5c5888db664e7638c9"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/AgentProcessCatalog.swift",
+      "sha256": "dd2ed6c1c7c66b45183d1c7d33ec0514920de787e2f0b421c85961923087a6d7",
+      "source_blob": "5c8eff6f55d86451fe762d32403491470ea788eb"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/BootedSimulators.swift",
+      "sha256": "f66d38eac7782924fa692ecfcce791a0cb725b2e293904a07b135814eb09a7e0",
+      "source_blob": "fb6b6297a28bfc7ff0de22c1568311011d278dcc"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/MemoryStatus.swift",
+      "sha256": "07ea26f09f7c175cf58b253c84ef99bb8879f02ca17802148c5db6aad72e65d5",
+      "source_blob": "a15e0ee3fc4867972eef7763e44bf1b92b15493e"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/OpenFileProbe.swift",
+      "sha256": "a4558abb73991d5551efc808acb53b3333f04a47eb89738169c351b897b68a44",
+      "source_blob": "1aafe596639b7f85687db5ebca91fadad2129d57"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/OrphanAgentAlertPreferences.swift",
+      "sha256": "780bee2be1dfbb961db24dd215197b66a62a93dad344f90448d2c51380ae9d64",
+      "source_blob": "0cfacdb974ffec45de750d289eba4fff2e44a09b"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/OrphanAgentAlerter.swift",
+      "sha256": "7b06c5087a3667617bbc22f590908d8f860c6b5dcf38e145e65110a798e000ec",
+      "source_blob": "02688ca01514481126cbaa117ca626b937e376b2"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/OrphanAgentTreeDetector.swift",
+      "sha256": "81186e63367c19563f80055b89cba3abc0aec2010562310e6a85af94d04477c0",
+      "source_blob": "d48e1d735d98b71e23da970bbe1031a8ad426fef"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/ProcessCleaner.swift",
+      "sha256": "d3b1cf18b509e1434755400d682e72c519e209a807c2d675df4fa0b90d4dc037",
+      "source_blob": "95bdc53ea1d4953782813d09421ea6cd21761560"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/ProcessOverviewScanner.swift",
+      "sha256": "a681454090ccfdf1fe3d452b1892c6f9c9fdd909294cf760f4592718e3089d86",
+      "source_blob": "f0aa82cf1a64064c4879baf5e07b7dd8484207be"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/ProcessTable.swift",
+      "sha256": "061bb32c9af10cbfe02504d6dfc02be98b061b856a576c5a99a1b5582f4f33a1",
+      "source_blob": "54e02f6c1ccd7fc951895f4f975d68f1b34de465"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Risk/AgentRiskRules.swift",
@@ -1887,6 +1972,86 @@
       "source_blob": "a48c51978ac7683960ddc9e0055d166ad319e85e"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/CleanupLog.swift",
+      "sha256": "d2a75eb8937275099fe82f39bab4052549834c39ca6cad6ac59f1ead3dda133f",
+      "source_blob": "377098db5ad12662ceac7e5cbd91d03905865cdb"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/CommandCategoryProvider.swift",
+      "sha256": "b90f425e2dfab1373e301b7ef612000d4bbe8d7f446c4f0c6a1643bdc6c57c50",
+      "source_blob": "44ac3db8bafbd5729ccd1621a98f41844a3294ef"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/DownloadedInstallersProvider.swift",
+      "sha256": "3fb52ed65f528b28a86397f34569cf9308642d7c9fe777d24d0f5ffdb97dbb69",
+      "source_blob": "46818b4ab0d0c964b3e7bd01952c33faa53ef032"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/PathCategoryProvider.swift",
+      "sha256": "9d16600a10a43a6ee7527f7f150f7c1013e8457b58f680677fc5a752fa9a5dc9",
+      "source_blob": "3c2e790bee2999fd79190f72954ccaf107da4d73"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/ProjectArtifactsProvider.swift",
+      "sha256": "61869682f97790daae1c6755b98e1e5a0c757f0cd58b1a0da4b67178f6ef11de",
+      "source_blob": "55605fa4fa6ee4daab435c7a503e55bcdb306050"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/ReportOnlyProvider.swift",
+      "sha256": "390ca1363097e3e7614cd6add3758065538a8347659eb50928e93c2657951d62",
+      "source_blob": "351ac31fe53e09d3abc050bf20718326ef5a9895"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/SimulatorRuntimesProvider.swift",
+      "sha256": "fe2cb18fbbbd6d03332f4f29028a5b5fa1ba9aa4dd1f2a7b2f14c9e6b94675d6",
+      "source_blob": "1f7e43d80f5c4498c2c59b5d17578d9b119532d7"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/StorageCatalog.swift",
+      "sha256": "f1dfb09e6676979913252dfe88d7382894a504df2a744220aad96652381c1939",
+      "source_blob": "2185d7a88a88fc5e648de6d95cdbfa63d7b3033b"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/StorageCategoryProvider.swift",
+      "sha256": "9f9b7f5bc676aa53f7fe428c75b6c87a76ccd242d3d175a0f7d0a639cdede553",
+      "source_blob": "96e4c77beb070b66f9c588bc6833aad6a9ce5915"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/StorageModels.swift",
+      "sha256": "2715be1fd58998f3aa660b40632a89938202872dba1e7b7efefb2ae71403b1ff",
+      "source_blob": "d08bb172964e3e7db394b14d9b33b44e4082b3b3"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/StoragePathGuard.swift",
+      "sha256": "387f9aa6d754a13fc84c9b7898c6b5d796343544d977339dfc0364010a528665",
+      "source_blob": "f9ab8007858b976b4a39aa10624d79eb31699f6f"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/StoragePreferences.swift",
+      "sha256": "3488eb203077ae60564ed3a7b50a5125339127c9403a9f0ab87028c4f3249da7",
+      "source_blob": "9e5492508894432c3691b9abe99c48491af943a5"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/StorageRemover.swift",
+      "sha256": "31a412865e1bb4b98caf4f3d0656ae44be4f9d55c5eda1fbd4f8840c20a0a8da",
+      "source_blob": "4fd51df9cc63bed3df37070fbf2618516e546530"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/StorageScanner.swift",
+      "sha256": "03331ce6dafdc374109a46cd55867245ad924bcb23824c3d24a2c40833f056aa",
+      "source_blob": "315e60cc4dbcef2a6636bdaa3d7e15bbe0254f87"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/WebKitOrigin.swift",
+      "sha256": "76a25443e9cd805632050e00753452bb96202effa028f309a40ecb7ab7c2bbe6",
+      "source_blob": "791327ad1b21972de8c26664d2a030ca50400e1f"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Storage/WebKitWALProvider.swift",
+      "sha256": "21664fbba51b82cc515737b1ecc0094739aabe06493b4ac8355902ccaea1acf9",
+      "source_blob": "ef9f49ab496d147a672ed88f6c102ecd51f3143c"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/System/AppBundleReader.swift",
       "sha256": "5ce6f58e1d9f992d9c7bc3edc60533ae60b5845c49b11b747710c583416cf77f",
       "source_blob": "22e50c05e625d7fba4e29ccf8539723d8dd4574e"
@@ -1930,6 +2095,11 @@
       "path": "Packages/ManagerKit/Sources/ManagerKit/System/CachingSigningInspector.swift",
       "sha256": "40bc466d0b508f5abb932b95b34e265d8c306a443eb47b93a4c45958953e40dc",
       "source_blob": "a8866369d213c3a86a879d3523c83223200684e4"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/System/ConcurrentMeasurement.swift",
+      "sha256": "bc3f69f5a99eb94c2b3737c19e9d45deb5910ed57a044a383ef1ab83dab38273",
+      "source_blob": "b5333806f7dc5cf958f5907ca31a599b779df60f"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/System/ConfigFileOpening.swift",
@@ -1978,8 +2148,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/System/FinderTrash.swift",
-      "sha256": "0fe3fd949f463d49e49bb6acbafca8e53948b54525ffae40d0f766cd6082ea2c",
-      "source_blob": "d3630bf7d57452d24a3a00b7d6da01daf9d0ac16"
+      "sha256": "909851a65a053e8557149be9476655075d614a47ff70430bbf4fb87bb02aa686",
+      "source_blob": "11d5dced38713bc2a67f5ca7aca20b7e100c9d38"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/System/FullDiskAccessProbe.swift",
@@ -2093,13 +2263,18 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/System/StorageLocation.swift",
-      "sha256": "6a0fdbcbe64d23f3c10876a74ba786367ecfcf6dd9eaa90e7bb668b9b5ac3895",
-      "source_blob": "4ddc890fe60fa15f15b6ccae8f97893a51fcf555"
+      "sha256": "3dc3c346e5d19d046fe230c20a876b1d410d03f02546d2b9c9386c2e8b6ba213",
+      "source_blob": "48da2a3cf9ec5010bcf32dec91f5f7b18ad9baf1"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/System/TrackedFileLocator.swift",
       "sha256": "142984b75fb4b313ba05a2f4fd233cc5eafd310ea29d8cbb3ff9ecb5cc1d4296",
       "source_blob": "e2fe1c70db82fd7556a80690dcac7fed6ce201bd"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/System/VolumeUsage.swift",
+      "sha256": "54eb750e83d6aa535030180b80774c411e4d1024e02e4c6620843d17a9147552",
+      "source_blob": "31990484dd5a21cd1b54a5dc9a451e666ca37dc8"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Updates/AppcastItem.swift",
@@ -2218,13 +2393,13 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantrySharedTests/ProcessTerminationPolicyTests.swift",
-      "sha256": "9c06cb702a13427ed180095be456010995395347e6c780e4790b45ca6c1e78bc",
-      "source_blob": "dd03f595d48757f2b888df2926e1528ffb9bc776"
+      "sha256": "61d200ee7c3eb1b6c012a539094dfc152a432f71239b0a86984a5a9cceb4c558",
+      "source_blob": "fa003b9a866b1adecede6da67c41681ccfdde925"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantrySharedTests/RunningProcessTests.swift",
-      "sha256": "7fd90e16899743d9fd1ab118dbba6ce303986c9f9fbf2a0491d8719418adbc27",
-      "source_blob": "76bbde111059c827bc6d878d870b9890c9797999"
+      "sha256": "198d36f11c10907979a18326992fdc396e05bb79ddd4413c793871ba01ed9da9",
+      "source_blob": "05c629aa15b3f48b6dc5125ffc6961869a9da42f"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantrySharedTests/SecurityHardeningTests.swift",
@@ -2438,8 +2613,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/AreaCoverageTests.swift",
-      "sha256": "03f3f411276247fc0a9567f0bed4b03f4a996555d1625a1a6092b49d1ec0afc2",
-      "source_blob": "34df1d586129e890b343fef753036e2bdcd16e2d"
+      "sha256": "fe924bd0eb2b8ae69e03c10fb53666281fd773745f1db5ebaa17a39de2228581",
+      "source_blob": "3ef8e57a1bd58e3dfbbab40b783caaa076bd6814"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ArgumentRedactorTests.swift",
@@ -2507,6 +2682,16 @@
       "source_blob": "39026b896487680783cf11bfa1b9a08ce0145fe7"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/CleanupLogTests.swift",
+      "sha256": "887508e1639fa8a913280f34e4ac826c5ff0e9d749ffa019a21f8c243a0a5642",
+      "source_blob": "d1d2620122d8c69182e35b7337c1d5e4527f7417"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/CommandCategoryProviderTests.swift",
+      "sha256": "c6fd6144c4ab1b7b17b4caa2e21c25b38f7d57d1839932ba08b40dd9c41de86a",
+      "source_blob": "b6a7980818f9c8f4d34bdd348d3f64000ec3f08f"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/CommandInterpreterVolumeTests.swift",
       "sha256": "593a05ab10b0b9f49c2d24211328be2b6079c8d3fc3369ee6ad651041950be20",
       "source_blob": "2af8146c2d08be4fbf97ed93d94fd7d28727a4a1"
@@ -2515,6 +2700,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/CommandRedactionTests.swift",
       "sha256": "dcfd8942c54731b65f413bfb02bc60ac0db9b29d508b1c67e57fe49db4c0bc03",
       "source_blob": "62ccd4c2ab2d543d0b0deb62bacbb59db81b577a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ConcurrentMeasurementTests.swift",
+      "sha256": "32d373ac8ad999ef6b28ff5c139c59815aa7ecae6f7d6d59af92f722ba88ea39",
+      "source_blob": "58b4992c2d31e31c47417f882e3a789d97ebd157"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ConfigFileOpeningTests.swift",
@@ -2560,6 +2750,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/DomainTests.swift",
       "sha256": "2ba04f6fd29faf87e811bedf9119028ebab1495dbd343268af7ad8de780b1f1a",
       "source_blob": "c2accdd583040a313e5e0b461f3323d2be53ce59"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/DownloadedInstallersProviderTests.swift",
+      "sha256": "ccd2dc957982df4095be16e63f6d504f6188af7a93414d7d5a213972ded96c0f",
+      "source_blob": "38aaf21e3c43b141a398e8700d6d9ca3c3ea7f2e"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ErrorDescriptionTests.swift",
@@ -2818,8 +3013,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/LeftoverPresentationTests.swift",
-      "sha256": "01a174fdaf21a012aef1842e5119081e0881a13bca204df728bd4be228f044aa",
-      "source_blob": "28d5bab990b7f0c26f65dc71aa27a61f05b12a24"
+      "sha256": "6df9d4184d9c92f96d0c8b7ba223bacc712e38b9830c1664360ca648c88148ed",
+      "source_blob": "4841c52060924532855157d05a412838cfcfdc6b"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/LeftoverScannerTests.swift",
@@ -2853,8 +3048,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/LiveSystemTests.swift",
-      "sha256": "fa53ffd671cedccedb19d33359e5a18f5449764672494f2b1c743dcefec0b048",
-      "source_blob": "a9d25eee0c90822e6362b7ea51b5f6e6e9b96236"
+      "sha256": "db74782e63620abd7fc6cdc56e1aea9a6a03c72688b5b0d04b27761e0c430013",
+      "source_blob": "5b05871270182858bd64e351106f8a6161ab6f36"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/MCPServerEntryTests.swift",
@@ -2953,8 +3148,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NotificationDestinationTests.swift",
-      "sha256": "d8b71b5310eb5ca506f41c4b648810e12331276f05ab62c3ec89c351dbb95222",
-      "source_blob": "65a15eae96b8d36e49279a89c7c0520fa3d142c3"
+      "sha256": "b1d3da3ef9d5d13688b6f3af7a68f6734c63897bfbe975800f5490d61f3691fb",
+      "source_blob": "f3a41b3b6e005fb443ab24f6721a2c4130c71f81"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NotificationPolicyTests.swift",
@@ -2997,6 +3192,21 @@
       "source_blob": "30d74537d9d3dcae346f5f30b51fd1dfcdd2a859"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/OpenFileProbeTests.swift",
+      "sha256": "0a19af2272ce54c848137b1f75eb0eab3c968c80072491461fe5dab320aedfe4",
+      "source_blob": "5d81f13e5c5e33fe5af25ae328685bef13d0ff4c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/OrphanAgentAlerterTests.swift",
+      "sha256": "b11db25a588019edc735b265d7243cb058e848b25f3c38aff702e7e63f5e78e3",
+      "source_blob": "dc87194dceaf99db077a06c08797356a18de84fe"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/OrphanAgentTreeDetectorTests.swift",
+      "sha256": "affa069b6ac4ebad99f3096c4e6efaa32fa62951e4293644b5c8992c965e3280",
+      "source_blob": "625008f845cdea386a996ef8370d930338711dcd"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/OrphanScannerTests.swift",
       "sha256": "852e70bd53d610a63ccd405446d757ea26e04669b4907bf2b0e621bcbd74fa24",
       "source_blob": "7a676c31006ff02dcdd1a7ea67e080a9109d8aee"
@@ -3015,6 +3225,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/PartialScanTests.swift",
       "sha256": "b9ee4f541b3778c7aa6a18ff6a1feacf2e169126564250e99d7830efa8e03f3d",
       "source_blob": "4f573b1129933ad5b5e4ce8f4c1699ef6f2b273b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/PathCategoryProviderTests.swift",
+      "sha256": "8b9cb87ee164d231d7de6d49940f6cd6dfd0154e27b199d2c6094216ec059c7e",
+      "source_blob": "e23d78f2fdb5e931f69df8f84b329be84f9ac92f"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/PathDisplayTests.swift",
@@ -3092,6 +3307,16 @@
       "source_blob": "21bea2ce7233af32c4d196424319d34c5b3e3f26"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessCleanerTests.swift",
+      "sha256": "acf02d32efec4b0907f908c3111c554f6156108d78d036521dcedb8bc64478b0",
+      "source_blob": "4454727b1224edcc777b3f095e064bf5e37cdf4e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessCleanupPresentationTests.swift",
+      "sha256": "30428bd79af8ec1ee14c4267a9e8165e57fe656ecc884aaa93d390c687129db8",
+      "source_blob": "761c159d0bb0199bee847017dd51ea0fc3611c80"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessTerminationPresentationTests.swift",
       "sha256": "c98159a271f4ad74a3b1d0456cc4f84cd4bc46517241b601c5633b4a02edc89b",
       "source_blob": "04a539c419415c6e3fa5b9393310dbd308ce82f5"
@@ -3105,6 +3330,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProgramSigningRulesTests.swift",
       "sha256": "a75d7af3a980a7edda41fe7e86bc476bf2ddd71e0c0067cb13429c55247f34ad",
       "source_blob": "51b68cc3a0d79c01bb83c2eabc2f2473c3524c30"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProjectArtifactsProviderTests.swift",
+      "sha256": "c002dffcff9a1ddf4f7fb0aa3b844f1a9e7ea2a103e0ecc6b3ae8d32a1d5339f",
+      "source_blob": "6c4081d04d9af7a5cf3d7b0ef8abe5f7e69246b3"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/PublicAPITests.swift",
@@ -3135,6 +3365,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/RemovalPresentationTests.swift",
       "sha256": "26139d801997927ada429ed0dc18baab22eb1575e5240d973d05d3f670476cfb",
       "source_blob": "0e326d50a83a5bbaeb6c1f8e14b222655ca03c8c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ReportOnlyProviderTests.swift",
+      "sha256": "a17181b30ed79457686d80f410f0b2c1269003a14436b136c20676d3f6e3a001",
+      "source_blob": "849f9b4e48d0c32df4c61c9fa090843f310f5142"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/RequestGenerationTests.swift",
@@ -3168,8 +3403,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SecretFingerprintKeyFileTests.swift",
-      "sha256": "f35ba4715d072a709efbec3088af57db9abab6b070b5fda7ab16ebedff6573fd",
-      "source_blob": "a730b82aaab9032d3629d13055514e921cb1c088"
+      "sha256": "454157920c70d60cc5da2afc51734306c64dc1e8eeed5b06e866dd5de1eee7df",
+      "source_blob": "d9eaad8a6eceb1d23ba2a596c756299c96bb7a5d"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SecurityActionsTests.swift",
@@ -3237,6 +3472,11 @@
       "source_blob": "0693db9a7d963354e204e6f15528541c677c49c1"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/SimulatorRuntimesProviderTests.swift",
+      "sha256": "278317e37dce70abec882b72b4acfeb8b35a7308c0a7838f6255077cf2727d7b",
+      "source_blob": "7f959166c543074e2273ce71944d406b22d32a6f"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SmokeTests.swift",
       "sha256": "736061315b028451594135787fc996bd45afc9722714609d13260b3eb822bdbd",
       "source_blob": "8bdfb84353daccbcf2c6d6bf7c3f65e3fa96fceb"
@@ -3287,9 +3527,44 @@
       "source_blob": "6b5326be1d5c49339b540a13772133c3c74fecc3"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageCatalogTests.swift",
+      "sha256": "318b8cb10d398cb608da923094df68960d65c07d01c9f9975124c8c01ba15982",
+      "source_blob": "bbbc6e35c24b3b916ccd589cd585d1cd9f108552"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageLiveTests.swift",
+      "sha256": "e0c4a2335b0ee7af6f8b4a71976b32a19ee0533fa0853d032ced4af99429c808",
+      "source_blob": "1263ba52fcd70a97bb37d2c9adfa1906fbfbc2fc"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageLocationTests.swift",
       "sha256": "308730339b4c1ae4585dd2fad25fb013afa13eddd8793d6cb119d0a47b8eca5f",
       "source_blob": "3b389dc25df93fa48e434648abed876c48934765"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageModelsTests.swift",
+      "sha256": "aa597ae7cfc97c2bfdd4adc6db40ec671920643b3d454df0fa13b9d09219607b",
+      "source_blob": "83942619e76736480aadc609ca4532e35f4702ef"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StoragePathGuardTests.swift",
+      "sha256": "b551b5ac20131890e8a317dd6253326927ab16c085b7c0cb880a378eaa92ffc7",
+      "source_blob": "967c17a2c0483772bb652bfcc440e0856e891a1e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StoragePresentationTests.swift",
+      "sha256": "8a5a917e9e76daebfe3eda401d758f995c3a49690d5bdbf699b2bf66d053fa96",
+      "source_blob": "ba2e87ddf9ad09f9aea6fb1b580566b32d98de0b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageRemoverTests.swift",
+      "sha256": "b0c987464841c5d2e096e3ec48d9196d5770561fe7560ddc14f50ee8e52cdb5e",
+      "source_blob": "d9854f08b16f4f840f93e2c667cb4bd1fcf1e2d9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageScannerTests.swift",
+      "sha256": "d2e1e1d99b6e5a47c76b9ed3794203185d28e220a28f9e0af7ecbcedf5b2eeca",
+      "source_blob": "60777fdbf45bf2d5ace51f6afb4e207f391c96d6"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Support/AgentEditing.swift",
@@ -3327,6 +3602,16 @@
       "source_blob": "2e937a7ed957be7c7378fd2924b4634f00e086b4"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/Support/FakeOpenFileProbe.swift",
+      "sha256": "e21ca65d88bb17be9027cd26c77fc7842299af7e33586f014060e154b52434f8",
+      "source_blob": "0688c03ede643476448b3cd459acfcf174543cf8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/Support/FixedSizeMeasurer.swift",
+      "sha256": "f2afa19f944591aaf81e821eaaa65e533170f6ceed2b946904851d2e900cedf1",
+      "source_blob": "596f4a74203527b2910072219c1f6f3077a785f1"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Support/InMemorySettingsStore.swift",
       "sha256": "4e4ce36ae195900a5d5eaf0638539c6dd0355fa9e91aad1352969a24b42ffaca",
       "source_blob": "ab7f7e05951828a117a79546496fc3192cd3a058"
@@ -3355,6 +3640,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Support/RecordingSigningInspector.swift",
       "sha256": "610ac43d602f0ee6cc71f5115b96f04ca987314857a2aa73d6dc3ae36b9a3573",
       "source_blob": "3ebeb4d256e9f1e0cf04452a6058366c9e160e49"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/Support/RecordingTrash.swift",
+      "sha256": "48001c72e805971a8b3641c089f30f786d367fea589ea828115dcb9d4def5a80",
+      "source_blob": "49f061fa4640ae52c09a7ece055036e88375197c"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Support/ReverseDNSFakes.swift",
@@ -3490,6 +3780,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/WatchScopeTests.swift",
       "sha256": "b998aaae07f89555b5618b2827a1fb3bd4a875df96aff9183d54a007cd648713",
       "source_blob": "9ae32daa139315edd0737ea1fc69a23e5508020d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/WebKitWALProviderTests.swift",
+      "sha256": "47c722dbb2a7e92ca59e13bad6057316a7b5664347e4f6b3eacd5634f4ece203",
+      "source_blob": "81b956478366d11ddae3ff6e8dfb4a1e6dea39fa"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/WhatsNewModelTests.swift",

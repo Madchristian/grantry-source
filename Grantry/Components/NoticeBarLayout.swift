@@ -11,6 +11,7 @@ struct NoticeBarLayout<Actions: View>: View {
     let headline: String
     let accessibilityLabel: String
     let isEmphasized: Bool
+    var explanation: String? = nil
     var reasons: [String] = []
     var notes: [String] = []
     @ViewBuilder let actions: Actions
@@ -30,6 +31,11 @@ struct NoticeBarLayout<Actions: View>: View {
                     .lineLimit(2)
                     .accessibilityLabel(Text(verbatim: accessibilityLabel))
                     .accessibilityAddTraits(.isHeader)
+                if let explanation {
+                    Text(verbatim: explanation)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(3)
+                }
                 reasonList
                 actions
                 ForEach(notes, id: \.self) { note in
@@ -42,6 +48,7 @@ struct NoticeBarLayout<Actions: View>: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .font(.callout)
+        .textSelection(.enabled)
         .padding(8)
         .background(isEmphasized ? tone.color.opacity(0.08) : Color.clear)
         .accessibilityElement(children: .contain)

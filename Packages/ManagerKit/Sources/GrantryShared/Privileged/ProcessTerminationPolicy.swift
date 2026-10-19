@@ -108,7 +108,7 @@ public struct ProcessTerminationPolicy: Sendable {
         guard pid > 1, pid != ownPID, pid != callerPID else { throw .protectedProcess(pid) }
         guard let protectedBundlePaths else { throw .ownBundleUnknown }
         guard let process = inspector.process(pid) else { return try vanished(pid) }
-        guard FilePath.canonical(process.executablePath) == FilePath.canonical(executablePath),
+        guard Self.samePath(process.executablePath, executablePath),
               requiredUID.map({ $0 == process.uid }) ?? true,
               startTime.map({ $0 == process.startTime }) ?? true else { throw .processChanged(pid) }
         let name = Self.displayName(of: process.executablePath)
@@ -137,6 +137,11 @@ public struct ProcessTerminationPolicy: Sendable {
         return .gone
     }
 
+    /// Kanonisch gleich; ein unlesbarer Pfad (`""`) ist nur einem unlesbaren gleich.
+    static func samePath(_ lhs: String, _ rhs: String) -> Bool {
+        lhs.isEmpty || rhs.isEmpty ? lhs == rhs : FilePath.canonical(lhs) == FilePath.canonical(rhs)
+    }
+
     /// Programmname für Meldungen und Log: letzter Pfadbestandteil, einzeilig ohne Steuerzeichen.
     public static func displayName(of executablePath: String) -> String {
         DisplayText.singleLine((executablePath as NSString).lastPathComponent)
@@ -150,6 +155,7 @@ public struct ProcessTerminationPolicy: Sendable {
 
     /// `path` liegt (kanonisch, ganze Pfadbestandteile) in `bundlePath`.
     public static func isInBundle(_ path: String, bundlePath: String) -> Bool {
+        guard !path.isEmpty else { return false }
         let bundle = FilePath.canonical(bundlePath)
         let candidate = FilePath.canonical(path)
         return candidate == bundle || candidate.hasPrefix(bundle + "/")
@@ -165,6 +171,21 @@ extension ProcessTerminationPolicy {
         bundlePath: String = Bundle.main.bundlePath, listening: ListeningRequirement = ListeningRequirement()
     ) -> Self {
         Self(listening: listening, protectedBundlePaths: [bundlePath])
+    }
+
+    /// In der App für verwaiste Agenten-Bäume (#221): eigene Prozesse **ohne** Lauscher-Bedingung, ohne
+    /// Signaturprüfung, Grantry (App samt eingebettetem Helper) geschützt. Die Lauscher-Bedingung ersetzt der Aufrufer:
+    /// `ProcessCleaner` bestätigt unmittelbar vorher per Neuscan, dass der Baum noch verwaist ist; Pfad, Benutzer und
+    /// Startzeit prüft diese Policy, das Signal geht an die geprüfte Prozessgeneration. Nur über `OwnProcessSignaler`
+    /// (eigener Benutzer), nie im Helper.
+    ///
+    /// Alte Waisen laufen oft mit einer inzwischen gelöschten Programmdatei (`brew upgrade`); ihr Pfad ist dann
+    /// unlesbar und auf beiden Seiten `""` (`LibprocProcessInspector(allowingUnreadableExecutablePath:)`).
+    public static func orphanedAgentProcess(
+        bundlePath: String = Bundle.main.bundlePath,
+        inspector: any ProcessInspecting = LibprocProcessInspector(allowingUnreadableExecutablePath: true)
+    ) -> Self {
+        Self(inspector: inspector, protectedBundlePaths: [bundlePath])
     }
 
     /// Im Helper: nur lauschende Prozesse, Apple-Programme gesperrt, geschützt ist das Bundle, in dem der Helper liegt. Liegt `executablePath`

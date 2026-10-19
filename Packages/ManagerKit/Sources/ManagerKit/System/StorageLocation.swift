@@ -31,6 +31,9 @@ public struct StorageLocation: Hashable, Sendable {
     /// Wiederherstellungsbelege (`ReceiptStore`).
     public var receiptsURL: URL { directory.appending(path: "Receipts.json") }
 
+    /// Ergebnisprotokoll des Speicher-Aufräumens (`CleanupLog`).
+    public var cleanupLogURL: URL { directory.appending(path: "CleanupLog.jsonl") }
+
     public var appRiskAcceptancesURL: URL { directory.appending(path: "AppRiskAcceptances.json") }
 
     /// Backups entfernter Benutzer-LaunchAgents (`PlistBackupStore.user(root:)`).

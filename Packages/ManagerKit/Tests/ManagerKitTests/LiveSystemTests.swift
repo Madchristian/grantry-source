@@ -6,6 +6,50 @@ import Foundation
 /// BTM fehlt bewusst: `sfltool dumpbtm` braucht den privilegierten Helper.
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["MANAGERKIT_LIVE"] == "1"))
 struct LiveSystemTests {
+    /// Segment „Prozesse“ (#221), rein lesend: Prozesstabelle, verwaiste Agenten-Bäume (nur Namen, nie Argumente),
+    /// Simulatoren und Speicherstatus.
+    @Test func processScanReadsRealTable() async throws {
+        let entries = try LibprocProcessTable().entries()
+        #expect(entries.count > 10)
+        #expect(entries.contains { $0.pid == getpid() && !$0.executablePath.isEmpty })
+        let own = entries.filter { $0.uid == getuid() }
+        let unreadable = own.filter { $0.executablePath.isEmpty || $0.arguments.isEmpty || $0.workingDirectory == nil }
+        print("own=\(own.count) unreadablePath=\(unreadable.count { $0.executablePath.isEmpty }) "
+              + "unreadableArgs=\(unreadable.count { $0.arguments.isEmpty }) unreadableCWD=\(unreadable.count { $0.workingDirectory == nil })")
+        let scan = OrphanAgentTreeDetector().scan(entries)
+        print("processes=\(entries.count) orphans=\(scan.orphans.count) inUse=\(scan.inUseCount)")
+        for tree in scan.orphans.prefix(10) {
+            print("\(tree.pattern.id) pid=\(tree.root.pid) count=\(tree.processCount) mem=\(tree.memoryBytes) members=\(tree.members.prefix(4).map(\.label))")
+        }
+        let simulators = try await BootedSimulatorReader().booted(entries: entries)
+        print("simulators=\(simulators.map(\.title))")
+        print(MemoryStatus.current(processCount: entries.count))
+    }
+
+    /// Kosten der Hintergrundprüfung (#224): Wanduhr und CPU-Zeit je `scanAgentTrees()`, Median und Maximum über 10
+    /// Läufe. CPU-Zeit ist die des Testprozesses (`getrusage`), also nur im Einzellauf (`--filter`) aussagekräftig.
+    @Test func orphanAlertScanCost() async throws {
+        func cpuMilliseconds() -> Double {
+            var usage = rusage()
+            getrusage(RUSAGE_SELF, &usage)
+            let user = Double(usage.ru_utime.tv_sec) * 1_000 + Double(usage.ru_utime.tv_usec) / 1_000
+            return user + Double(usage.ru_stime.tv_sec) * 1_000 + Double(usage.ru_stime.tv_usec) / 1_000
+        }
+        let scanner = ProcessOverviewScanner()
+        var wall: [Double] = [], cpu: [Double] = []
+        for _ in 0..<10 {
+            let cpuBefore = cpuMilliseconds(), start = ContinuousClock.now
+            _ = try await scanner.scanAgentTrees()
+            let elapsed = (ContinuousClock.now - start).components
+            wall.append(Double(elapsed.seconds) * 1_000 + Double(elapsed.attoseconds) / 1e15)
+            cpu.append(cpuMilliseconds() - cpuBefore)
+        }
+        wall.sort()
+        cpu.sort()
+        print("processes=\(try LibprocProcessTable().entries().count) scanAgentTrees wall_ms median=\(wall[5]) "
+              + "max=\(wall[9]) cpu_ms median=\(cpu[5]) max=\(cpu[9])")
+    }
+
     @Test func launchdSourceReadsRealAgents() async throws {
         let source = LaunchdSource(runner: ProcessCommandRunner(), resolver: AppResolver())
         let items = try await source.collect().autostartItems

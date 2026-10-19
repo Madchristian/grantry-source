@@ -60,6 +60,7 @@ struct RootView: View {
             guard let request else { return }
             window.show(request)
             if request.opensSelfUninstall, let app = appModel.ownApp { window.requestRemoval(of: app) }
+            if request.cleanupSegment == .processes { appModel.processCleanup.scan() }
             navigator.request = nil
         }
         #if DEBUG
@@ -116,7 +117,7 @@ struct RootView: View {
         switch window.section {
         case .overview: DashboardView(appModel: appModel, prerequisites: prerequisites, onboarding: onboarding)
         case .apps: AppsView(appModel: appModel)
-        case .cleanup: CleanupView(appModel: appModel)
+        case .cleanup: CleanupView(appModel: appModel, prerequisites: prerequisites, onboarding: onboarding)
         case .observations: ObservationsView(appModel: appModel)
         case .permissions: PermissionsView(appModel: appModel)
         case .autostart: AutostartView(appModel: appModel)

@@ -6,6 +6,14 @@ public protocol ProcessTerminating: Sendable {
     func terminate(_ request: ProcessTerminationRequest, force: Bool) async -> ProcessTerminationReport
 }
 
+/// Beendet eine Liste von Prozessen ohne Lauscher-Bezug (verwaiste Agenten-Bäume, #221); in der App
+/// `ProcessTerminator`.
+public protocol ProcessListTerminating: Sendable {
+    /// Sendet SIGTERM (mit `force` SIGKILL) an `processes` – nacheinander in dieser Reihenfolge – und wartet, bis sie
+    /// enden.
+    func terminate(_ processes: [RunningProcess], force: Bool) async -> ProcessTerminationReport
+}
+
 /// Eigene Prozesse (uid = `currentUID`) beendet die App über `OwnProcessSignaling`, fremde der Helper
 /// (`PrivilegedProcessTerminating`), nacheinander in der Reihenfolge des Requests. Danach prüft er alle
 /// `pollInterval`, höchstens `gracePeriod` lang (Spec: 250 ms, 5 s), ob die Prozesse enden. Beendet ist ein Prozess
@@ -23,14 +31,15 @@ public protocol ProcessTerminating: Sendable {
 ///
 /// Erst wenn **alle** Prozesse eines nicht leeren Requests beendet sind, vermerkt er den Lauscher im
 /// `ListenerTerminationLedger`, damit er sofort aus der Liste fällt; bei Überlebenden oder Fehlern bleibt er stehen.
-public struct ProcessTerminator: ProcessTerminating {
+/// Ohne Lauscher (`terminate(_:force:)` mit Prozessliste, #221) wird nichts vermerkt.
+public struct ProcessTerminator: ProcessTerminating, ProcessListTerminating {
     public static let defaultGracePeriod: Duration = .seconds(5)
     public static let defaultPollInterval: Duration = .milliseconds(250)
 
     private let own: any OwnProcessSignaling
     private let privileged: (any PrivilegedProcessTerminating)?
     private let inspector: any ProcessInspecting
-    private let ledger: ListenerTerminationLedger
+    private let ledger: ListenerTerminationLedger?
     private let currentUID: UInt32
     private let clock: any Clock<Duration>
     private let gracePeriod: Duration
@@ -41,7 +50,7 @@ public struct ProcessTerminator: ProcessTerminating {
         own: any OwnProcessSignaling = OwnProcessSignaler(),
         privileged: (any PrivilegedProcessTerminating)?,
         inspector: any ProcessInspecting = LibprocProcessInspector(),
-        ledger: ListenerTerminationLedger,
+        ledger: ListenerTerminationLedger?,
         currentUID: UInt32 = getuid(),
         clock: any Clock<Duration> = ContinuousClock(),
         gracePeriod: Duration = defaultGracePeriod,
@@ -60,11 +69,17 @@ public struct ProcessTerminator: ProcessTerminating {
     }
 
     public func terminate(_ request: ProcessTerminationRequest, force: Bool) async -> ProcessTerminationReport {
+        let report = await terminate(request.processes, force: force)
+        if report.allEnded, !request.processes.isEmpty { ledger?.record(request.listener.id, at: now()) }
+        return report
+    }
+
+    public func terminate(_ processes: [RunningProcess], force: Bool) async -> ProcessTerminationReport {
         var signalled: [RunningProcess] = []
         var failures: [ProcessTerminationFailure] = []
         // Gescheitert, das Signal kann aber angekommen sein.
         var uncertain: [RunningProcess] = []
-        for process in request.processes {
+        for process in processes {
             do {
                 try await send(to: process, force: force)
                 signalled.append(process)
@@ -78,13 +93,11 @@ public struct ProcessTerminator: ProcessTerminating {
         // Ein ungewiss zugestelltes Signal hat gewirkt, wenn der Prozess danach beendet ist.
         let remainingFailures = failures.filter { !uncertain.contains($0.process) || running.contains($0.process) }
         let unfinished = Set(stillRunning + remainingFailures.map(\.process))
-        let report = ProcessTerminationReport(
-            ended: request.processes.filter { !unfinished.contains($0) },
+        return ProcessTerminationReport(
+            ended: processes.filter { !unfinished.contains($0) },
             stillRunning: stillRunning,
             failures: remainingFailures
         )
-        if report.allEnded, !request.processes.isEmpty { ledger.record(request.listener.id, at: now()) }
-        return report
     }
 
     private func send(to process: RunningProcess, force: Bool) async throws {

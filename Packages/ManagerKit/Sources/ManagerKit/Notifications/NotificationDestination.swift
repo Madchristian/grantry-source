@@ -3,7 +3,8 @@
 /// dieser Prüfung, Einzelmeldungen zu einer vorhandenen App zu ihr (Bereich Apps, `InstalledApp.id`), solche zu einem
 /// laufenden Netzwerkdienst zu ihm (`NetworkListener.id`), alles andere – auch jede Sammelmeldung – in den Verlauf;
 /// eine Meldung ohne lesbares Ziel (etwa aus einer älteren Version) ebenfalls.
-/// Update-Meldungen führen in die Übersicht, Einzelmeldungen zu einem MCP-Server oder einer Freigabe in den Bereich Agenten.
+/// Update-Meldungen führen in die Übersicht, Einzelmeldungen zu einem MCP-Server oder einer Freigabe in den Bereich Agenten,
+/// der Hinweis auf verwaiste Agenten-Bäume nach Aufräumen → Prozesse.
 public enum NotificationDestination: Hashable, Sendable {
     case history
     case securityCheck(SecurityCheckKind)
@@ -13,10 +14,13 @@ public enum NotificationDestination: Hashable, Sendable {
     case agent(String)
     /// Neue Grantry-Version verfügbar; führt zur Übersicht mit dem Update-Hinweis.
     case update
+    /// Viele verwaiste Agenten-Bäume (#224); führt nach Aufräumen → Prozesse.
+    case processes
 
     static let userInfoKey = "destination"
     private static let historyRawValue = "history"
     private static let updateRawValue = "update"
+    private static let processesRawValue = "processes"
     private static let securityCheckPrefix = "securityCheck:"
     private static let installedAppPrefix = "installedApp:"
     private static let networkListenerPrefix = "networkListener:"
@@ -45,6 +49,8 @@ public enum NotificationDestination: Hashable, Sendable {
             self = .history
         } else if raw == Self.updateRawValue {
             self = .update
+        } else if raw == Self.processesRawValue {
+            self = .processes
         } else if raw.hasPrefix(Self.securityCheckPrefix),
                   let kind = SecurityCheckKind(rawValue: String(raw.dropFirst(Self.securityCheckPrefix.count))) {
             self = .securityCheck(kind)
@@ -70,6 +76,7 @@ public enum NotificationDestination: Hashable, Sendable {
         case .networkListener(let id): Self.networkListenerPrefix + id
         case .agent(let id): Self.agentPrefix + id
         case .update: Self.updateRawValue
+        case .processes: Self.processesRawValue
         }
     }
 }

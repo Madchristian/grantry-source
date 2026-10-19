@@ -158,28 +158,21 @@ struct MenuBarContent: View {
     }
 
     private var commands: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Button("Hauptfenster öffnen") { showMainWindow() }
-                    .keyboardShortcut(.defaultAction)
-                Button("Jetzt scannen") { Task { await appModel.scanNow() } }
-                    .disabled(appModel.monitoring.isScanning)
-                Spacer()
-                Button("Beenden") { NSApp.terminate(nil) }
-                    .keyboardShortcut("q")
-            }
-            HStack {
-                Button("Einstellungen …") {
-                    openSettings()
-                    NSApp.activate()
-                }
-                Button("Was ist neu?") {
-                    openWindow(id: GrantryApp.whatsNewWindowID)
-                    NSApp.activate()
-                }
-                .disabled(ReleaseHighlights.current == nil)
-            }
-        }
+        MenuBarCommands(
+            isScanning: appModel.monitoring.isScanning,
+            hasReleaseHighlights: ReleaseHighlights.current != nil,
+            showMainWindow: { showMainWindow() },
+            scan: { Task { await appModel.scanNow() } },
+            settings: {
+                openSettings()
+                NSApp.activate()
+            },
+            whatsNew: {
+                openWindow(id: GrantryApp.whatsNewWindowID)
+                NSApp.activate()
+            },
+            quit: { NSApp.terminate(nil) }
+        )
     }
 
     /// Öffnet das Hauptfenster (oder holt es nach vorn) und führt danach `then` aus.
@@ -187,5 +180,67 @@ struct MenuBarContent: View {
         openWindow(id: GrantryApp.mainWindowID)
         NSApp.activate()
         then()
+    }
+}
+
+/// Befehle ohne App-Abhängigkeiten; Aktionen und Verfügbarkeit liefert der Aufrufer.
+private struct MenuBarCommands: View {
+    let isScanning: Bool
+    let hasReleaseHighlights: Bool
+    let showMainWindow: () -> Void
+    let scan: () -> Void
+    let settings: () -> Void
+    let whatsNew: () -> Void
+    let quit: () -> Void
+
+    var body: some View {
+        VStack(spacing: 10) {
+            // Native macOS-Buttons kürzen Text einzeilig: bei Platzmangel ganze Zeilen verwenden.
+            ViewThatFits(in: .horizontal) {
+                Grid(horizontalSpacing: 10, verticalSpacing: 10) {
+                    GridRow { mainWindowButton; scanButton }
+                    GridRow { settingsButton; whatsNewButton }
+                }
+                VStack(spacing: 10) {
+                    mainWindowButton
+                    scanButton
+                    settingsButton
+                    whatsNewButton
+                }
+            }
+            Divider()
+            HStack {
+                Spacer()
+                Button("Beenden", action: quit)
+                    .keyboardShortcut("q")
+            }
+        }
+    }
+
+    private var mainWindowButton: some View {
+        Button(action: showMainWindow) { commandLabel("Hauptfenster öffnen") }
+            .buttonStyle(.borderedProminent)
+            .keyboardShortcut(.defaultAction)
+    }
+
+    private var scanButton: some View {
+        Button(action: scan) { commandLabel("Jetzt scannen") }
+            .disabled(isScanning)
+    }
+
+    private var settingsButton: some View {
+        Button(action: settings) { commandLabel("Einstellungen …") }
+    }
+
+    private var whatsNewButton: some View {
+        Button(action: whatsNew) { commandLabel("Was ist neu?") }
+            .disabled(!hasReleaseHighlights)
+    }
+
+    private func commandLabel(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .fixedSize()
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 2)
     }
 }

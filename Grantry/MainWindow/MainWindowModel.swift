@@ -30,6 +30,8 @@ final class MainWindowModel {
     }
     /// Gruppierung der Berechtigungen.
     var permissionsGrouping: PermissionsGrouping = .byApp
+    /// „App-Reste | Speicher | Prozesse“ im Bereich „Aufräumen“; bleibt beim Wechsel des Bereichs erhalten.
+    var cleanupSegment = CleanupSegment.leftovers
     /// `id` eines `InventoryRecord`, den die Liste des Bereichs auswählen soll.
     var focusedRecordID: String?
     /// Offenes Entfernen-Blatt (`RemovalSheet`).
@@ -71,6 +73,7 @@ final class MainWindowModel {
         focusedRecordID = request.focusedRecordID
         if request.section == .network, request.focusedRecordID != nil { networkMode = .services }
         if let observationID = request.observationID { selectedObservationID = observationID }
+        if let cleanupSegment = request.cleanupSegment { self.cleanupSegment = cleanupSegment }
         if request.opensObservationStart { isObservationStartPresented = true }
     }
 

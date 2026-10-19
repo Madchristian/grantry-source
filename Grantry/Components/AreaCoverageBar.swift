@@ -1,3 +1,4 @@
+import AppKit
 import ManagerKit
 import SwiftUI
 
@@ -26,10 +27,14 @@ struct AreaCoverageBar: View {
     /// „Anzeigen“ – öffnet den Bereich (Übersicht); `nil`: keine Schaltfläche.
     var onShow: (() -> Void)?
     @Environment(\.coverageSteps) private var steps
+    @State private var detailReport: CoverageDetailReport?
 
     var body: some View {
         TimelineView(.everyMinute) { context in
             content(now: context.date)
+        }
+        .sheet(item: $detailReport) { report in
+            CoverageDetailsView(report: report.text)
         }
     }
 
@@ -38,28 +43,32 @@ struct AreaCoverageBar: View {
             systemImage: coverage.systemImage, tone: coverage.tone,
             headline: showsArea ? coverage.summaryLine(now: now) : coverage.statusLine(now: now),
             accessibilityLabel: coverage.accessibilityLabel(now: now), isEmphasized: !coverage.isComplete,
+            explanation: coverage.isComplete ? nil : coverage.explanation,
             reasons: coverage.isComplete ? [] : coverage.reasons(now: now),
             // Bewusst nicht gescannte Quellen und Zwischenmessungen: ruhiger Hinweis, ohne Einfluss auf den Zustand.
             notes: coverage.notes(now: now)
         ) {
-            if !coverage.isComplete { actions }
+            if !coverage.isComplete { actions(now: now) }
         }
     }
 
     @ViewBuilder
-    private var actions: some View {
+    private func actions(now: Date) -> some View {
         let step = steps.flatMap { coverage.nextStep(missingSetupSteps: $0.missingSetupSteps) }
-        if step != nil || onShow != nil {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) { actionButtons(step) }
-                VStack(alignment: .leading, spacing: 4) { actionButtons(step) }
-            }
-            .buttonStyle(.link)
+        let report = coverage.diagnosticReport(now: now)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) { actionButtons(step, report: report) }
+            VStack(alignment: .leading, spacing: 4) { actionButtons(step, report: report) }
         }
+        .buttonStyle(.link)
     }
 
     @ViewBuilder
-    private func actionButtons(_ step: CoverageNextStep?) -> some View {
+    private func actionButtons(_ step: CoverageNextStep?, report: String) -> some View {
+        Button("Details anzeigen …") {
+            detailReport = CoverageDetailReport(text: report)
+        }
+        CoverageCopyButton(report: report)
         if let step, let steps {
             Button(step.title) { steps.perform(step) }
                 .disabled(step == .rescan && steps.isScanning)
@@ -67,6 +76,50 @@ struct AreaCoverageBar: View {
         }
         if let onShow {
             Button("\(coverage.area.title) anzeigen") { onShow() }
+        }
+    }
+}
+
+/// Bericht und Präsentation bilden einen Zustand; der beim Öffnen übernommene Text bleibt eingefroren.
+private struct CoverageDetailReport: Identifiable {
+    let id = UUID()
+    let text: String
+}
+
+/// Begrenzte Höhe hält auch lange Diagnosen aus der Mindestgrößenberechnung des Hauptfensters heraus.
+private struct CoverageDetailsView: View {
+    let report: String
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Scan-Abdeckung").font(.headline)
+            ScrollView {
+                Text(verbatim: report)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(4)
+            }
+            HStack {
+                CoverageCopyButton(report: report)
+                Spacer()
+                Button("Schließen") { dismiss() }
+                    .keyboardShortcut(.cancelAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 560, height: 420)
+    }
+}
+
+private struct CoverageCopyButton: View {
+    let report: String
+
+    var body: some View {
+        Button("Diagnose kopieren") {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(report, forType: .string)
+            AccessibilityNotification.Announcement(String(localized: "Diagnose kopiert")).post()
         }
     }
 }

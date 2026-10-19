@@ -160,7 +160,7 @@ import Testing
     @Test func kindTitlesAreGerman() {
         #expect(LeftoverKind.allCases.map(\.displayName) == [
             "App", "Container", "Gruppen-Container", "Programmdaten", "Caches", "Einstellungen", "Fensterzustand",
-            "Web-Speicher", "WebKit-Daten", "Protokolle", "App-Skripte",
+            "Web-Speicher", "WebKit-Daten", "Protokolle", "App-Skripte", "Speicher",
         ])
     }
 }

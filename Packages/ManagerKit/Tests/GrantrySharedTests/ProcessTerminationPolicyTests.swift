@@ -266,4 +266,59 @@ import TestSupport
         #expect(ProcessTerminationPolicy.isInBundle("/Applications/Grantry.app/Contents/MacOS/Grantry", bundlePath: "/Applications/Grantry.app"))
         #expect(!ProcessTerminationPolicy.isInBundle("/Applications/Grantry.app.evil/x", bundlePath: "/Applications/Grantry.app"))
     }
+
+    // MARK: - Verwaiste Agenten-Prozesse (#221)
+
+    @Test func orphanedAgentPolicyAllowsNonListeningOwnProcess() throws {
+        let policy = ProcessTerminationPolicy(inspector: FixedProcessInspector([Self.node]), ownPID: 555,
+                                              protectedBundlePaths: ["/Applications/Grantry.app"])
+        #expect(try policy.validate(pid: 4242, executablePath: "/opt/homebrew/bin/node", requiredUID: 501,
+                                    startTime: 1_000) == .running(Self.node))
+    }
+
+    @Test func orphanedAgentPolicyProtectsGrantryAndHelper() {
+        let helper = RunningProcess(pid: 4243, uid: 501, executablePath: "/Applications/Grantry.app/Contents/MacOS/GrantryHelper",
+                                    startTime: 1_000)
+        let policy = ProcessTerminationPolicy(inspector: FixedProcessInspector([helper]), ownPID: 555,
+                                              protectedBundlePaths: ["/Applications/Grantry.app"])
+        #expect(throws: ProcessTerminationViolation.grantryProcess("GrantryHelper")) {
+            try policy.validate(pid: 4243, executablePath: helper.executablePath, requiredUID: 501, startTime: 1_000)
+        }
+        #expect(throws: ProcessTerminationViolation.protectedProcess(555)) {
+            try policy.validate(pid: 555, executablePath: "/x")
+        }
+    }
+
+    @Test func orphanedAgentPolicyRejectsReusedPID() {
+        let policy = ProcessTerminationPolicy(inspector: FixedProcessInspector([Self.node]), ownPID: 555,
+                                              protectedBundlePaths: ["/Applications/Grantry.app"])
+        #expect(throws: ProcessTerminationViolation.processChanged(4242)) {
+            try policy.validate(pid: 4242, executablePath: "/opt/homebrew/bin/node", requiredUID: 501, startTime: 999)
+        }
+    }
+
+    /// Alte Waisen mit gelöschter Programmdatei: Leerer Pfad passt nur zu leerem Pfad.
+    @Test func unreadablePathMatchesOnlyUnreadablePath() throws {
+        let deleted = RunningProcess(pid: 4244, uid: 501, executablePath: "", startTime: 1_000)
+        let policy = ProcessTerminationPolicy(inspector: FixedProcessInspector([deleted]), ownPID: 555,
+                                              protectedBundlePaths: ["/Applications/Grantry.app"])
+        #expect(try policy.validate(pid: 4244, executablePath: "", requiredUID: 501, startTime: 1_000) == .running(deleted))
+        #expect(throws: ProcessTerminationViolation.processChanged(4244)) {
+            try policy.validate(pid: 4244, executablePath: "/opt/homebrew/bin/node", requiredUID: 501, startTime: 1_000)
+        }
+        let readable = ProcessTerminationPolicy(inspector: FixedProcessInspector([Self.node]), ownPID: 555,
+                                                protectedBundlePaths: ["/Applications/Grantry.app"])
+        #expect(throws: ProcessTerminationViolation.processChanged(4242)) {
+            try readable.validate(pid: 4242, executablePath: "", requiredUID: 501, startTime: 1_000)
+        }
+        #expect(!ProcessTerminationPolicy.isInBundle("", bundlePath: "/Applications/Grantry.app"))
+    }
+
+    @Test func orphanedAgentPolicyProtectsOwnBundleAndPID() {
+        let own = ProcessTerminationPolicy.orphanedAgentProcess(bundlePath: Bundle.main.bundlePath)
+        #expect(throws: ProcessTerminationViolation.protectedProcess(getpid())) {
+            try own.validate(pid: getpid(), executablePath: Bundle.main.executablePath ?? "")
+        }
+    }
+
 }

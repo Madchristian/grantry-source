@@ -102,17 +102,30 @@ public struct LibprocProcessInspector: ProcessInspecting {
     private let kernel: @Sendable (pid_t) -> KernelLookup
     private let executablePath: @Sendable (pid_t) -> String?
     private let auditToken: @Sendable (pid_t) -> ProcessAuditToken?
+    /// `false`: Ein nicht lesbarer Programmpfad ergibt `executablePath == ""` statt `nil` (siehe
+    /// `init(allowingUnreadableExecutablePath:)`).
+    private let requiresExecutablePath: Bool
 
     public init() {
         self.init(kernel: Self.kernelLookup, executablePath: Self.executablePath, auditToken: ProcessAuditToken.init(pid:))
+    }
+
+    /// Auch Prozesse, deren Programmdatei inzwischen gelöscht oder ersetzt wurde (`proc_pidpath` scheitert, etwa nach
+    /// `brew upgrade node`), mit `executablePath == ""` – nur für verwaiste Agenten-Prozesse (#221). Die Identität
+    /// tragen dann Benutzer, Startzeit und Audit-Token; ein `exec` ändert das Token und wird so weiter erkannt.
+    public init(allowingUnreadableExecutablePath: Bool) {
+        self.init(kernel: Self.kernelLookup, executablePath: Self.executablePath, auditToken: ProcessAuditToken.init(pid:),
+                  requiresExecutablePath: !allowingUnreadableExecutablePath)
     }
 
     /// Mit austauschbaren Abfragen – nur in Tests, um etwa ein `exec` zwischen zwei Token-Lesungen nachzubilden.
     init(
         kernel: @escaping @Sendable (pid_t) -> KernelLookup,
         executablePath: @escaping @Sendable (pid_t) -> String?,
-        auditToken: @escaping @Sendable (pid_t) -> ProcessAuditToken?
+        auditToken: @escaping @Sendable (pid_t) -> ProcessAuditToken?,
+        requiresExecutablePath: Bool = true
     ) {
+        self.requiresExecutablePath = requiresExecutablePath
         self.kernel = kernel
         self.executablePath = executablePath
         self.auditToken = auditToken
@@ -122,7 +135,8 @@ public struct LibprocProcessInspector: ProcessInspecting {
         guard pid > 0 else { return nil }
         let generation = auditToken(pid)
         guard case .found(let entry) = kernel(pid), !entry.isZombie, let startTime = entry.startTime,
-              let path = executablePath(pid), auditToken(pid) == generation else { return nil }
+              let path = executablePath(pid) ?? (requiresExecutablePath ? nil : ""), auditToken(pid) == generation
+        else { return nil }
         return RunningProcess(pid: pid, uid: entry.uid, executablePath: path, startTime: startTime, auditToken: generation)
     }
 
@@ -162,7 +176,7 @@ public struct LibprocProcessInspector: ProcessInspecting {
     }
 
     /// `time` in Mikrosekunden seit 1970; `nil` bei negativem, überlaufendem oder ungültigem Wert.
-    static func microseconds(_ time: timeval) -> UInt64? {
+    public static func microseconds(_ time: timeval) -> UInt64? {
         guard let seconds = UInt64(exactly: time.tv_sec), let micros = UInt64(exactly: time.tv_usec), micros < 1_000_000
         else { return nil }
         let (scaled, overflow) = seconds.multipliedReportingOverflow(by: 1_000_000)

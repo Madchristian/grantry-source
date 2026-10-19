@@ -1,10 +1,52 @@
 import ManagerKit
 import SwiftUI
 
-/// Bereich „Aufräumen“ (Spec v3 §3/§5): Reste gelöschter Apps auf Knopfdruck, gruppiert mit Auswahl, verwaiste
+/// Segment im Bereich „Aufräumen“; die Wahl merkt sich `MainWindowModel.cleanupSegment`.
+enum CleanupSegment: Hashable {
+    case leftovers, storage, processes
+}
+
+/// Bereich „Aufräumen“: Segmente „App-Reste“ (Reste gelöschter Apps), „Speicher“ (Speicherfresser, #215) und
+/// „Prozesse“ (verwaiste Agenten-Prozesse und gebootete Simulatoren, #221).
+struct CleanupView: View {
+    let appModel: AppModel
+    let prerequisites: PrerequisitesModel
+    let onboarding: OnboardingModel
+    @Environment(MainWindowModel.self) private var window
+
+    var body: some View {
+        @Bindable var window = window
+        let openFullDiskAccess: (() -> Void)? = prerequisites.isFullDiskAccessMissing
+            ? { Task { await prerequisites.perform(.openFullDiskAccessSettings) } } : nil
+        VStack(spacing: 0) {
+            Picker("Bereich", selection: $window.cleanupSegment) {
+                Text("App-Reste").tag(CleanupSegment.leftovers)
+                Text("Speicher").tag(CleanupSegment.storage)
+                Text("Prozesse").tag(CleanupSegment.processes)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .fixedSize()
+            .padding(.top, 12)
+            switch window.cleanupSegment {
+            case .leftovers: OrphanCleanupView(appModel: appModel)
+            case .storage:
+                StorageCleanupView(model: appModel.storageCleanup, openFullDiskAccess: openFullDiskAccess) {
+                    onboarding.present()
+                }
+            case .processes:
+                ProcessCleanupView(model: appModel.processCleanup, openFullDiskAccess: openFullDiskAccess) {
+                    onboarding.present()
+                }
+            }
+        }
+    }
+}
+
+/// Segment „App-Reste“ (Spec v3 §3/§5): Reste gelöschter Apps auf Knopfdruck, gruppiert mit Auswahl, verwaiste
 /// Autostart-Einträge auswählbar, Berechtigungen entfernter Apps je Dienst mit „Für alle Apps zurücksetzen …“
 /// (`ServiceReset`); „In den Papierkorb legen …“ mit Bestätigung (Return und Escape brechen ab).
-struct CleanupView: View {
+struct OrphanCleanupView: View {
     let appModel: AppModel
     @State private var pendingPlan: RemovalPlan?
     @State private var pendingServiceReset: ServiceReset?

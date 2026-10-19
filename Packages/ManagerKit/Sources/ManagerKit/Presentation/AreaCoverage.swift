@@ -283,6 +283,24 @@ public struct AreaCoverage: Hashable, Sendable, Identifiable {
         "\(area.title): \(statusLine(now: now, calendar: calendar))"
     }
 
+    /// Erklärt die Scan-Abdeckung; sie bewertet nicht die Sicherheit einzelner Einträge.
+    public var explanation: String {
+        switch state {
+        case .current: "Alle vorgesehenen Quellen wurden vollständig gelesen."
+        case .partial: "Ein Teil der Quellen oder Einträge konnte nicht vollständig geprüft werden. Die Liste kann unvollständig sein oder ältere Einträge enthalten."
+        case .lastKnown: "Mindestens eine Quelle konnte nicht erneut gelesen werden. Für sie zeigt die Liste den letzten bekannten Stand."
+        case .unread: "Für diesen Bereich liegen noch keine erfolgreich gelesenen Daten vor. Eine leere Liste ist deshalb keine Entwarnung."
+        }
+    }
+
+    /// Vollständiger Text für Details und Zwischenablage, ausschließlich aus den aufbereiteten Anzeigetexten.
+    public func diagnosticReport(now: Date, calendar: Calendar = .current, home: String = NSHomeDirectory()) -> String {
+        ([summaryLine(now: now, calendar: calendar), explanation]
+            + reasons(now: now, calendar: calendar, home: home)
+            + notes(now: now, calendar: calendar))
+            .joined(separator: "\n\n")
+    }
+
     /// Umfang und Grund der Einschränkung, eine Zeile je Lücke (Pfade unter `home` mit `~`); leer bei `.current`.
     /// Die Quelle steht nur dabei, wenn der Bereich mehrere erwartet.
     public func reasons(now: Date, calendar: Calendar = .current, home: String = NSHomeDirectory()) -> [String] {

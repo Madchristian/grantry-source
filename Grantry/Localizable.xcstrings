@@ -1,6 +1,13 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "Code-Ordner" : {},
+    "Keine Code-Ordner ausgewählt." : {},
+    "Entfernen" : {},
+    "Ordner hinzufügen …" : {},
+    "Nur Projekte älter als %lld Tage" : {},
+    "%@ entfernen" : {},
+
     "Dock-Symbol anzeigen" : {},
     "Grantry bleibt über die Menüleiste erreichbar, auch ohne Dock-Symbol." : {},
     "Einstellungen …" : {},

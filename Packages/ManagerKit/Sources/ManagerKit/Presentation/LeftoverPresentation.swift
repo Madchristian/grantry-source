@@ -15,6 +15,7 @@ extension LeftoverKind {
         case .webKit: "WebKit-Daten"
         case .logs: "Protokolle"
         case .applicationScripts: "App-Skripte"
+        case .storage: "Speicher"
         }
     }
 }

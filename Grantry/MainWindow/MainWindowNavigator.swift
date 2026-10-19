@@ -12,20 +12,23 @@ struct MainWindowRequest: Equatable {
     var opensObservationStart = false
     /// Wählt im Bereich „Beobachtungen“ diese Beobachtung.
     var observationID: UUID?
+    /// Wählt im Bereich „Aufräumen“ dieses Segment; bei „Prozesse“ wird zugleich neu gelesen (#224).
+    var cleanupSegment: CleanupSegment?
 
     init(
         section: MainSection, focusedRecordID: String? = nil, opensSelfUninstall: Bool = false,
-        opensObservationStart: Bool = false, observationID: UUID? = nil
+        opensObservationStart: Bool = false, observationID: UUID? = nil, cleanupSegment: CleanupSegment? = nil
     ) {
         self.section = section
         self.focusedRecordID = focusedRecordID
         self.opensSelfUninstall = opensSelfUninstall
         self.opensObservationStart = opensObservationStart
         self.observationID = observationID
+        self.cleanupSegment = cleanupSegment
     }
 
     /// Ziel eines Klicks auf eine Benachrichtigung: eine Sicherheitsprüfung, App, ein Lauscher bzw. ein Agenten-Eintrag
-    /// wird in seinem Bereich hervorgehoben.
+    /// wird in seinem Bereich hervorgehoben; der Hinweis auf verwaiste Agenten-Bäume öffnet Aufräumen → Prozesse.
     init(_ destination: NotificationDestination) {
         switch destination {
         case .history:
@@ -40,6 +43,8 @@ struct MainWindowRequest: Equatable {
             self.init(section: .agents, focusedRecordID: id)
         case .update:
             self.init(section: .overview)
+        case .processes:
+            self.init(section: .cleanup, cleanupSegment: .processes)
         }
     }
 }

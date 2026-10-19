@@ -1,16 +1,26 @@
 {
-  "version": "2026.10.112",
-  "intro": "Sparsamere Netzwerkaktivität. Zuverlässigere Zuordnungen.",
+  "version": "2026.10.192",
+  "intro": "Speicher aufräumen und ungenutzte Prozesse im Blick behalten.",
   "highlights": [
     {
-      "symbol": "network",
-      "title": "Verbindungen richtig zuordnen",
-      "body": "Die Live-Ansicht arbeitet sparsamer. Auch ungewöhnliche Prozessnamen behalten ihre eigenen Verbindungen."
+      "symbol": "externaldrive",
+      "title": "Speicher gezielt aufräumen",
+      "body": "Finde große Caches, Xcode-Daten und Simulator-Laufzeiten und räume nach Auswahl und Bestätigung auf."
     },
     {
-      "symbol": "hand.raised",
-      "title": "Automation-Freigaben klar zurücksetzen",
-      "body": "Vor dem Zurücksetzen siehst du alle bekannten Ziele derselben App. Grantry weist außerdem auf mögliche weitere Ziele hin."
+      "symbol": "memorychip",
+      "title": "Ungenutzte Prozesse finden",
+      "body": "Prüfe Arbeitsspeicher und verwaiste Agenten-Prozesse oder laufende Simulatoren und beende sie nach Bestätigung."
+    },
+    {
+      "symbol": "bell",
+      "title": "Hinweis bei vielen verwaisten Prozessen",
+      "body": "Lass dich bei vielen verwaisten Agenten-Prozessen benachrichtigen. Der Hinweis ist in den Einstellungen abschaltbar."
+    },
+    {
+      "symbol": "text.magnifyingglass",
+      "title": "Scan-Abdeckung besser verstehen",
+      "body": "Erkenne Einschränkungen und ältere Ergebnisse leichter und öffne oder kopiere den vollständigen Diagnosebericht."
     }
   ]
 }

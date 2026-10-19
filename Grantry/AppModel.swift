@@ -33,6 +33,12 @@ final class AppModel {
     let runningApps = WorkspaceRunningApplications()
     /// Bereich „Aufräumen“: Reste gelöschter Apps (auf Abruf).
     let cleanup: CleanupModel
+    /// Bereich „Aufräumen“, Segment „Speicher“ (#215; auf Abruf).
+    let storageCleanup: StorageCleanupModel
+    /// Bereich „Aufräumen“, Segment „Prozesse“ (#221; auf Abruf).
+    let processCleanup: ProcessCleanupModel
+    /// Hinweis auf viele verwaiste Agenten-Bäume (#224; Prüfung alle 15 min, nur lesend).
+    let orphanAgentAlerts: OrphanAgentAlerter
     /// „Installation beobachten“ (#127): laufende und gespeicherte Beobachtungen.
     let observations: ObservationModel
     /// Takt der Helper-Abfragen der Lauscher-Quelle (#128); nach einer Registrierung oder Neuinstallation des Helpers
@@ -132,6 +138,11 @@ final class AppModel {
         // Aktionen und Verlauf teilen die Ablage der Sicherungen – auch eine eigene (UI-Tests, zweite Instanz).
         let agentBackups = storage.agentBackups
         cleanup = CleanupModel(scanner: OrphanScanner(resolver: resolver))
+        storageCleanup = StorageCleanupModel(remover: StorageRemover(trash: FinderTrash()),
+                                             log: CleanupLog(url: storage.cleanupLogURL))
+        let processScanner = ProcessOverviewScanner()
+        processCleanup = ProcessCleanupModel(scanner: processScanner, log: CleanupLog(url: storage.cleanupLogURL))
+        orphanAgentAlerts = OrphanAgentAlerter(scanner: processScanner, notifier: notifier)
         let runningApps = runningApps
         actions = ActionRunner(helperActivity: helperActivity, coordinator: engine.map { engine in
             ActionCoordinator(
@@ -142,7 +153,8 @@ final class AppModel {
                 processTermination: ProcessTerminator(privileged: helperClient, ledger: listenerTerminations),
                 receipts: receipts,
                 scanner: engine,
-                // Einzige Stelle mit echtem Papierkorb; die Vorgabe `UnavailableTrash` löscht nie (Leitplanke 7).
+                // Echter Papierkorb nur hier und beim Speicher-Aufräumen (`StorageRemover`); die Vorgabe
+                // `UnavailableTrash` löscht nie (Leitplanke 7).
                 trash: FinderTrash(),
                 runningApps: runningApps
             )
@@ -158,9 +170,10 @@ final class AppModel {
         updatePresentation()
     }
 
-    /// Spiegelt den Zustand und startet die Überwachung; weitere Aufrufe bleiben wirkungslos. Die Erlaubnis für
-    /// Benachrichtigungen holt das Onboarding ein.
+    /// Spiegelt den Zustand und startet die Überwachung samt Hinweis auf verwaiste Agenten-Bäume; weitere Aufrufe
+    /// bleiben wirkungslos. Die Erlaubnis für Benachrichtigungen holt das Onboarding ein.
     func start() async {
+        orphanAgentAlerts.start()
         guard let engine, mirrorTask == nil else { return }
         await observations.load()
         let states = await engine.states()
@@ -175,9 +188,11 @@ final class AppModel {
     /// Beim Beenden der App: wartet erst, bis laufende und eingereihte Aktionen samt Wiederherstellungsbeleg fertig
     /// sind (ohne auf deren Prüfscan zu warten) und eine laufende Deinstallation abgeschlossen ist (#156), beendet dann
     /// die Überwachung und meldet wartende Benachrichtigungen sofort. Liegt Grantry samt gewählter Einstellungen im
-    /// Papierkorb, werden die Einstellungen zuletzt geleert. Zuvor endet nettop der Netzwerkaktivität (`stopAndWait()`).
+    /// Papierkorb, werden die Einstellungen zuletzt geleert. Zuvor enden nettop der Netzwerkaktivität (`stopAndWait()`)
+    /// und der Hinweis auf verwaiste Agenten-Bäume.
     func stop() async {
         isStopping = true
+        orphanAgentAlerts.stop()
         await networkActivity.stopAndWait()
         await actions.drain()
         await selfUninstall.drain()

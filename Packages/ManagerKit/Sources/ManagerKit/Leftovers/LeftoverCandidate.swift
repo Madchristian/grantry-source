@@ -3,7 +3,7 @@ import Foundation
 /// Art eines Rests; die Reihenfolge der Fälle ist die Anzeigereihenfolge.
 public enum LeftoverKind: String, Hashable, Sendable, CaseIterable {
     case appBundle, container, groupContainer, applicationSupport, caches, preferences, savedState, httpStorage, webKit,
-         logs, applicationScripts
+         logs, applicationScripts, storage
 }
 
 /// `safe`: per Bundle-/Team-ID belegt, vorausgewählt. `uncertain`: nur über den Namen, nicht vorausgewählt.

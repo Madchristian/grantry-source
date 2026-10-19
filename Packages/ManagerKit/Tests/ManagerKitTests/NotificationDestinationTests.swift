@@ -74,6 +74,10 @@ import TestSupport
         #expect(NotificationDestination(userInfo: NotificationDestination.update.userInfo) == .update)
     }
 
+    @Test func processesDestinationRoundTrips() {
+        #expect(NotificationDestination(userInfo: NotificationDestination.processes.userInfo) == .processes)
+    }
+
     @Test func listenerEventsLeadToTheListener() {
         let listener = TestData.listener()
         let added = ChangeEvent(kind: .added, before: nil, after: .networkListener(listener), detectedAt: TestData.date)

@@ -8,6 +8,7 @@ import TestSupport
 /// mit zu weiten Rechten genutzt; unzulässige Dateien werden ersetzt, ohne ihr Ziel zu berühren.
 @Suite struct SecretFingerprintKeyFileTests {
     private static let foreignContents = Data("fremder Inhalt".utf8)
+    private static let backupExclusionAttribute = "com.apple.metadata:com_apple_backup_excludeItem"
 
     private func withKeyURL(_ body: (URL, URL) throws -> Void) throws {
         try ScratchDirectory.withCanonical(prefix: "fingerprint-key") { directory in
@@ -24,7 +25,7 @@ import TestSupport
 
     /// Prüft den expliziten Datei-Marker statt der von Temp-Ordner/Time-Machine-Zustand abhängigen URL-Auskunft.
     private func isExcludedFromBackup(_ url: URL) throws -> Bool {
-        let attribute = "com.apple.metadata:com_apple_backup_excludeItem"
+        let attribute = Self.backupExclusionAttribute
         let length = getxattr(url.path, attribute, nil, 0, 0, XATTR_NOFOLLOW)
         if length == -1, errno == ENOATTR { return false }
         try #require(length > 0)
@@ -56,11 +57,9 @@ import TestSupport
     @Test func existingKeyIsExcludedFromBackupAgain() throws {
         try withKeyURL { _, url in
             let first = SecretFingerprinter.persistent(at: url)
-            var target = url
-            var values = URLResourceValues()
-            values.isExcludedFromBackup = false
-            try target.setResourceValues(values)
-            #expect(try !isExcludedFromBackup(url), "Fixture entfernt den expliziten Marker")
+            // URLResourceValues(false) entfernt den expliziten Marker nicht in jeder Testumgebung.
+            try #require(removexattr(url.path, Self.backupExclusionAttribute, XATTR_NOFOLLOW) == 0)
+            try #require(try !isExcludedFromBackup(url), "Fixture entfernt den expliziten Marker")
             #expect(SecretFingerprinter.persistent(at: url).keyID == first.keyID)
             #expect(try isExcludedFromBackup(url))
         }

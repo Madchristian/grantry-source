@@ -115,6 +115,26 @@ import Testing
         #expect(inspector.hasEnded(4242, startedAt: 6_000), "andere Startzeit: PID neu vergeben")
     }
 
+    /// Gelöschte Programmdatei (`proc_pidpath` scheitert): Standard ist „nicht bestätigt“; nur der Inspektor für
+    /// verwaiste Agenten-Prozesse (#221) bestätigt mit leerem Pfad – ein `exec` dazwischen bleibt unbestätigt.
+    @Test func unreadableExecutablePathIsConfirmedOnlyWhenAllowed() {
+        let token = Self.token(pid: 4242, version: 3)
+        func inspector(requiringPath: Bool) -> LibprocProcessInspector {
+            LibprocProcessInspector(kernel: { _ in .found(Self.runningEntry) }, executablePath: { _ in nil },
+                                    auditToken: { _ in token }, requiresExecutablePath: requiringPath)
+        }
+        #expect(inspector(requiringPath: true).process(4242) == nil)
+        #expect(inspector(requiringPath: false).process(4242)
+            == RunningProcess(pid: 4242, uid: 0, executablePath: "", startTime: 7_000, auditToken: token))
+        let reads = Mutex(0)
+        let exec = LibprocProcessInspector(
+            kernel: { _ in .found(Self.runningEntry) }, executablePath: { _ in nil },
+            auditToken: { pid in Self.token(pid: pid, version: reads.withLock { reads in defer { reads += 1 }; return UInt32(reads) }) },
+            requiresExecutablePath: false
+        )
+        #expect(exec.process(4242) == nil)
+    }
+
     /// Exitnachweis nur aus der Prozesstabelle: fehlend oder Zombie ist beendet; eine gescheiterte Abfrage oder eine
     /// ungültige Startzeit belegt nichts.
     @Test func livenessComesFromTheProcessTableOnly() {

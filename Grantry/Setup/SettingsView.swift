@@ -1,8 +1,8 @@
 import ManagerKit
 import SwiftUI
 
-/// Einstellungen (⌘,): dieselbe Checkliste wie im Onboarding, ohne Nummern, die Update-Prüfung und die Meldungen
-/// neuer Netzwerkdienste.
+/// Einstellungen (⌘,): dieselbe Checkliste wie im Onboarding, ohne Nummern, die Update-Prüfung, die Meldungen
+/// neuer Netzwerkdienste und der Hinweis auf verwaiste Agenten-Prozesse.
 struct SettingsView: View {
     let prerequisites: PrerequisitesModel
     let dockVisibility: DockVisibilityModel
@@ -27,6 +27,8 @@ struct SettingsView: View {
             UpdateSettingsSection()
             Divider()
             NetworkSettingsSection()
+            Divider()
+            ProcessAlertSettingsSection()
             Divider()
             HStack {
                 Spacer()

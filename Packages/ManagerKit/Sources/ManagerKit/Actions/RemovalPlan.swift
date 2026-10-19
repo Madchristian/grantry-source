@@ -57,9 +57,13 @@ struct RemovalSize {
     let unknown: Int
 
     init(_ files: [LeftoverCandidate]) {
-        known = files.compactMap(\.size.bytes).reduce(0, +)
-        unreadable = files.count { $0.size == .unreadable }
-        unknown = files.count { $0.size == .unknown }
+        self.init(sizes: files.map(\.size))
+    }
+
+    init(sizes: [FileSize]) {
+        known = sizes.compactMap(\.bytes).reduce(0, +)
+        unreadable = sizes.count { $0 == .unreadable }
+        unknown = sizes.count { $0 == .unknown }
     }
 
     /// „1,2 GB“, „mindestens 1,2 GB“, „mindestens 1,2 GB, 2 Größen nicht lesbar“, „Größe unbekannt“, „Größe nicht lesbar“.

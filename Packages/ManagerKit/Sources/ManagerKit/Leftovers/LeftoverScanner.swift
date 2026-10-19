@@ -68,36 +68,17 @@ public struct LeftoverScanner: Sendable {
         return names.filter { !RawPath.isHidden($0) }
     }
 
-    /// Ergebnis einer Messung in der Task-Gruppe (Struct statt Tupel mit Enum).
-    private struct MeasuredSize: Sendable {
-        let index: Int
-        let size: FileSize
-    }
-
     /// Größen mit höchstens `maximumConcurrentMeasurements` gleichzeitigen Messungen; nach einem Abbruch startet keine
     /// weitere. `sizer` wählt das Messwerkzeug je Kandidat.
     static func measured(
         _ candidates: [LeftoverCandidate], sizer: (LeftoverCandidate) -> any FileSizeMeasuring
     ) async -> [LeftoverCandidate] {
-        var results = candidates
-        await withTaskGroup(of: MeasuredSize.self) { group in
-            var next = 0
-            func startNext() {
-                guard next < candidates.count else { return }
-                let index = next, path = candidates[index].path
-                let sizer = sizer(candidates[index])
-                next += 1
-                _ = group.addTaskUnlessCancelled {
-                    MeasuredSize(index: index, size: Task.isCancelled ? .unknown : await sizer.measure(path))
-                }
-            }
-            for _ in 0..<Self.maximumConcurrentMeasurements { startNext() }
-            for await measurement in group {
-                results[measurement.index].size = measurement.size
-                startNext()
-            }
+        let sizes = await ConcurrentMeasurement.sizes(of: candidates.map(\.path)) { sizer(candidates[$0]) }
+        return zip(candidates, sizes).map { candidate, size in
+            var measured = candidate
+            measured.size = size
+            return measured
         }
-        return results
     }
 }
 
