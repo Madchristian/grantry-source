@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+    <key>SUFeedURL</key><string>https://grantry.cstrube.de/appcast.xml</string>
+    <key>SUPublicEDKey</key><string>$(GRANTRY_SPARKLE_PUBLIC_ED_KEY)</string>
+    <key>SUEnableSystemProfiling</key><false/>
+    <key>SUEnableAutomaticChecks</key><false/>
+    <key>SUAutomaticallyUpdate</key><false/>
+    <key>SURequireSignedFeed</key><true/>
+    <key>SUVerifyUpdateBeforeExtraction</key><true/>
+</dict></plist>

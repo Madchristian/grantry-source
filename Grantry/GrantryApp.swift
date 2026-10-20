@@ -157,7 +157,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             openURL: openURL
         )
         #else
-        let updates = UpdateModel(checksAutomatically: true, openURL: openURL)
+        let updates = UpdateModel(checksAutomatically: true,
+            installer: SparkleUpdateService.configured(canInstall: { appModel.canInstallUpdate }), openURL: openURL)
         #endif
         self.updates = updates
         let finishOnboarding: @MainActor () -> Void = {
@@ -254,6 +255,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         SingleInstance.markTerminating()
         updates.stop()
         Task {
+            // Aufräumen hat eigene Tasks außerhalb des ActionRunner; auch diese vor dem Austausch abwarten.
+            while !appModel.canInstallUpdate {
+                try? await Task.sleep(for: .milliseconds(250))
+            }
+            await updates.prepareToTerminate()
             await appModel.stop()
             sender.reply(toApplicationShouldTerminate: true)
         }

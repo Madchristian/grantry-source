@@ -11,6 +11,18 @@ struct UpdateSettingsSection: View {
                 get: { updates.isEnabled }, set: { updates.setEnabled($0) }
             ))
             .toggleStyle(.switch)
+            Toggle("Updates automatisch installieren", isOn: Binding(
+                get: { updates.installsAutomatically }, set: { updates.setAutomaticInstallation($0) }
+            ))
+            .toggleStyle(.switch)
+            .disabled(!updates.supportsInstallation || !updates.isEnabled)
+            Text("Lädt Updates im Hintergrund und installiert sie beim nächsten Beenden. Standardmäßig ausgeschaltet.")
+                .font(.callout).foregroundStyle(.secondary)
+            if let error = updates.installationError {
+                Text(error).foregroundStyle(.red).font(.callout)
+            } else if let status = updates.installationStatus {
+                Text(status).font(.callout)
+            }
             Text(verbatim: UpdateFeed.privacyNote)
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -31,7 +43,7 @@ struct UpdateSettingsSection: View {
                     .font(.callout)
                 if case .available(let item) = outcome {
                     HStack {
-                        Button(UpdateTexts.download) { updates.openDownload(item) }
+                        Button(updates.downloadButtonTitle) { updates.openDownload(item) }
                         UpdateChecksumView(item: item)
                     }
                 }

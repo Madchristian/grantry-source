@@ -14,6 +14,7 @@ public struct AppcastItem: Equatable, Sendable {
     /// Vom Feed gelieferte SHA-256-Prüfsumme des DMG; reine Integritäts-Gegenprobe, kein Echtheitsnachweis.
     public let sha256: String?
     public let publishedAt: Date?
+    public let edSignature: String?
 
     /// Rohwerte eines `<item>`: die ausgewerteten Kind-Elemente und die Attribute von `<enclosure>`. Alles andere im
     /// Feed (etwa `<title>` oder `<description>`) wird beim Lesen gar nicht erst gesammelt (`UpdateFeed.maximumFieldLength`).
@@ -29,7 +30,7 @@ public struct AppcastItem: Equatable, Sendable {
         }
 
         /// Attribute von `<enclosure>`, die gelesen werden: `url`, `length` und die Felder der älteren Feeds.
-        static let enclosureAttributes = Set(["url", "length"] + Field.allCases.map(\.rawValue))
+        static let enclosureAttributes = Set(["url", "length", "sparkle:edSignature"] + Field.allCases.map(\.rawValue))
 
         /// Eigene RSS-Erweiterung, siehe `scripts/appcast.swift` und RSS 2.0 § Extending RSS.
         static let checksumNamespace = "https://grantry.cstrube.de/xml-namespaces/appcast"
@@ -67,8 +68,23 @@ public struct AppcastItem: Equatable, Sendable {
         releaseNotesURL = releaseNotes
         downloadURL = download
         length = raw.enclosure["length"].flatMap(Int.init)
+        edSignature = raw.enclosure["sparkle:edSignature"]
         sha256 = raw.sha256.flatMap(Self.validSHA256)
         publishedAt = raw.fields[.publishedAt].flatMap(Self.date(rfc822:))
+    }
+
+    /// Brücke vom Sparkle-Parser; dieselben URL-/Versionsregeln wie beim bisherigen Feed gelten.
+    public init?(version: String, build: String, downloadURL: URL, releaseNotesURL: URL?,
+                 length: Int?, edSignature: String?, sha256: String?, minimumSystemVersion: String? = nil) {
+        var raw = Raw()
+        raw.fields = [.shortVersion: version, .build: build]
+        raw.fields[.minimumSystemVersion] = minimumSystemVersion
+        if let releaseNotesURL { raw.fields[.releaseNotesLink] = releaseNotesURL.absoluteString }
+        raw.enclosure = ["url": downloadURL.absoluteString]
+        if let length { raw.enclosure["length"] = String(length) }
+        raw.enclosure["sparkle:edSignature"] = edSignature
+        raw.sha256 = sha256
+        self.init(raw)
     }
 
     /// Exakt 64 ASCII-Hexzeichen; kein Trimmen oder Akzeptieren ähnlich aussehender Unicode-Zeichen.

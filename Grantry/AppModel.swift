@@ -200,6 +200,15 @@ final class AppModel {
         if selfUninstall.clearsPreferences { SelfUninstaller.clearPreferences() }
     }
 
+    /// Dieselben Zustände wie in den jeweiligen Oberflächen, keine zweite Aktivitätsverwaltung.
+    var canInstallUpdate: Bool {
+        UpdateInstallationPolicy.canInstall(
+            isCleaning: storageCleanup.phase == .cleaning || processCleanup.phase == .cleaning,
+            isRemoving: actions.isRunning || selfUninstall.isRunning,
+            helperActivity: helperActivity
+        )
+    }
+
     /// Die laufende Grantry in der App-Liste (`RemovalRoute.grantryItself`, am Pfad erkannt); `nil` vor dem ersten Scan
     /// oder wenn sie nicht an einem durchsuchten Ort liegt.
     var ownApp: InstalledApp? {

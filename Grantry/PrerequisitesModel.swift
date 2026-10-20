@@ -90,7 +90,7 @@ final class PrerequisitesModel {
         guard let text = settledChecklist.bannerText else { return nil }
         guard helperRenewalFailure != nil else { return text }
         return "\(text) Nach dem Update ließ sich der Helper nicht automatisch neu registrieren – in der Einrichtung "
-            + "„Installieren“ wählen."
+            + "„Installieren“ wählen und unter Systemeinstellungen → Allgemein → Anmeldeobjekte & Erweiterungen genehmigen."
     }
 
     /// Nachweislich fehlende erforderliche Schritte – wie das Banner mit dem zuletzt ermittelten Helper-Zustand; für den

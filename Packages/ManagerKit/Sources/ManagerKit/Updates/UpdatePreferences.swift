@@ -26,6 +26,12 @@ public struct UpdatePreferences {
         nonmutating set { store.set(newValue.rawValue, forKey: Self.consentKey) }
     }
 
+    /// Ausdrückliche Zustimmung zum Hintergrund-Download und zur Installation beim Beenden.
+    public var installsAutomatically: Bool {
+        get { store.object(forKey: "updateInstallsAutomatically") as? Bool ?? false }
+        nonmutating set { store.set(newValue, forKey: "updateInstallsAutomatically") }
+    }
+
     /// Zeitpunkt der letzten erfolgreichen Prüfung; gescheiterte Prüfungen ändern ihn nicht.
     public var lastSuccessfulCheck: Date? {
         get { store.object(forKey: Self.lastCheckKey) as? Date }

@@ -46,11 +46,11 @@ public struct UpdateChecker: Sendable {
             throw UpdateCheckError.unreachable(error.readableDescription)
         }
         guard let items = try? AppcastParser.items(from: data) else { throw UpdateCheckError.invalidFeed }
-        return items.filter(isApplicable).max { $0.build < $1.build }
+        return items.filter { Self.isApplicable($0, installed: installed) }.max { $0.build < $1.build }
     }
 
     /// Plausibler Build-Abstand, neuer als die laufende Version und lauffähig auf diesem macOS.
-    private func isApplicable(_ item: AppcastItem) -> Bool {
+    public static func isApplicable(_ item: AppcastItem, installed: InstalledBuild) -> Bool {
         // Den Abstand vom bereits begrenzten Feed-Build abziehen: kein Überlauf bei extremen Bundle-Werten.
         guard item.build > installed.build,
               item.build - Self.maximumBuildAdvance <= installed.build else { return false }

@@ -23,7 +23,7 @@ enum UpdateAlert {
         alert.informativeText = outcome.text
         if case .available = outcome {
             alert.messageText = UpdateTexts.availableTitle
-            alert.addButton(withTitle: UpdateTexts.download)
+            alert.addButton(withTitle: updates.downloadButtonTitle)
             alert.addButton(withTitle: String(localized: "Später"))
         } else {
             alert.messageText = String(localized: "Nach Updates suchen")

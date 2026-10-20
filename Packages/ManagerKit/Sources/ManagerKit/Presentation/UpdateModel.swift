@@ -4,7 +4,7 @@ import os
 
 /// Update-Hinweis (Spec Update-Hinweis §4): prüft mit Zustimmung stündlich, ob eine Prüfung fällig ist (alle 24 h),
 /// hält eine gefundene Version bereit, meldet jede Version einmal und öffnet Download und Release Notes über
-/// `openURL`. Installiert wird nichts. Es läuft höchstens eine Prüfung; weitere Aufrufer warten auf dieselbe.
+/// `openURL`. Mit konfiguriertem Installer übernimmt Sparkle den Update-Ablauf. Es läuft höchstens eine Prüfung; weitere Aufrufer warten auf dieselbe.
 @MainActor
 @Observable
 public final class UpdateModel {
@@ -32,6 +32,12 @@ public final class UpdateModel {
     /// Auswahl im Onboarding; gespeichert erst mit `commitOnboardingChoice()`. Spiegelt die gespeicherte Zustimmung
     /// (unentschieden: an), damit ein erneut geöffnetes Onboarding eine abgeschaltete Prüfung nicht wieder einschaltet.
     public var onboardingChoice: Bool
+    public private(set) var installsAutomatically: Bool
+    public private(set) var installationStatus: String?
+    public private(set) var installationError: String?
+    public var supportsInstallation: Bool { installer != nil }
+    public var downloadButtonTitle: String { supportsInstallation ? "Installieren und neu starten" : UpdateTexts.download }
+    @ObservationIgnored private let installer: (any UpdateInstalling)?
 
     /// Die laufende Prüfung; `isAutomatic`, solange nur automatische Aufrufer auf sie warten (dann abbrechbar).
     private struct RunningCheck {
@@ -60,8 +66,11 @@ public final class UpdateModel {
         checker: UpdateChecker = UpdateChecker(),
         notifier: any UserNotifying = UNUserNotificationCenterNotifier(),
         checksAutomatically: Bool,
+        installer: (any UpdateInstalling)? = nil,
         openURL: @escaping @MainActor (URL) -> Void
     ) {
+        self.installer = installer
+        installsAutomatically = preferences.installsAutomatically
         self.preferences = preferences
         self.checker = checker
         self.notifier = notifier
@@ -70,6 +79,11 @@ public final class UpdateModel {
         consent = preferences.consent
         onboardingChoice = preferences.consent != .disabled
         lastCheck = preferences.lastSuccessfulCheck
+        installer?.onStatus = { [weak self] status, error in
+            self?.installationStatus = status
+            self?.installationError = error
+        }
+        installer?.setAutomaticInstallation(preferences.installsAutomatically)
     }
 
     /// Über die Update-Prüfung ist noch nicht entschieden (Onboarding erscheint dann einmal je Start).
@@ -85,9 +99,11 @@ public final class UpdateModel {
         consent = preferences.consent
         onboardingChoice = enabled
         if enabled {
+            installer?.setAutomaticInstallation(preferences.installsAutomatically)
             Task { await checkIfDue() }
         } else {
             cancelAutomaticCheck()
+            installer?.setAutomaticInstallation(false)
         }
     }
 
@@ -130,8 +146,24 @@ public final class UpdateModel {
         return outcome
     }
 
+    public func prepareToTerminate() async {
+        await installer?.prepareToTerminate()
+    }
+
     public func openDownload(_ item: AppcastItem) {
-        openURL(item.downloadURL)
+        if let installer {
+            installationError = nil
+            installer.install(item, automatically: false)
+        } else {
+            openURL(item.downloadURL)
+        }
+    }
+
+    public func setAutomaticInstallation(_ enabled: Bool) {
+        preferences.installsAutomatically = enabled
+        installsAutomatically = enabled
+        installer?.setAutomaticInstallation(enabled)
+        if enabled, isEnabled, let availableUpdate { installer?.install(availableUpdate, automatically: true) }
     }
 
     public func openReleaseNotes(_ item: AppcastItem) {
@@ -179,6 +211,7 @@ public final class UpdateModel {
     private func cancelAutomaticCheck() {
         guard let current = running, current.isAutomatic else { return }
         current.task.cancel()
+        installer?.cancelCheck()
         running = nil
         isChecking = false
     }
@@ -187,12 +220,14 @@ public final class UpdateModel {
     /// - Parameter postsNotification: Beim ersten Fund einer Version eine Systembenachrichtigung zeigen (automatische
     ///   Prüfung); `false` bei der manuellen Prüfung, die ihr Ergebnis selbst anzeigt.
     private func performCheck(postsNotification: Bool) async throws -> AppcastItem? {
-        let found = try await checker.check()
+        let found: AppcastItem?
+        if let installer { found = try await installer.check() } else { found = try await checker.check() }
         try Task.checkCancellation()
         let now = Date.now
         preferences.lastSuccessfulCheck = now
         lastCheck = now
         availableUpdate = found
+        if let found, installsAutomatically, isEnabled { installer?.install(found, automatically: true) }
         if let found, preferences.claimNotification(for: found), postsNotification {
             await notifier.post(
                 title: UpdateTexts.availableTitle, body: found.availabilityText,

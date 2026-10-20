@@ -9,13 +9,13 @@ struct UpdateBanner: View {
     var body: some View {
         DashboardBanner(
             systemImage: UpdateBanner.systemImage, tint: .accentColor, title: UpdateTexts.availableTitle,
-            text: "\(item.availabilityText) \(UpdateTexts.installHint)"
+            text: updates.installationError ?? updates.installationStatus ?? "\(item.availabilityText) \(updates.supportsInstallation ? "" : UpdateTexts.installHint)"
         ) {
             UpdateChecksumView(item: item)
             if item.hasReleaseNotes {
                 Button(UpdateTexts.releaseNotes) { updates.openReleaseNotes(item) }
             }
-            Button(UpdateTexts.download) { updates.openDownload(item) }
+            Button(updates.downloadButtonTitle) { updates.openDownload(item) }
                 .buttonStyle(.borderedProminent)
         }
     }

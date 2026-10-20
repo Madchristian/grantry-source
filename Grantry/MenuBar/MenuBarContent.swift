@@ -61,7 +61,7 @@ struct MenuBarContent: View {
                 if let update = updates.availableUpdate {
                     NoticeLabel(text: update.availabilityText, systemImage: UpdateBanner.systemImage, color: .accentColor)
                     HStack(spacing: 12) {
-                        Button(UpdateTexts.download) { updates.openDownload(update) }
+                        Button(updates.downloadButtonTitle) { updates.openDownload(update) }
                         if update.hasReleaseNotes {
                             Button(UpdateTexts.releaseNotes) { updates.openReleaseNotes(update) }
                         }
