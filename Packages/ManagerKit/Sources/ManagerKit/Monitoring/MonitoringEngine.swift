@@ -301,7 +301,7 @@ public actor MonitoringEngine {
             // `.notice` wird persistiert; je tatsächlichem Vollscan genau ein Eintrag (Auslöser sind entprellt und
             // zusammengefasst). Teilscans kommen alle 60 s und landen daher nur als `.debug` im Protokoll.
             Self.logger.notice("Scan: \(reason.description, privacy: .public)")
-            scanProgressTracker = ScanProgressTracker(sources: coordinator.sourceIDs, previous: lastScanDurations)
+            scanProgressTracker = ScanProgressTracker(steps: coordinator.sourceIDs, previous: lastScanDurations)
             state.scanProgress = ScanProgress()
             state.isScanning = true
             publish()

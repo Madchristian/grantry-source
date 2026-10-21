@@ -21,6 +21,8 @@ final class ProcessCleanupModel {
     /// IDs aus `treeSelectionID(_:)` und `simulatorSelectionID(_:)`.
     var selection: Set<String> = []
     private(set) var lastOutcomes: [ProcessCleanupOutcome] = []
+    /// Leiste über der Prozessliste (#270): Schritte sind die `ProcessScanStep`s.
+    let scanProgress = SegmentScanProgress()
 
     @ObservationIgnored private let scanner: ProcessOverviewScanner
     @ObservationIgnored private let cleaner: ProcessCleaner
@@ -52,9 +54,14 @@ final class ProcessCleanupModel {
     func scan() {
         guard phase != .scanning, phase != .cleaning else { return }
         phase = .scanning
+        let step = scanProgress.begin(steps: ProcessScanStep.allCases.map(\.rawValue))
         task = Task { [weak self, scanner] in
             let result: Result<ProcessOverview, any Error>
-            do { result = .success(try await scanner.scan()) } catch { result = .failure(error) }
+            do {
+                result = .success(try await scanner.scan { await step($0.map(\.rawValue)) })
+            } catch {
+                result = .failure(error)
+            }
             guard let self else { return }
             switch result {
             case .success(let overview):
@@ -69,6 +76,7 @@ final class ProcessCleanupModel {
                 self.scanError = error.readableDescription
             }
             self.phase = self.overview == nil ? .idle : .scanned
+            self.scanProgress.finish()
         }
     }
 

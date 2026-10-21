@@ -11,6 +11,8 @@ final class CancellableSearch {
     }
 
     private(set) var phase: Phase = .idle
+    /// Fortschritt der laufenden Suche für die Leiste über der Ergebnistabelle (#270); folgt Start, Ende und Abbruch.
+    let progress = SegmentScanProgress()
     @ObservationIgnored private var task: Task<Void, Never>?
 
     var isSearching: Bool { phase == .searching }
@@ -19,12 +21,21 @@ final class CancellableSearch {
     func start<Value: Sendable>(
         _ operation: @escaping @Sendable () async -> Value, onFinish: @escaping @MainActor (Value) -> Void
     ) {
+        start({ _ in await operation() }, onFinish: onFinish)
+    }
+
+    /// Wie `start(_:onFinish:)`; die Suche meldet ihre Schritte über den übergebenen `ScanStepReporter`.
+    func start<Value: Sendable>(
+        _ operation: @escaping @Sendable (ScanStepReporter) async -> Value, onFinish: @escaping @MainActor (Value) -> Void
+    ) {
         task?.cancel()
         phase = .searching
+        let report = progress.begin()
         task = Task { [weak self] in
-            let value = await operation()
+            let value = await operation(report)
             guard !Task.isCancelled, let self else { return }
             onFinish(value)
+            self.progress.finish()
             self.phase = .finished
         }
     }
@@ -32,6 +43,7 @@ final class CancellableSearch {
     func cancel() {
         task?.cancel()
         task = nil
+        progress.cancel()
         if phase == .searching { phase = .cancelled }
     }
 }

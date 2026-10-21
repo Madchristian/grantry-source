@@ -32,7 +32,7 @@ final class CleanupModel {
         result = nil
         expiry?.cancel()
         isExpired = false
-        search.start({ await scanner.scan(snapshot) }) { [weak self] result in
+        search.start({ report in await scanner.scan(snapshot, onStep: report.callAsFunction) }) { [weak self] result in
             let presentation = CleanupPresentation(result: result)
             self?.result = result
             self?.selection = presentation.initialSelection

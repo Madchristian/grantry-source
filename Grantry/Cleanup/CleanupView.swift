@@ -72,6 +72,7 @@ struct OrphanCleanupView: View {
                 // Volle Restfläche, damit Leerzustände wie in den anderen Bereichen mittig stehen statt oben links.
                 content(selection: $cleanup.selection)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .scanProgressAboveTable(cleanup.search.progress)
             }
         }
         .actionConfirmation(for: $pendingPlan, confirmation: { ActionConfirmation.removal($0) }) { plan in
@@ -251,4 +252,16 @@ private struct CleanupList: View {
             }
         }
     }
+}
+
+#Preview("App-Reste – Leiste über den Funden") {
+    List {
+        Section("ai.openclaw.mac") {
+            Text(verbatim: "~/Library/Caches/ai.openclaw.mac")
+            Text(verbatim: "~/Library/Preferences/ai.openclaw.mac.plist")
+        }
+    }
+    .listStyle(.inset)
+    .scanProgressAboveTable(.preview(ScanProgress(fraction: 0.35)))
+    .frame(width: 720, height: 220)
 }

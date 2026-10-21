@@ -13,10 +13,6 @@ struct DashboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                if appModel.monitoring.isScanning {
-                    ScanProgressView(progress: appModel.monitoring.scanProgress)
-                        .frame(maxWidth: 320)
-                }
                 if let missing = prerequisites.missingPrerequisitesText {
                     PrerequisitesBanner(
                         text: missing,

@@ -7,6 +7,7 @@ struct ScanProgressView: View {
     let progress: ScanProgress
 
     static func valueText(_ progress: ScanProgress, at now: ContinuousClock.Instant = .now) -> String {
+        if progress.isIndeterminate { return String(localized: "Scan läuft …") }
         let percent = Int((progress.fraction * 100).rounded(.down))
         guard let remaining = progress.remainingSeconds(at: now) else { return String(localized: "\(percent) %") }
         let seconds = Int(min(86_400, ceil(remaining / 5) * 5))
@@ -16,8 +17,14 @@ struct ScanProgressView: View {
     var body: some View {
         ScanProgressText(progress: progress) { text in
             VStack(alignment: .leading, spacing: 3) {
-                ProgressView(value: progress.fraction, total: 1)
-                    .progressViewStyle(.linear)
+                Group {
+                    if progress.isIndeterminate {
+                        ProgressView()
+                    } else {
+                        ProgressView(value: progress.fraction, total: 1)
+                    }
+                }
+                .progressViewStyle(.linear)
                 Text(verbatim: text)
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(.secondary)
@@ -28,6 +35,39 @@ struct ScanProgressView: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("Scan")
             .accessibilityValue(text)
+        }
+    }
+}
+
+/// Leiste direkt über einer Tabelle, solange der Scan ihres Segments läuft (#262, #270): Balken über die gesamte
+/// Tabellenbreite, Restdauer darunter.
+struct ScanProgressStrip: View {
+    let progress: ScanProgress
+
+    var body: some View {
+        ScanProgressView(progress: progress)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(.bar)
+            .overlay(alignment: .bottom) { Divider() }
+    }
+}
+
+extension View {
+    /// Setzt die Scan-Leiste des Segments über diese Tabelle, solange `progress` einen Lauf zeigt.
+    func scanProgressAboveTable(_ progress: SegmentScanProgress) -> some View {
+        modifier(ScanProgressAboveTable(progress: progress))
+    }
+}
+
+private struct ScanProgressAboveTable: ViewModifier {
+    let progress: SegmentScanProgress
+
+    func body(content: Content) -> some View {
+        VStack(spacing: 0) {
+            if let current = progress.current { ScanProgressStrip(progress: current) }
+            content
         }
     }
 }
@@ -59,6 +99,11 @@ struct ScanProgressText<Content: View>: View {
 
 #Preview("Scan – mit Restdauer") {
     ScanProgressView(progress: ScanProgress(fraction: 0.62, remainingSeconds: 18))
+        .frame(width: 200).padding()
+}
+
+#Preview("Scan – zu kurz, unbestimmt") {
+    ScanProgressView(progress: ScanProgress(isIndeterminate: true))
         .frame(width: 200).padding()
 }
 

@@ -31,6 +31,7 @@ struct ProcessCleanupView: View {
             notices
             Divider()
             content
+                .scanProgressAboveTable(model.scanProgress)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .actionConfirmation(for: $isConfirming, confirmation: { _ in
@@ -46,7 +47,7 @@ struct ProcessCleanupView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Button("Scannen", action: model.scan)
-                .disabled(isBusy)
+                .disabled(model.scanProgress.isRunning || model.phase == .cleaning)
                 .help("Liest nur – beendet nichts")
             if isBusy {
                 ProgressView().controlSize(.small)
@@ -177,4 +178,14 @@ private struct OutcomeList: View {
         }
         .font(.caption)
     }
+}
+
+#Preview("Prozesse – Leiste über der Liste, kurzer Scan") {
+    List {
+        Section("Verwaiste Agenten-Prozesse") { Text(verbatim: "node – ~/Projects/demo – 3 Prozesse") }
+        Section("Gebootete Simulatoren") { Text(verbatim: "iPhone 17 Pro – iOS 27.0") }
+    }
+    .listStyle(.inset)
+    .scanProgressAboveTable(.preview(ScanProgress(isIndeterminate: true)))
+    .frame(width: 720, height: 220)
 }

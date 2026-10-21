@@ -74,6 +74,24 @@ private struct FixedSizer: FileSizeMeasuring {
         }
     }
 
+    /// #270: Der Plan nennt jede Kennungsgruppe, danach kommt je Gruppe genau ein Abschluss – auch für Gruppen ohne Fund.
+    @Test func reportsPlannedGroupsAndOneCompletionEach() async throws {
+        try await LibraryFixture.with { fixture in
+            _ = try fixture.folder(fixture.userLibrary("Caches/ai.openclaw.mac"))
+            _ = try fixture.folder(fixture.userLibrary("Caches/ai.openclaw.mac.debug"))
+            _ = try fixture.folder(fixture.userLibrary("Caches/com.example.still"))
+            let events = StepEvents<String>()
+            let scanner = OrphanScanner(layout: fixture.layout, resolver: OrphanResolver(missing: ["ai.openclaw.mac"]),
+                                        sizes: FixedSizer())
+            _ = await scanner.scan(TestData.appSnapshot([])) { await events.append($0) }
+            #expect(await events.all == [
+                .planned(["ai.openclaw.mac", "com.example.still"]),
+                .completed("ai.openclaw.mac", succeeded: true),
+                .completed("com.example.still", succeeded: true),
+            ])
+        }
+    }
+
     /// Review I1: Das Ergebnis kennt den Stand der installierten Apps und je Fund die Kennungen, die vor dem Papierkorb
     /// erneut geprüft werden.
     @Test func resultRemembersInstalledAppsAndClaims() async throws {

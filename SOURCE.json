@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "version": "2026.10.202",
-  "build": 902,
-  "source_commit": "d00d678548b694c3f6b94e53ef53a431068bf90a",
-  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.10.202.dmg",
-  "dmg_sha256": "a188d23a1bcff743b87b55f6bef39504047384465b149f3da35b04ad4e0a8a15",
+  "version": "2026.10.211",
+  "build": 925,
+  "source_commit": "9ece2ec67a29d7222bd2646721344deecb42841a",
+  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.10.211.dmg",
+  "dmg_sha256": "b48e1cbd72a76c075e16be828d7feb70a37e5e9d94758781d7d1fe14b0bcbf6c",
   "source_files": [
     {
       "path": "Grantry/Agents/AgentApprovalDetailView.swift",
@@ -173,33 +173,33 @@
     },
     {
       "path": "Grantry/Cleanup/CleanupModel.swift",
-      "sha256": "1d233a11d12e0ac77a5b50e647da25d737aae8488db85c2d462c029d0ac5fcb2",
-      "source_blob": "2baf09a12588e2eea88859ba9f9ac9ef0dbd65d4"
+      "sha256": "9ebce9a4790a5b5cc8a5c8c9a97a7ef712e383b173dbf77cf690fca06cf50e1a",
+      "source_blob": "6e0debed406b1c117841dd79adab26967cc12a80"
     },
     {
       "path": "Grantry/Cleanup/CleanupView.swift",
-      "sha256": "1d9515e25cfe5669c10bc3fe9e557ca680643f6dbe4b8a716345017cbb7dbc90",
-      "source_blob": "746196809a56b91ea8d8f7b90de3da9e3a3588bc"
+      "sha256": "8897032b404837e673787165e023c2490899ec17ed9587d25307ffd329382934",
+      "source_blob": "1d3f8b0ff535133bde8b6f9cd401bf5abcf45d70"
     },
     {
       "path": "Grantry/Cleanup/ProcessCleanupModel.swift",
-      "sha256": "d5f4c4b577c9212ec96722340bb3e575543805ab9471942f6fc1ba4f7c7722e1",
-      "source_blob": "774a5d1c640d90368af05abed0a932f16b873962"
+      "sha256": "62fcc4499876d5432948a6b96f353e98cce7850ec92e137f4fb703735c3d27fd",
+      "source_blob": "9d9bc7c39d4593fa39288dbb1c78e1e0366e481b"
     },
     {
       "path": "Grantry/Cleanup/ProcessCleanupView.swift",
-      "sha256": "14b192d90a88101a11bdb1af593be2eed0c5b326c9615bfdef8d7bb4404ee379",
-      "source_blob": "d00ea9f4b7c6009ff1e8accea828de09082352b3"
+      "sha256": "4cc49253e6a5fe98a958651207c659520f5fdbd1d6edc9431973516ea83fce66",
+      "source_blob": "0832db824877f5877aab8c625376be8407d78aaf"
     },
     {
       "path": "Grantry/Cleanup/StorageCleanupModel.swift",
-      "sha256": "008fa4e138f5d1b243b62de3066df7e8831b7ec424395c431eea707bcc535108",
-      "source_blob": "d432d5c9ed09d0bfa57ebf8e3c61110107c1a432"
+      "sha256": "514570d71d12ac531bdfe4f8fb17efdc7090dc9eda788b13385a40927efd2ca8",
+      "source_blob": "f44a89f6bad3883e7c9139f45c45a3a49b643838"
     },
     {
       "path": "Grantry/Cleanup/StorageCleanupView.swift",
-      "sha256": "e08b1258073df25f421b4ba8a35072820634c6cb5b25381f8abd6414ec58f081",
-      "source_blob": "88d977596fb6385e1aff5f01d8393f7f8a37b603"
+      "sha256": "fb23e53b8b3cfdbd2015664fc773e080b3ca86fb7a4a4455254a2ff982877ae6",
+      "source_blob": "0be629619236c0e91822692d95c6810d239664a3"
     },
     {
       "path": "Grantry/Components/ActionConfirmationDialog.swift",
@@ -223,8 +223,8 @@
     },
     {
       "path": "Grantry/Components/CancellableSearch.swift",
-      "sha256": "1df74e027d51d122ee67eb45cec2be94cbcfb0f95c617260214311f097838464",
-      "source_blob": "8923249befdf8ba2bc6e24bdc577fa37ce7b2849"
+      "sha256": "6597ac9cbfd492ead1605e8b122762e814d5fac6ae83ec212d1e836b03dd38d4",
+      "source_blob": "4c946ed695f69d5c61568375bd5acbf5208aad23"
     },
     {
       "path": "Grantry/Components/ChangeRow.swift",
@@ -297,9 +297,19 @@
       "source_blob": "7ba5930dfd55fa29b1a50ec9aafbb73d188a7675"
     },
     {
+      "path": "Grantry/Components/ScanActivity.swift",
+      "sha256": "5b8071d2d22aab55b14c0c48b98620a523b41be95220e521c1b42de05b3ce8a4",
+      "source_blob": "2ced724d0b1c1db7200452f70548d6af8972a0bf"
+    },
+    {
       "path": "Grantry/Components/ScanProgressView.swift",
-      "sha256": "7fc5890c3b673448cc7b9730c1889ac5cdf03fac1b2f6b490f309b0120f6927b",
-      "source_blob": "b17fca5f50a070e35f5715ef801490721f22ee61"
+      "sha256": "acea234a830baa293ea4156dccc5d4658675849f4469df966c59ad2baacb6049",
+      "source_blob": "3d3f4a200e5baa6d8310419e3e577c4f646f5743"
+    },
+    {
+      "path": "Grantry/Components/SegmentScanProgress.swift",
+      "sha256": "ee8001015752226f99e7f2ad0e06cc29ca5e9515d7fd1c5d145a1c01f410b81f",
+      "source_blob": "c6f93c77cb20a67e9b0f0540793b8950010f1c8c"
     },
     {
       "path": "Grantry/Components/SelectionToggleRow.swift",
@@ -378,8 +388,8 @@
     },
     {
       "path": "Grantry/MainWindow/DashboardView.swift",
-      "sha256": "9120e0fe637bfe0ac257e571dc83d498a5ff81b94b09b8f62240771ff19ab5fa",
-      "source_blob": "24a41fbb1c6cc49ddd68522a6a1853448840c53c"
+      "sha256": "2b1da4b9c55753649ad4eb7b7d5411e57f4be65a49e3e077439ec9be937f6d5e",
+      "source_blob": "ba5f1b023243224a8773f71535ffa785729c92af"
     },
     {
       "path": "Grantry/MainWindow/InventoryListViews.swift",
@@ -408,13 +418,13 @@
     },
     {
       "path": "Grantry/MainWindow/RootView.swift",
-      "sha256": "ca8f167419d3c658ae00292b9e9b02eb7a6a315a44ffefe40c51af01f66878f5",
-      "source_blob": "27abc2d7fc3672d7fe84fc6d867c23f2c7fd1879"
+      "sha256": "c0f2f3a4fcdbd6fe8682eee28933356aad75f2427c954831c1904c52d3f107ef",
+      "source_blob": "0684e1c0cce9eb39acbde7eda9c84aa08c25ce18"
     },
     {
       "path": "Grantry/MainWindow/ScanToolbarItem.swift",
-      "sha256": "20e224c949b59db3c8fedd963951d087719bb81f337249da61a0d41abd3acad3",
-      "source_blob": "1f07ad961c8a6a93075ef2e23df8b10ec819c34b"
+      "sha256": "1749fe040cbdcfa585ccbfaa6d97379f7f838c3227df670cb2d427d8252e2625",
+      "source_blob": "3f466a4c99cd4f334fbfcd7a505c27e0e384691d"
     },
     {
       "path": "Grantry/MenuBar/MenuBarContent.swift",
@@ -578,8 +588,8 @@
     },
     {
       "path": "Grantry/Updates/ReleaseHighlights.json",
-      "sha256": "2b99615e4cc351b33012d333d43a961d4422e88589b0e8cc511796edec418883",
-      "source_blob": "3f41dd26d28053bb00b113b6a3dc08e7854c3320"
+      "sha256": "fa634b7b01f086571829f20c6c4185613974fa1e6740de53df5ac3f77a55ca1b",
+      "source_blob": "ba390c2f76cfe63acedde231bb745191a8ee9af8"
     },
     {
       "path": "Grantry/Updates/SparkleUpdateService.swift",
@@ -1418,8 +1428,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Leftovers/OrphanScanner.swift",
-      "sha256": "bbe760dde643b1e333d523c4adfc12b676cf6321d441647cb728317d45816896",
-      "source_blob": "ccfd6e29ff01bdbff6b1057749bd284f7ff22d56"
+      "sha256": "51c601cf1366457e18d9782ddf31ecbad1ab9a281ed049f5c9030f77ee5cc7b7",
+      "source_blob": "3799496224307ccc53467e0d20f0c21eec61fc1e"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Leftovers/RemovalGuard.swift",
@@ -1438,8 +1448,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Monitoring/MonitoringEngine.swift",
-      "sha256": "2a0be756dcc9b1dbcf526cab93172badaf7d334fa97b515720b49b47d70db959",
-      "source_blob": "a8892da9184d5ef19fe53cbd39acf60a4a7048c8"
+      "sha256": "95b4263edab1c35101f760edd51c3b05403d4b927d6c46b2e0f4b718a5786bae",
+      "source_blob": "ed1cf589b7a1a2821c6c853a01024ebde04aa1ed"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Monitoring/ScanTriggers.swift",
@@ -1788,8 +1798,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/ProcessOverviewScanner.swift",
-      "sha256": "a681454090ccfdf1fe3d452b1892c6f9c9fdd909294cf760f4592718e3089d86",
-      "source_blob": "f0aa82cf1a64064c4879baf5e07b7dd8484207be"
+      "sha256": "01f9b2cad63c9c199901fbd702cfa5e5afba2ff380487a76730a715b51cb5747",
+      "source_blob": "233e5a941470604a264cc5bb9a34c023d8d8b7e0"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Processes/ProcessTable.swift",
@@ -1848,8 +1858,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Scan/ScanProgress.swift",
-      "sha256": "5ec51539175486590928a6d25cabac2ba8cf0361cdbd10f5163464beb18e36a9",
-      "source_blob": "7e1721d8809f3fc27f00d261ad97665c77b3ec66"
+      "sha256": "bb5051e533c3c082a5c65f97a14fdd4f8f5d9f9c10937dbc6d63736784de392c",
+      "source_blob": "77e4458a7984e49da42d13ee925543d760feab87"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Scan/StandardSources.swift",
@@ -3298,8 +3308,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/OrphanScannerTests.swift",
-      "sha256": "852e70bd53d610a63ccd405446d757ea26e04669b4907bf2b0e621bcbd74fa24",
-      "source_blob": "7a676c31006ff02dcdd1a7ea67e080a9109d8aee"
+      "sha256": "ab793cb52e03bfce7e5b3f98682cb3ed57b2f8501958d6319ff20fd5dbe9b5b9",
+      "source_blob": "dcf12ebc4a8a050a0e9d665b01551f3606c1d0d8"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/OwnProcessSignalerTests.swift",
@@ -3488,8 +3498,13 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ScanProgressTests.swift",
-      "sha256": "926b494f73ff9ec331ce921e081c8ad2a34ec7e36d1250ef542064e949f0870c",
-      "source_blob": "740d691821be73f2e92a316cfcc0de5603291149"
+      "sha256": "a1f8b10a1c32bee6409cac446f8428e2e9733fe160d949f28792ef31fc55a819",
+      "source_blob": "de34654af58685989d42a048548fc8609ce0aaab"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ScanStepTrackerTests.swift",
+      "sha256": "9af43c8ad0508f9c049dfffa46c4c20900386b255fce4ac1a92d88b2ae9b29f2",
+      "source_blob": "865cc4b4d9daff482faff6dcb620db0851564c4c"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ScanTriggersTests.swift",

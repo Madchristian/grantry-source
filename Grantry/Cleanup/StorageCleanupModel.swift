@@ -29,6 +29,9 @@ final class StorageCleanupModel {
     private(set) var timeMachine: TimeMachineReport?
     var timeMachineSelection: Set<String> = []
     let preferences = StoragePreferences()
+    /// Leiste über der Kategorientabelle (#270): Schritte sind die Kategorien, Time Machine und Volume die
+    /// Nachverarbeitung.
+    let scanProgress = SegmentScanProgress()
 
     @ObservationIgnored private let remover: StorageRemover
     @ObservationIgnored private let timeMachineExclusions: TimeMachineExclusions
@@ -53,6 +56,7 @@ final class StorageCleanupModel {
     func cancel() {
         task?.cancel()
         task = nil
+        scanProgress.cancel()
         if phase == .scanning { phase = reports.isEmpty ? .idle : .scanned }
     }
 
@@ -137,6 +141,7 @@ final class StorageCleanupModel {
         let exclusions = timeMachineExclusions
         volume = nil
         phase = .scanning
+        let step = scanProgress.begin(steps: providers.map(\.category.id))
         task = Task { [weak self] in
             for await report in StorageScanner(providers: providers).scan() {
                 // Ein abgebrochener oder ersetzter Scan übernimmt keine gepufferten Berichte mehr.
@@ -146,6 +151,7 @@ final class StorageCleanupModel {
                 self.reports = StorageCatalog.ordered(self.reports.filter { $0.id != report.id } + [report], by: order)
                 self.selection.subtract(Set(report.items.map(\.id)))
                 self.selection.formUnion(report.items.filter { $0.isSelectable && $0.isPreselected }.map(\.id))
+                await step(.completed(report.id, succeeded: report.status.isScanned))
             }
             // Nach dem vollständigen Scan, mit dessen Größen: Große Ordner werden nicht doppelt gemessen.
             if ids == nil, let reports = self?.reports {
@@ -160,6 +166,15 @@ final class StorageCleanupModel {
             // Nach einem abgebrochenen Scan fehlen Kategorien auch nach dem Nachscan einzelner – dann keine Bilanz.
             self.volume = Set(order).isSubset(of: self.reports.map(\.id)) ? volume : nil
             self.phase = .scanned
+            // Der Nachscan einzelner Kategorien ersetzt die Gewichte des vollständigen Scans nicht.
+            self.scanProgress.finish(recordingDurations: ids == nil)
         }
+    }
+}
+
+private extension StorageCategoryStatus {
+    /// Die Kategorie wurde gelesen; nur gescheiterte Kategorien taugen nicht als Gewicht.
+    var isScanned: Bool {
+        if case .failed = self { false } else { true }
     }
 }

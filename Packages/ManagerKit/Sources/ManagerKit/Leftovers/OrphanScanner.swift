@@ -123,20 +123,23 @@ public struct OrphanScanner: Sendable {
     }
 
     /// Läuft nie auf dem Main Actor. Nach einem Abbruch endet die Suche ohne weitere Anfragen und Messungen.
+    /// - Parameter onStep: erhält nach dem Einlesen der Reste-Orte den Plan (Kennung je Gruppe) und je bewerteter
+    ///   Gruppe einen Abschluss (#270); die Größenmessung danach zählt als Nachverarbeitung.
     @concurrent
-    public func scan(_ snapshot: Snapshot) async -> OrphanScanResult {
+    public func scan(_ snapshot: Snapshot, onStep: ScanStepHandler<String>? = nil) async -> OrphanScanResult {
         let inventory = OrphanInventory(snapshot: snapshot, layout: layout)
         let collection = collectEntries(inventory: inventory)
         var groups: [OrphanGroup] = []
-        if inventory.coverage.allowsCandidates {
-            var presences = PresenceCache(resolver: resolver)
-            var usedVendorFolders = Set<String>()
-            for bucket in Self.buckets(collection.entries) {
-                guard !Task.isCancelled else { break }
-                guard let group = await assess(bucket, inventory: inventory, presences: &presences,
-                                               usedVendorFolders: &usedVendorFolders) else { continue }
-                groups.append(group)
-            }
+        let buckets = inventory.coverage.allowsCandidates ? Self.buckets(collection.entries) : []
+        await onStep?(.planned(buckets.map(\.identifier)))
+        var presences = PresenceCache(resolver: resolver)
+        var usedVendorFolders = Set<String>()
+        for bucket in buckets {
+            guard !Task.isCancelled else { break }
+            let group = await assess(bucket, inventory: inventory, presences: &presences,
+                                     usedVendorFolders: &usedVendorFolders)
+            await onStep?(.completed(bucket.identifier, succeeded: true))
+            if let group { groups.append(group) }
         }
         let measured = await LeftoverScanner.measured(groups.flatMap(\.candidates)) { _ in sizes }
         let sizesByPath = Dictionary(measured.map { ($0.path, $0.size) }) { first, _ in first }

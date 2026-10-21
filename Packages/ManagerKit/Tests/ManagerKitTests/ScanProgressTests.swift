@@ -5,10 +5,10 @@ import Testing
 /// Fixtures use seconds since scan start; no sleeps, live sources or real app state.
 @Suite struct ScanProgressTests {
     private let sources: Set<SourceID> = [.launchd, .tccSystem]
-    private let history = ScanDurations(sources: [.launchd: 2, .tccSystem: 8], processing: 2)
+    private let history = ScanDurations(steps: [.launchd: 2, .tccSystem: 8], processing: 2)
 
     @Test func remainingTimeExpiresWithoutAnotherSourceCompletion() throws {
-        var scan = ScanProgressTracker(sources: sources, previous: history)
+        var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
         let published = scan.progress
         let deadline = try #require(published.estimateExpiresAt)
@@ -20,7 +20,7 @@ import Testing
     }
 
     @Test func expiredEstimateIsNotRevivedWhenProcessingGetsANewEstimate() throws {
-        var scan = ScanProgressTracker(sources: sources, previous: history)
+        var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
         let firstDeadline = try #require(scan.progress.estimateExpiresAt)
         #expect(scan.progress.remainingSeconds(at: firstDeadline) == nil)
@@ -44,7 +44,7 @@ import Testing
     }
 
     @Test func firstScanCountsStepsWithoutInventingRemainingTime() {
-        var scan = ScanProgressTracker(sources: sources, previous: nil)
+        var scan = ScanProgressTracker(steps: sources, previous: nil)
         #expect(scan.progress.fraction == 0)
         #expect(scan.progress.remainingSeconds == nil)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
@@ -57,7 +57,7 @@ import Testing
     }
 
     @Test func weightsCompletedSourcesAndEstimatesParallelCriticalPath() {
-        var scan = ScanProgressTracker(sources: sources, previous: history)
+        var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
         #expect(abs(scan.progress.fraction - 2.0 / 12) < 0.0001)
         // 8 s parallel source - 2 s elapsed + 2 s processing, not a sum of source durations.
@@ -70,13 +70,13 @@ import Testing
     }
 
     @Test(arguments: [0.5, 2.0]) func adjustsEstimateForFasterAndSlowerScans(pace: Double) {
-        var scan = ScanProgressTracker(sources: sources, previous: history)
+        var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 2 * pace, succeeded: true)
         #expect(scan.progress.remainingSeconds == 8 * pace)
     }
 
     @Test func suppressesUncertainEstimatesAndNeverGoesBackwards() {
-        var scan = ScanProgressTracker(sources: sources, previous: history)
+        var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 0.01, succeeded: true)
         let first = scan.progress.fraction
         #expect(scan.progress.remainingSeconds == nil)
@@ -88,7 +88,7 @@ import Testing
     }
 
     @Test func cancellationDoesNotReportSuccessOrReplaceTimingHistory() {
-        var scan = ScanProgressTracker(sources: sources, previous: history)
+        var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
         scan.cancel()
         #expect(scan.progress.fraction < 1)
@@ -101,7 +101,7 @@ import Testing
 
     @Test func throttlesPublicationsButKeepsEveryCompletionAndFinishesImmediately() {
         let ids = Set((0..<20).map { SourceID(rawValue: "fixture-\($0)") })
-        var scan = ScanProgressTracker(sources: ids, previous: nil)
+        var scan = ScanProgressTracker(steps: ids, previous: nil)
         var publications = 0
         for (index, id) in ids.sorted(by: { $0.rawValue < $1.rawValue }).enumerated() {
             if scan.complete(id, elapsed: Double(index + 1) / 100, succeeded: true) { publications += 1 }
@@ -110,14 +110,14 @@ import Testing
         #expect(scan.progress.fraction > 0.9)
         scan.finish(elapsed: 0.21)
         #expect(scan.progress.fraction == 1)
-        #expect(scan.completedDurations?.sources.count == 20)
+        #expect(scan.completedDurations?.steps.count == 20)
         let publishedAfterFinish = scan.complete(ids.first!, elapsed: 1, succeeded: true)
         #expect(!publishedAfterFinish)
     }
 
     @Test func publishesAtMostOncePerQuarterSecondAndAllowsNextWindow() {
         let ids: Set<SourceID> = [.launchd, .tccSystem, .apps, .btm]
-        var scan = ScanProgressTracker(sources: ids, previous: nil)
+        var scan = ScanProgressTracker(steps: ids, previous: nil)
         let first = scan.complete(.launchd, elapsed: 0.25, succeeded: true)
         let tooSoon = scan.complete(.tccSystem, elapsed: 0.30, succeeded: true)
         let nextWindow = scan.complete(.apps, elapsed: 0.50, succeeded: true)
@@ -128,7 +128,7 @@ import Testing
     }
 
     @Test func failedAndDuplicateStepsCannotTrainOrAdvanceTwice() {
-        var scan = ScanProgressTracker(sources: sources, previous: history)
+        var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: false)
         let fraction = scan.progress.fraction
         _ = scan.complete(.launchd, elapsed: 3, succeeded: true)
@@ -141,9 +141,9 @@ import Testing
     }
 
     @Test func incompleteOrInvalidHistoryFallsBackToStepCounting() {
-        for previous in [ScanDurations(sources: [.launchd: 2], processing: 1),
-                         ScanDurations(sources: [.launchd: .nan, .tccSystem: 8], processing: 1)] {
-            var scan = ScanProgressTracker(sources: sources, previous: previous)
+        for previous in [ScanDurations(steps: [.launchd: 2], processing: 1),
+                         ScanDurations(steps: [.launchd: .nan, .tccSystem: 8], processing: 1)] {
+            var scan = ScanProgressTracker(steps: sources, previous: previous)
             _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
             #expect(abs(scan.progress.fraction - 1.0 / 3) < 0.0001)
             #expect(scan.progress.remainingSeconds == nil)
@@ -175,10 +175,10 @@ import Testing
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appending(path: "ScanDurations.json")
         let store = ScanDurationStore(url: url)
-        let first = ScanDurations(sources: [.launchd: 2, .tccSystem: 8], processing: 1)
+        let first = ScanDurations(steps: [.launchd: 2, .tccSystem: 8], processing: 1)
         store.save(first)
         #expect(store.load() == first)
-        let second = ScanDurations(sources: [.launchd: 3], processing: 2)
+        let second = ScanDurations(steps: [.launchd: 3], processing: 2)
         store.save(second)
         #expect(store.load() == second)
         #expect(try Data(contentsOf: url).count < 2048)

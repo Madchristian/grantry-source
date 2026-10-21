@@ -18,6 +18,7 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var window = window
+        let scanActivity = ScanActivity(appModel.monitoring)
         NavigationSplitView {
             SidebarView(selection: $window.section, unreadCount: appModel.monitoring.unreadCount)
                 .navigationSplitViewColumnWidth(
@@ -29,7 +30,7 @@ struct RootView: View {
                 .navigationTitle(window.section.title)
                 .navigationSubtitle(ScanStatusText.subtitle(for: appModel.monitoring))
                 .toolbar {
-                    ScanToolbarItem(isScanning: appModel.monitoring.isScanning, progress: appModel.monitoring.scanProgress,
+                    ScanToolbarItem(isEnabled: scanActivity.isScanButtonEnabled,
                                     pendingSignatureChecks: appModel.monitoring.pendingSignatureChecks,
                                     signatureChecksTimedOut: appModel.monitoring.signatureChecksTimedOut) {
                         Task { await appModel.scanNow() }

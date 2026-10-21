@@ -9,6 +9,14 @@ public struct ProcessOverview: Hashable, Sendable {
     public let simulatorError: String?
 }
 
+/// Schritte von `ProcessOverviewScanner.scan(onStep:)` für die Fortschrittsleiste (#270), in Ausführungsreihenfolge.
+public enum ProcessScanStep: String, CaseIterable, Sendable {
+    /// Prozesstabelle, verwaiste Agenten-Bäume und Speicherstatus.
+    case processTable
+    /// Gebootete Simulatoren (`simctl`).
+    case simulators
+}
+
 /// Liest Prozesstabelle, verwaiste Agenten-Bäume, Speicherstatus und gebootete Simulatoren auf Knopfdruck (`scan()`);
 /// im Hintergrund nur die Agenten-Bäume für den Hinweis (`scanAgentTrees()`, #224). Die synchronen Systemabfragen
 /// (Prozesstabelle, kanonische Arbeitsordner) laufen auf einer eigenen Queue (`BlockingWorkQueue`), nicht im Swift-Pool;
@@ -30,17 +38,24 @@ public struct ProcessOverviewScanner: Sendable {
         self.simulators = simulators
     }
 
-    public func scan() async throws -> ProcessOverview {
+    /// - Parameter onStep: erhält je erledigtem `ProcessScanStep` genau einen Abschluss; nach einem Fehler der
+    ///   Prozesstabelle keinen mehr.
+    public func scan(onStep: ScanStepHandler<ProcessScanStep>? = nil) async throws -> ProcessOverview {
         let (entries, trees, memory) = try await Self.queue.runThrowing { [table, detector] in
             let entries = try table.entries()
             return (entries, detector.scan(entries), MemoryStatus.current(processCount: entries.count))
         }
+        await onStep?(.completed(.processTable, succeeded: true))
+        let overview: ProcessOverview
         do {
             let booted = try await simulators.booted(entries: entries)
-            return ProcessOverview(memory: memory, agentTrees: trees, simulators: booted, simulatorError: nil)
+            overview = ProcessOverview(memory: memory, agentTrees: trees, simulators: booted, simulatorError: nil)
         } catch {
-            return ProcessOverview(memory: memory, agentTrees: trees, simulators: [], simulatorError: error.readableDescription)
+            overview = ProcessOverview(memory: memory, agentTrees: trees, simulators: [],
+                                       simulatorError: error.readableDescription)
         }
+        await onStep?(.completed(.simulators, succeeded: overview.simulatorError == nil))
+        return overview
     }
 
     /// Nur die verwaisten Agenten-Bäume – ohne `simctl` und Speicherstatus, für den Hinweis im Hintergrund (#224).

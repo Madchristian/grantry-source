@@ -1,26 +1,11 @@
 {
-  "version": "2026.10.202",
-  "intro": "Mehr Platz schaffen und Scans besser verfolgen.",
+  "version": "2026.10.211",
+  "intro": "Scans besser verfolgen.",
   "highlights": [
     {
-      "symbol": "clock.arrow.circlepath",
-      "title": "Time-Machine-Vorschläge",
-      "body": "Nimm neu erzeugbare Ordner wie Caches oder DerivedData nach Bestätigung aus der Sicherung aus und sichere sie bei Bedarf wieder."
-    },
-    {
-      "symbol": "folder.badge.gearshape",
-      "title": "Agenten-Arbeitsordner",
-      "body": "Länger unbenutzte Arbeitsordner von Claude Code und Codex werden zum Aufräumen vorgeschlagen."
-    },
-    {
       "symbol": "chart.bar.fill",
-      "title": "Fortschritt mit Restdauer",
-      "body": "Scans zeigen einen gemeinsamen Fortschrittsbalken und eine ungefähre Restdauer."
-    },
-    {
-      "symbol": "checkmark.shield",
-      "title": "Geprüfte Updates",
-      "body": "Nach einem Update prüft Grantry die eigene Signatur und warnt deutlich, falls sie nicht stimmt."
+      "title": "Fortschritt über der Liste",
+      "body": "Beim Scannen in „Aufräumen“ zeigt ein Balken über der Liste, wie weit der Scan ist und wie lange er ungefähr noch dauert."
     }
   ]
 }

@@ -45,6 +45,7 @@ struct StorageCleanupView: View {
             }
             Divider()
             content
+                .scanProgressAboveTable(model.scanProgress)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .actionConfirmation(for: $isConfirming, confirmation: { _ in
@@ -106,7 +107,7 @@ struct StorageCleanupView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Button("Scannen", action: model.scan)
-                .disabled(model.phase == .scanning || model.phase == .cleaning)
+                .disabled(model.scanProgress.isRunning || model.phase == .cleaning)
                 .help("Liest nur – entfernt nichts")
             if model.phase == .scanning {
                 ProgressView().controlSize(.small).accessibilityLabel("Scan läuft")
@@ -439,4 +440,15 @@ private struct StorageOptionsContent: View {
         .padding(20)
         .frame(width: 380, alignment: .leading)
     }
+}
+
+#Preview("Speicher – Leiste über den Kategorien") {
+    List {
+        ForEach(["Xcode DerivedData – 12,8 GB", "Caches – 4,2 GB", "Simulator-Laufzeiten – 3,1 GB"], id: \.self) {
+            Text(verbatim: $0)
+        }
+    }
+    .listStyle(.inset)
+    .scanProgressAboveTable(.preview())
+    .frame(width: 720, height: 220)
 }
