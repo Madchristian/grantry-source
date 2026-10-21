@@ -18,17 +18,26 @@ final class AppIconCache {
     @ObservationIgnored private let loader: AppIconLoader
     @ObservationIgnored private let icons = NSCache<NSString, CachedIcon>()
     @ObservationIgnored private var missingPaths: Set<String> = []
+    @ObservationIgnored private var recentPaths: [String] = []
+    /// Höchstens 64 Cache-Pfade; bei 256 × 256 mit 8-Bit-RGBA entspricht das 16 MiB Bitmap-Nutzdaten.
+    static let maximumCachedIcons = 64
+    var retainedPathCount: Int { recentPaths.count }
     /// Laufende Ladevorgänge je Pfad; weitere Zeilen mit derselben App warten auf denselben.
     @ObservationIgnored private var loading: [String: Task<NSImage?, Never>] = [:]
     nonisolated private static let decodeQueue = DispatchQueue(label: "de.cstrube.Grantry.app-icon-images", qos: .utility)
 
     init(loader: AppIconLoader = .shared) {
         self.loader = loader
+        // NSCache darf früher verdrängen; diese Limits sind zusätzlich zum harten ICNS-Limit im Kit.
+        icons.countLimit = Self.maximumCachedIcons
+        icons.totalCostLimit = 16 << 20
     }
 
     /// Bereits geladenes Symbol; `nil`, wenn es fehlt oder noch nicht geladen ist.
     func cachedIcon(for app: AppIdentity) -> NSImage? {
-        iconPath(for: app).flatMap { icons.object(forKey: $0 as NSString)?.image }
+        guard let path = iconPath(for: app), let cached = icons.object(forKey: path as NSString) else { return nil }
+        touch(path)
+        return cached.image
     }
 
     /// Lädt das Symbol außerhalb des Main Actors, sofern es nicht als fehlend vermerkt ist; ein unverändertes Symbol
@@ -40,17 +49,36 @@ final class AppIconCache {
             defer { loading[path] = nil }
             let loaded = await loader.icon(forPath: path)
             if loaded.icon == .missing {
+                if missingPaths.count >= Self.maximumCachedIcons { missingPaths.removeAll() }
                 missingPaths.insert(path)
+                recentPaths.removeAll { $0 == path }
                 icons.removeObject(forKey: path as NSString)
                 return nil
             }
-            if let cached = icons.object(forKey: path as NSString), cached.revision == loaded.revision { return cached.image }
+            if let cached = icons.object(forKey: path as NSString), cached.revision == loaded.revision {
+                touch(path)
+                return cached.image
+            }
             let image = await Self.image(for: loaded.icon).image
-            icons.setObject(CachedIcon(image: image, revision: loaded.revision), forKey: path as NSString)
+            // Kostenschätzung für höchstens 256 × 256 Pixel mit 8-Bit-RGBA. Generische Bilder werden
+            // genauso gewichtet, ohne sie auf dem Main Actor nochmals zu dekodieren.
+            let edge = AppIconDecoder.maximumPixelSize
+            touch(path)
+            // NSCache-Limits sind nur Empfehlungen. Explizite Verdrängung begrenzt die gehaltenen Pfade auch dann.
+            while recentPaths.count > Self.maximumCachedIcons {
+                icons.removeObject(forKey: recentPaths.removeFirst() as NSString)
+            }
+            icons.setObject(CachedIcon(image: image, revision: loaded.revision), forKey: path as NSString,
+                            cost: edge * edge * 4)
             return image
         }
         loading[path] = task
         return await task.value
+    }
+
+    private func touch(_ path: String) {
+        recentPaths.removeAll { $0 == path }
+        recentPaths.append(path)
     }
 
     /// Vergisst die als fehlend vermerkten Dateien und lässt sichtbare Symbole ihre Revision prüfen (nach einem neuen

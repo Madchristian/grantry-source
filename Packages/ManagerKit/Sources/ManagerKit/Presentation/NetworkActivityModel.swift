@@ -144,9 +144,10 @@ public final class NetworkActivityModel {
     }
 
     /// Hört auf zu messen; nettop endet im Hintergrund, eingereihte Signaturprüfungen und laufende
-    /// Hostnamen-Abfragen entfallen.
+    /// Hostnamen-Abfragen entfallen. Der letzte Anzeigestand wird freigegeben; ein neuer Start zählt ohnehin neu.
     public func stop() {
         cancelHostNameLookups()
+        show(.empty, hostNames: [:])
         guard let task = runTask else { return }
         runTask = nil
         status = .idle

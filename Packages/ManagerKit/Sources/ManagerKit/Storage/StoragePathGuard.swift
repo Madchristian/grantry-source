@@ -3,7 +3,10 @@ import Foundation
 /// Letzte Prüfung eines Speicher-Eintrags unmittelbar vor Papierkorb oder Löschen (Spec Speicher §2.4): Der Pfad liegt
 /// unterhalb einer Wurzel seiner Kategorie (am Objekt erkannt, nie die Wurzel selbst), ist kein Symlink und hat keinen
 /// im Pfad, ist kein Einhängepunkt, berührt keinen Sperrort (`LibraryLayout.blockedPaths`) und ist noch dasselbe Objekt
-/// wie beim Scan. Anders als `RemovalGuard` sind versteckte Einträge wie `.build` erlaubt.
+/// wie beim Scan. Ab der erlaubten Wurzel sind Eigentümer, Modus und ACL der Elternordner vertrauenswürdig. Anders als
+/// `RemovalGuard` sind versteckte Einträge wie `.build` erlaubt. Sperrorte oberhalb der Wurzel zählen nicht: Eine
+/// Kategorie darf bewusst unter einem liegen (`/private/tmp/claude-<uid>` unter `/private`, #229); ab der Wurzel
+/// abwärts – sie selbst eingeschlossen – sperren sie weiter.
 struct StoragePathGuard: Sendable {
     let layout: LibraryLayout
 
@@ -26,11 +29,12 @@ struct StoragePathGuard: Sendable {
         // `/` und jeder Elternordner bis einschließlich `parentPath`.
         let ancestors = RawPath.prefixes(of: Array(components.dropLast())).compactMap(FileIdentity.of)
         guard ancestors.count == components.count, let parent = ancestors.last else { return .blocked("Nicht vorhanden") }
-        let blocked = layout.blockedPaths.compactMap(FileIdentity.of)
-        if (ancestors + [entry]).contains(where: blocked.contains) { return .blocked("Geschützter Ort") }
-        if RemovalGuard.isMountPoint(entry, below: parent) { return .blocked("Einhängepunkt") }
         let allowedRoots = roots.compactMap(FileIdentity.of)
-        guard ancestors.contains(where: allowedRoots.contains) else { return .blocked("Außerhalb der erlaubten Orte") }
-        return .allowed
+        let rootDepth = ancestors.firstIndex(where: allowedRoots.contains)
+        let blocked = layout.blockedPaths.compactMap(FileIdentity.of)
+        if (ancestors[(rootDepth ?? 0)...] + [entry]).contains(where: blocked.contains) { return .blocked("Geschützter Ort") }
+        if RemovalGuard.isMountPoint(entry, below: parent) { return .blocked("Einhängepunkt") }
+        guard let rootDepth else { return .blocked("Außerhalb der erlaubten Orte") }
+        return DirectoryChainGuard.inspect(components, chain: ancestors + [entry], trustedFrom: rootDepth).verdict
     }
 }

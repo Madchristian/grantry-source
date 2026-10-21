@@ -43,9 +43,8 @@ struct MenuBarContent: View {
             }
             Spacer()
             if appModel.monitoring.isScanning {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel("Scan läuft")
+                ScanProgressView(progress: appModel.monitoring.scanProgress)
+                    .frame(width: 180)
             }
         }
     }
@@ -124,7 +123,8 @@ struct MenuBarContent: View {
                         if let id = observations.active?.id { navigator.showObservation(id) }
                     }
                     if observations.phase == .finishing {
-                        ProgressView().controlSize(.small).accessibilityLabel("Abschließender Scan läuft")
+                        ScanProgressView(progress: appModel.monitoring.scanProgress)
+                            .frame(width: 180)
                     }
                 }
                 .buttonStyle(.link)

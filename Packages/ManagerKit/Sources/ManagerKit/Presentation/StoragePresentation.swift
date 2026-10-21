@@ -110,16 +110,22 @@ public enum StoragePresentation {
     /// „1,2 GB freigegeben, 300 MB in den Papierkorb gelegt (frei nach dem Leeren), 1 übersprungen, 2 fehlgeschlagen“.
     /// Papierkorb-Einträge zählen nicht als freigegeben: der Platz wird erst beim Leeren frei. Ohne bekannte Größe
     /// (Docker, `simctl`, unlesbare Größen) steht keine Zahl („3 aufgeräumt, freigegebene Größe unbekannt“), bei
-    /// teilweise bekannter Größe „mindestens …“.
+    /// teilweise bekannter Größe „mindestens …“. Time-Machine-Änderungen (#227) zählen nur als Anzahl
+    /// („2 aus Time Machine ausgenommen, 1 wieder gesichert“).
     public static func summary(_ outcomes: [StorageCleanOutcome]) -> String {
         let removed = outcomes.filter { $0.result == .removed }
         let skipped = outcomes.count { if case .skipped = $0.result { true } else { false } }
         let failed = outcomes.count { if case .failed = $0.result { true } else { false } }
         var parts: [String] = []
-        let freed = removed.filter { $0.method != .trash }
-        let trashed = removed.filter { $0.method == .trash }
+        let excluded = removed.count { $0.method == .timeMachineExclude }
+        let included = removed.count { $0.method == .timeMachineInclude }
+        let cleaned = removed.filter { !isTimeMachine($0.method) }
+        let freed = cleaned.filter { $0.method != .trash }
+        let trashed = cleaned.filter { $0.method == .trash }
         if !freed.isEmpty { parts.append(freedText(freed)) }
         if !trashed.isEmpty { parts.append(trashedText(trashed)) }
+        if excluded > 0 { parts.append("\(excluded) aus Time Machine ausgenommen") }
+        if included > 0 { parts.append("\(included) wieder gesichert") }
         if parts.isEmpty { parts.append("Nichts aufgeräumt") }
         if skipped > 0 { parts.append("\(skipped) übersprungen") }
         if failed > 0 { parts.append("\(failed) fehlgeschlagen") }
@@ -130,6 +136,8 @@ public enum StoragePresentation {
     /// „fehlgeschlagen: <Grund>“ (Spec Speicher §2.5).
     public static func resultText(_ outcome: StorageCleanOutcome) -> String {
         switch outcome.result {
+        case .removed where outcome.method == .timeMachineExclude: "aus Time Machine ausgenommen"
+        case .removed where outcome.method == .timeMachineInclude: "wieder von Time Machine gesichert"
         case .removed: outcome.freedBytes.map { "aufgeräumt – \(AppTexts.formattedSize($0))" } ?? "aufgeräumt"
         case .skipped(let reason): "übersprungen: \(reason)"
         case .failed(let reason): "fehlgeschlagen: \(reason)"
@@ -168,6 +176,12 @@ public enum StoragePresentation {
             + "Spotlight-Index und Dateiversionen (.DocumentRevisions-V100)."
     }
 
+    /// Neben gefundenen Agenten-Arbeitsordnern (#229): Auch ein Neustart räumt `/private/tmp` auf; `nil` ohne solche.
+    public static func restartNote(_ reports: [StorageCategoryReport]) -> String? {
+        guard reports.contains(where: { $0.id == AgentWorkdirsProvider.categoryID && !$0.items.isEmpty }) else { return nil }
+        return "Ein Neustart des Mac leert /private/tmp und damit auch die Arbeitsordner von Claude Code."
+    }
+
     /// Weg eines Ausgangs, z. B. „Papierkorb“.
     public static func methodText(_ method: StorageCleanOutcome.Method) -> String {
         switch method {
@@ -176,7 +190,13 @@ public enum StoragePresentation {
         case .command: "Befehl"
         case .signal: "Prozess beendet"
         case .none: "nur Bericht"
+        case .timeMachineExclude: "Time-Machine-Ausschluss"
+        case .timeMachineInclude: "Time-Machine-Sicherung"
         }
+    }
+
+    private static func isTimeMachine(_ method: StorageCleanOutcome.Method) -> Bool {
+        method == .timeMachineExclude || method == .timeMachineInclude
     }
 
     private static func freedText(_ outcomes: [StorageCleanOutcome]) -> String {

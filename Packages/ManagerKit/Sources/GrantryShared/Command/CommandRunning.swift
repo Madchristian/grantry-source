@@ -35,9 +35,21 @@ public enum CommandError: LocalizedError, Equatable {
 public protocol CommandRunning: Sendable {
     /// Führt `executable` mit `arguments` aus und wartet höchstens `timeout` auf Prozessende und vollständige Ausgabe.
     func run(_ executable: String, _ arguments: [String], timeout: Duration) async throws -> CommandResult
+    /// `nil` erbt die Umgebung; ein Dictionary ersetzt sie vollständig (auch ein leeres).
+    func run(_ executable: String, _ arguments: [String], timeout: Duration,
+             environment: [String: String]?) async throws -> CommandResult
 }
 
 extension CommandRunning {
+    /// Bestehende Implementierungen bleiben kompatibel; explizite Umgebungen niemals stillschweigend ignorieren.
+    public func run(_ executable: String, _ arguments: [String], timeout: Duration,
+                    environment: [String: String]?) async throws -> CommandResult {
+        guard environment == nil else {
+            throw CommandError.launchFailed(executable: executable, reason: "Explizite Umgebung wird nicht unterstützt")
+        }
+        return try await run(executable, arguments, timeout: timeout)
+    }
+
     /// Führt den Befehl mit dem Standard-Timeout von 30 Sekunden aus.
     public func run(_ executable: String, _ arguments: [String]) async throws -> CommandResult {
         try await run(executable, arguments, timeout: .seconds(30))

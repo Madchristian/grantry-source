@@ -6,7 +6,7 @@ import TestSupport
 @Suite struct PathCategoryProviderTests {
     private func provider(_ roots: [String], risk: StorageRisk = .low, excluded: Set<String> = []) -> PathCategoryProvider {
         PathCategoryProvider(category: StorageCategory(id: "caches", title: "Caches", summary: "", risk: risk, roots: roots),
-                             excludedNames: excluded, measurer: FixedSizeMeasurer())
+                             excludedNames: excluded, measurer: FixedSizeMeasurer(otherwise: .bytes(1)))
     }
 
     @Test func childrenBecomeItemsWithRiskBasedRemoval() async throws {
@@ -40,7 +40,7 @@ import TestSupport
             let probe = FakeOpenFileProbe([OpenPath(processName: "xcodebuild", path: scratch.path + "/" + busy + "/Build/x.o")])
             let category = StorageCategory(id: "derivedData", title: "DerivedData", summary: "", risk: .low,
                                            roots: [scratch.path], processLock: StorageCatalog.buildLock)
-            let items = await PathCategoryProvider(category: category, measurer: FixedSizeMeasurer(), openFiles: probe).scan().items
+            let items = await PathCategoryProvider(category: category, measurer: FixedSizeMeasurer(otherwise: .bytes(1)), openFiles: probe).scan().items
             #expect(items.map(\.title) == [busy, idle, "ModuleCache.noindex"])
             #expect(items.map(\.isPreselected) == [false, true, false])
             #expect(items.map(\.detail) == ["Wird gerade benutzt von xcodebuild", nil, "Geteilter Cache, xcodebuild läuft"])
@@ -53,7 +53,7 @@ import TestSupport
             try FileManager.default.createDirectory(at: scratch.appending(path: "a"), withIntermediateDirectories: true)
             let probe = FakeOpenFileProbe(nil)
             let category = StorageCategory(id: "caches", title: "Caches", summary: "", risk: .low, roots: [scratch.path])
-            let items = await PathCategoryProvider(category: category, measurer: FixedSizeMeasurer(), openFiles: probe).scan().items
+            let items = await PathCategoryProvider(category: category, measurer: FixedSizeMeasurer(otherwise: .bytes(1)), openFiles: probe).scan().items
             #expect(items.map(\.isPreselected) == [true])
             #expect(probe.callCount == 0)
         }
@@ -72,6 +72,20 @@ import TestSupport
             let report = await provider([root.path]).scan()
             #expect(report.status == .needsFullDiskAccess)
             #expect(report.unreadablePaths == [root.path])
+        }
+    }
+
+    @Test func entryWithoutFinishedMeasurementIsNotPreselected() async throws {
+        // #220: Lief die Größenmessung in die Frist, bleibt der Eintrag im Zweifel abgewählt.
+        try await ScratchDirectory.withCanonical(prefix: "path-provider") { scratch in
+            for name in ["measured", "timedOut", "unreadable"] {
+                try FileManager.default.createDirectory(at: scratch.appending(path: name), withIntermediateDirectories: true)
+            }
+            let measurer = FixedSizeMeasurer([scratch.path + "/measured": .bytes(1), scratch.path + "/unreadable": .unreadable])
+            let category = StorageCategory(id: "caches", title: "Caches", summary: "", risk: .low, roots: [scratch.path])
+            let items = await PathCategoryProvider(category: category, measurer: measurer).scan().items
+            #expect(items.map(\.title) == ["measured", "timedOut", "unreadable"])
+            #expect(items.map(\.isPreselected) == [true, false, true])
         }
     }
 

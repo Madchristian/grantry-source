@@ -158,7 +158,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         )
         #else
         let updates = UpdateModel(checksAutomatically: true,
-            installer: SparkleUpdateService.configured(canInstall: { appModel.canInstallUpdate }), openURL: openURL)
+            installer: SparkleUpdateService.configured(canInstall: { appModel.canInstallUpdate }),
+            onInstallationIdentityFailure: UpdateAlert.showIdentityWarning, openURL: openURL)
         #endif
         self.updates = updates
         let finishOnboarding: @MainActor () -> Void = {

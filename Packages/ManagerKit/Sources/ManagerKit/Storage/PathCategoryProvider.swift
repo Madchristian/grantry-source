@@ -3,9 +3,9 @@ import Foundation
 /// Generische Kategorie (DRY): Jeder direkte Eintrag der Wurzeln ist ein Eintrag. Ausgelassen werden versteckte Namen,
 /// Apple-Kennungen (`com.apple.…`), `excludedNames` (z. B. `Homebrew`, eigene CLI-Kategorie) und Symlinks.
 /// Risiko „niedrig“ wird endgültig gelöscht, „mittel“ geht in den Papierkorb. Vorausgewählt sind nur Ordner mit Risiko
-/// „niedrig“; lose Dateien (z. B. `INSTALLATION`) erscheinen, sind aber nie vorausgewählt. Einträge, die
-/// `StorageCategory.processLock` gerade sperrt, nennen den Grund und sind nicht vorausgewählt (#226). Größen begrenzt
-/// parallel.
+/// „niedrig“, deren Größenmessung ein Ergebnis hat (#220); lose Dateien (z. B. `INSTALLATION`) erscheinen, sind aber nie
+/// vorausgewählt. Einträge, die `StorageCategory.processLock` gerade sperrt, nennen den Grund und sind nicht
+/// vorausgewählt (#226). Größen begrenzt parallel.
 struct PathCategoryProvider: StorageCategoryProvider {
     let category: StorageCategory
     var excludedNames: Set<String> = []
@@ -22,7 +22,8 @@ struct PathCategoryProvider: StorageCategoryProvider {
             let lockReason = category.processLock.flatMap { usage?.lockReason(for: entry.path, lock: $0) }
             return StorageItem(id: entry.path, title: entry.name, path: entry.path, size: size,
                                removal: category.risk == .low ? .delete : .trash,
-                               isPreselected: category.risk == .low && entry.identity.type == .directory && lockReason == nil,
+                               isPreselected: category.risk == .low && entry.identity.type == .directory && lockReason == nil
+                                   && size.permitsPreselection,
                                detail: lockReason, identity: entry.identity)
         }
         return StorageCategoryReport(category: category, status: listing.status, items: items,

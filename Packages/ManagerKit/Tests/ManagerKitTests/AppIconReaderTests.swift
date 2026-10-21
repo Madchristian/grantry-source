@@ -17,6 +17,16 @@ private final class CountingIconReader: AppIconReading {
     }
 }
 
+/// Große gültige Rückgabe ohne ImageIO: testet gehaltene ICNS-Bytes statt Prozess-RSS.
+private final class LargeIconReader: AppIconReading {
+    private let count = Mutex(0)
+    var calls: Int { count.withLock { $0 } }
+    func icon(atPath path: String) -> AppIcon {
+        count.withLock { $0 += 1 }
+        return .icns(Data(count: 4 << 20))
+    }
+}
+
 /// Hält das Lesen von `blockedPath` an, bis der Test es freigibt; alle anderen Pfade sind sofort generisch.
 private final class BlockingIconReader: AppIconReading {
     let blockedPath: String
@@ -147,6 +157,46 @@ private final class BlockingIconReader: AppIconReading {
             #expect(third.revision != first.revision)
             #expect(counting.calls == 2)
             #expect(!counting.ranOnMainThread)
+        }
+    }
+
+    @Test func rawIconCacheEvictsLeastRecentlyUsedBytes() async throws {
+        try await ScratchDirectory.with(prefix: "icons-bounded") { directory in
+            let reader = LargeIconReader()
+            let loader = AppIconLoader(reader: reader)
+            var paths: [String] = []
+            for index in 0..<3 {
+                let path = directory.appending(path: "tool-\(index)")
+                try Data().write(to: path)
+                paths.append(path.path)
+            }
+            let first = await loader.icon(forPath: paths[0])
+            _ = await loader.icon(forPath: paths[1])
+            // Refresh first: second becomes the eviction candidate.
+            #expect(await loader.icon(forPath: paths[0]) == first)
+            _ = await loader.icon(forPath: paths[2])
+            #expect(await loader.icon(forPath: paths[0]) == first)
+            _ = await loader.icon(forPath: paths[1])
+            #expect(reader.calls == 4)
+            #expect(loader.cachedByteCount == AppIconLoader.maximumCachedBytes)
+            #expect(loader.cachedIconCount == 2)
+        }
+    }
+
+    @Test func rawIconCacheAlsoBoundsZeroByteEntries() async throws {
+        try await ScratchDirectory.with(prefix: "icons-count") { directory in
+            let reader = CountingIconReader()
+            let loader = AppIconLoader(reader: reader)
+            let first = directory.appending(path: "tool-0")
+            for index in 0...128 {
+                let path = directory.appending(path: "tool-\(index)")
+                try Data().write(to: path)
+                _ = await loader.icon(forPath: path.path)
+            }
+            _ = await loader.icon(forPath: first.path)
+            #expect(reader.calls == 130)
+            #expect(loader.cachedIconCount == AppIconLoader.maximumCachedIcons)
+            #expect(loader.cachedByteCount == 0)
         }
     }
 

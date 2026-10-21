@@ -32,6 +32,30 @@ import TestSupport
         }
     }
 
+    /// #229: Im selben Durchgang die jüngste mtime des Unterbaums; ein Symlink zählt mit eigenem Zeitstempel, sein Ziel nicht.
+    @Test func summaryReportsNewestModificationWithoutFollowingSymlinks() async throws {
+        try await ScratchDirectory.with(prefix: "size") { directory in
+            let old = Date(timeIntervalSince1970: 1_700_000_000), newer = Date(timeIntervalSince1970: 1_700_086_400)
+            let folder = directory.appending(path: "tree")
+            let file = folder.appending(path: "sub/a")
+            try FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data(count: 4_096).write(to: file)
+            try FileManager.default.createSymbolicLink(at: folder.appending(path: "link"), withDestinationURL: directory)
+            var times = [timeval(tv_sec: 1_700_000_000, tv_usec: 0), timeval(tv_sec: 1_700_000_000, tv_usec: 0)]
+            #expect(lutimes(folder.appending(path: "link").path, &times) == 0)
+            for (url, date) in [(file, newer), (file.deletingLastPathComponent(), old), (folder, old)] {
+                try FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path)
+            }
+            let summary = await FileSizeCalculator().summarize(folder.path)
+            #expect((summary.size.bytes ?? 0) >= 4_096)
+            #expect(summary.newestModification == newer)
+            let unreadable = FileTreeSummary(size: .unreadable, newestModification: nil)
+            try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: file.deletingLastPathComponent().path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: file.deletingLastPathComponent().path) }
+            #expect(await FileSizeCalculator().summarize(folder.path) == unreadable)
+        }
+    }
+
     @Test func missingPathIsUnknown() {
         let missing = "/nonexistent-\(UUID().uuidString)"
         #expect(FileSizeCalculator.measurement(of: missing, deadline: Self.farFuture) { false } == .unknown)

@@ -32,8 +32,8 @@ struct ProcessUsage: Hashable, Sendable {
 /// gerade benutzt, löscht Grantry nicht.
 protocol OpenFileProbing: Sendable {
     /// Laufende Prozesse mit einem Namen aus `names` (`p_comm`) samt Unterprozessen, ihre offenen Dateien und
-    /// Arbeitsordner.
-    func usage(ofProcessesNamed names: Set<String>) throws -> ProcessUsage
+    /// Arbeitsordner; `names == nil`: alle eigenen Prozesse, jeder unter seinem eigenen Namen (#229).
+    func usage(ofProcessesNamed names: Set<String>?) throws -> ProcessUsage
 }
 
 extension OpenFileProbing {
@@ -61,7 +61,7 @@ struct LibprocOpenFileProbe: OpenFileProbing {
         self.currentUID = currentUID
     }
 
-    func usage(ofProcessesNamed names: Set<String>) throws -> ProcessUsage {
+    func usage(ofProcessesNamed names: Set<String>?) throws -> ProcessUsage {
         var own: [ProcessEntry] = []
         var processNames: [pid_t: String] = [:]
         for info in try LibprocProcessTable.kernelEntries() where info.kp_eproc.e_ucred.cr_uid == currentUID {
@@ -75,9 +75,11 @@ struct LibprocOpenFileProbe: OpenFileProbing {
         var running = Set<String>()
         var openPaths: [OpenPath] = []
         for root in own {
-            guard let name = processNames[root.pid], names.contains(name) else { continue }
+            guard let name = processNames[root.pid], names?.contains(name) ?? true else { continue }
             running.insert(name)
-            for member in OrphanAgentTreeDetector.subtree(of: root, children: children) where visited.insert(member.pid).inserted {
+            // Ohne Namen kommt jeder Prozess selbst an die Reihe; sein Baum nennte ihn unter dem Namen eines Vorfahren.
+            let members = names == nil ? [root] : OrphanAgentTreeDetector.subtree(of: root, children: children)
+            for member in members where visited.insert(member.pid).inserted {
                 openPaths += Self.paths(of: member.pid).map { OpenPath(processName: name, path: $0) }
             }
         }

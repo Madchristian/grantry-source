@@ -2,7 +2,7 @@ import Foundation
 import Security
 
 /// Ergebnis der vollständigen Signaturprüfung eines App-Bundles oder Programms.
-public enum DeepSignatureVerdict: Hashable, Sendable {
+public enum DeepSignatureVerdict: Hashable, Sendable, Codable {
     /// Signatur, Hauptprogramm und versiegelte Ressourcen stimmen überein.
     case valid
     /// Signatur oder versiegelter Inhalt wurde nachträglich verändert; `status` ist der Fehlercode von
@@ -150,91 +150,219 @@ public struct SecuritySignatureValidator: SignatureValidating {
     }
 }
 
-/// Tiefe Signaturprüfung im Hintergrund, mit Ergebnis-Cache pro Pfad und Fingerabdruck (`FileFingerprint`).
-///
-/// **Nie parallel, nie auf dem Main Actor**: Jede Prüfung läuft auf einer eigenen seriellen Dispatch-Queue
-/// (QoS `utility`) – gleichzeitige Aufrufe von `verify(path:)` stehen dort an. Weil der Actor während einer
-/// Prüfung nur auf deren Ergebnis wartet, beantwortet er `cachedVerdicts(for:)` auch dann sofort, wenn gerade eine
-/// minutenlange Prüfung (z. B. Xcode) läuft; der kooperative Thread-Pool bleibt frei.
-///
-/// **Nie doppelt**: Läuft für einen Pfad (mit unverändertem Fingerabdruck) schon eine Prüfung, warten weitere
-/// Aufrufe auf deren Ergebnis, statt sie erneut einzureihen.
-///
-/// **Cache**: Ein Ergebnis gilt, bis sich der Fingerabdruck des Ziels ändert (Update, Austausch, neue Signatur).
-/// Eine Veränderung, die den Fingerabdruck nicht berührt (eine Ressource wird nachträglich überschrieben), fällt
-/// erst nach der nächsten Änderung am Bundle auf. Pfade ohne lesbare Attribute werden nicht geprüft. Eine
-/// Zeitüberschreitung (`DeepSignatureValidation.timedOut`) ergibt `unverifiable`, wird aber nie gecacht – sonst bliebe
-/// die Prüfung nach einem einzigen Hänger dauerhaft blind (Review M1). Sie wird je Pfad und Fingerabdruck
-/// `timeoutRetryDelay` lang gemerkt (Review N5): Ohne Änderung des Ziels prüft erst danach der nächste Aufruf erneut –
-/// sonst belegte jede Runde dieselbe hängende App erneut die Warteschlange und einen Platz im Guard.
+/// Wie gründlich `DeepSignatureVerifier.cachedVerdicts(for:revalidation:)` ein gespeichertes Ergebnis bestätigt (#259).
+public enum DeepSignatureRevalidation: Sendable {
+    /// Vollständige Metadaten des Code-Baums (`CodeTreeFingerprint.read`) – für Vollscans.
+    case completeTree
+    /// Nur billige Bundle-Metadaten (`CodeTreeFingerprint.stamp`) gegen den Stand der letzten Bestätigung durch
+    /// `completeTree` oder `verify(path:)`; fehlt sie oder weichen die Metadaten ab, wie `completeTree`. Für die
+    /// Teilscans alle 60 s: Eine in place überschriebene Ressource bei unverändertem Siegel erkennt erst der nächste
+    /// Vollscan.
+    case bundleMetadata
+}
+
+/// Serielle Tiefenprüfung außerhalb des kooperativen Pools. Wiederverwendung nur bei vollständig
+/// gleichem Code-Baum vor und nach der Prüfung, optional über App-Neustarts hinweg; Teilscans dazwischen
+/// bestätigen nur billige Bundle-Metadaten (`DeepSignatureRevalidation.bundleMetadata`, nur im Prozess).
+/// Metadatenabfragen haben eine eigene Queue und bleiben auch während langer Prüfungen bedienbar.
+/// Zeitüberschreitungen werden nicht persistiert; die Wiederholpause gilt nur für denselben Baum.
 public actor DeepSignatureVerifier {
-    /// So lange gilt eine Zeitüberschreitung je Fingerabdruck als Ergebnis „nicht prüfbar“.
     public static let timeoutRetryDelay: TimeInterval = 30 * 60
 
     private let validator: any SignatureValidating
     private let now: @Sendable () -> Date
-    private let queue = DispatchQueue(label: "de.cstrube.Grantry.deep-signature", qos: .utility)
-    private var cache = FingerprintCache<DeepSignatureVerdict>()
-    /// Zeitpunkt der letzten Zeitüberschreitung je Pfad, solange der Fingerabdruck gleich bleibt.
-    private var timeouts = FingerprintCache<Date>()
-    /// Laufende Prüfungen je Pfad, samt Fingerabdruck des Ziels bei ihrem Start.
+    private let cacheURL: URL?
+    private let treeFingerprint: @Sendable (String) -> String?
+    private let queue = DispatchQueue(label: "de.cstrube.Grantry.deep-signature", qos: .background)
+    private let metadataQueue = DispatchQueue(label: "de.cstrube.Grantry.signature-metadata", qos: .utility)
+    private var cache: DeepSignatureCache?
+    private var timeouts: [String: (fingerprint: String, date: Date)] = [:]
     private var running: [String: RunningCheck] = [:]
-    /// Anzahl der `verify(path:)`-Aufrufe (für Tests).
+    private var timedOutPaths: Set<String> = []
+    /// Letztes bestätigtes Ergebnis je Pfad samt Bundle-Metadaten zum Zeitpunkt der Bestätigung.
+    private var confirmations: [String: Confirmation] = [:]
     private(set) var requestCount = 0
 
-    private struct RunningCheck {
-        let fingerprint: FileFingerprint
-        let task: Task<DeepSignatureValidation, Never>
+    private struct CheckResult: Sendable {
+        let validation: DeepSignatureValidation
+        let unchanged: Bool
+        /// Bundle-Metadaten nach der Prüfung.
+        let stamp: String?
     }
 
-    public init(validator: any SignatureValidating = SecuritySignatureValidator(), now: @escaping @Sendable () -> Date = Date.init) {
+    private struct Confirmation: Sendable {
+        let stamp: String
+        let verdict: DeepSignatureVerdict
+    }
+
+    private enum CacheLookup: Sendable {
+        /// Bundle-Metadaten wie bei der letzten Bestätigung.
+        case confirmed(DeepSignatureVerdict)
+        /// Vollständiger Baum wie im Cache; `stamp` sind die aktuellen Bundle-Metadaten.
+        case revalidated(DeepSignatureVerdict, stamp: String?)
+        case stale
+    }
+
+    private struct RunningCheck {
+        let target: String
+        let fingerprint: String?
+        let task: Task<CheckResult, Never>
+    }
+
+    public init(
+        validator: any SignatureValidating = SecuritySignatureValidator(),
+        now: @escaping @Sendable () -> Date = Date.init,
+        cacheURL: URL? = nil
+    ) {
+        self.init(validator: validator, now: now, cacheURL: cacheURL, treeFingerprint: { CodeTreeFingerprint.read(at: $0) })
+    }
+
+    /// `treeFingerprint` ersetzt in Tests `CodeTreeFingerprint.read`, etwa um vollständige Traversierungen zu zählen.
+    init(
+        validator: any SignatureValidating = SecuritySignatureValidator(),
+        now: @escaping @Sendable () -> Date = Date.init,
+        cacheURL: URL? = nil,
+        treeFingerprint: @escaping @Sendable (String) -> String?
+    ) {
         self.validator = validator
         self.now = now
+        self.cacheURL = cacheURL
+        self.treeFingerprint = treeFingerprint
     }
 
-    /// Bereits bekannte Ergebnisse für `paths`, sofern sich deren Ziel seitdem nicht verändert hat.
-    public func cachedVerdicts(for paths: [String]) -> [String: DeepSignatureVerdict] {
+    private func loadCache() async {
+        guard cache == nil else { return }
+        let url = cacheURL
+        let loaded = await metadata { DeepSignatureCache.load(from: url) }
+        if cache == nil { cache = loaded }
+    }
+
+    private func metadata<Value: Sendable>(_ body: @escaping @Sendable () -> Value) async -> Value {
+        await withCheckedContinuation { continuation in
+            metadataQueue.async { continuation.resume(returning: body()) }
+        }
+    }
+
+    /// Fristablauf beendet keinen nativen Aufruf. Bis zur erneuten erfolgreichen Prüfung bleibt das sichtbar.
+    public func hasTimedOutChecks(for paths: Set<String>) -> Bool {
+        !paths.isDisjoint(with: timedOutPaths)
+    }
+
+    /// Noch gültige Ergebnisse für `paths`. `completeTree` traversiert jeden Code-Baum mit Cache-Eintrag vollständig;
+    /// `bundleMetadata` nur die Bäume, deren Bundle-Metadaten sich seit der letzten Bestätigung geändert haben (#259).
+    public func cachedVerdicts(
+        for paths: [String], revalidation: DeepSignatureRevalidation = .completeTree
+    ) async -> [String: DeepSignatureVerdict] {
+        await loadCache()
+        let entries = cache?.entries ?? [:]
+        let confirmed = revalidation == .bundleMetadata ? confirmations : [:]
+        let treeFingerprint = treeFingerprint
+        // Ein gemeinsamer Queue-Auftrag statt einer Dispatch-Runde je Datei.
+        let lookups = await metadata {
+            var lookups: [String: CacheLookup] = [:]
+            for path in paths {
+                let target = FileFingerprint.target(of: path)
+                let stamp = CodeTreeFingerprint.stamp(at: target)
+                if let confirmation = confirmed[path], let stamp, confirmation.stamp == stamp {
+                    lookups[path] = .confirmed(confirmation.verdict)
+                } else if let entry = entries[path], treeFingerprint(target) == entry.fingerprint {
+                    lookups[path] = .revalidated(entry.verdict, stamp: stamp)
+                } else {
+                    lookups[path] = .stale
+                }
+            }
+            return lookups
+        }
         var verdicts: [String: DeepSignatureVerdict] = [:]
-        for path in paths {
-            guard let fingerprint = FileFingerprint(of: FileFingerprint.target(of: path)),
-                  let verdict = cache.value(for: path, matching: fingerprint) else { continue }
-            verdicts[path] = verdict
+        for (path, lookup) in lookups {
+            switch lookup {
+            case .confirmed(let verdict):
+                verdicts[path] = verdict
+            case .revalidated(let verdict, let stamp):
+                verdicts[path] = verdict
+                confirm(verdict, for: path, stamp: stamp)
+            case .stale:
+                confirmations[path] = nil
+            }
         }
         return verdicts
     }
 
-    /// Ergebnis für `path`: aus dem Cache, aus einer bereits laufenden Prüfung desselben Ziels, sonst nach
-    /// vollständiger Prüfung (in der Warteschlange hinter laufenden).
+    private func confirm(_ verdict: DeepSignatureVerdict, for path: String, stamp: String?) {
+        confirmations[path] = stamp.map { Confirmation(stamp: $0, verdict: verdict) }
+    }
+
     public func verify(path: String) async -> DeepSignatureVerdict {
         requestCount += 1
-        let target = FileFingerprint.target(of: path)
-        guard let fingerprint = FileFingerprint(of: target) else {
-            cache.removeValue(for: path)
+        await loadCache()
+        let treeFingerprint = treeFingerprint
+        let (target, exists, stamp, fingerprint) = await metadata {
+            let target = FileFingerprint.target(of: path)
+            return (target, FileType.linkStatus(of: target) != nil, CodeTreeFingerprint.stamp(at: target),
+                    treeFingerprint(target))
+        }
+        guard exists else {
+            cache?.entries[path] = nil
+            confirmations[path] = nil
+            timedOutPaths.remove(path)
             return .unverifiable
         }
-        if let cached = cache.value(for: path, matching: fingerprint) { return cached }
-        if let timedOutAt = timeouts.value(for: path, matching: fingerprint),
-           now().timeIntervalSince(timedOutAt) < Self.timeoutRetryDelay {
-            return DeepSignatureValidation.timedOut.verdict
+        if let fingerprint, let entry = cache?.entries[path], entry.fingerprint == fingerprint {
+            confirm(entry.verdict, for: path, stamp: stamp)
+            return entry.verdict
         }
-        if let check = running[path], check.fingerprint == fingerprint { return await check.task.value.verdict }
+        if let fingerprint, let timeout = timeouts[path], timeout.fingerprint == fingerprint,
+           now().timeIntervalSince(timeout.date) < Self.timeoutRetryDelay {
+            // Teilscans fragen bis zum nächsten Vollscan nicht erneut nach (keine Traversierung je Minute).
+            confirm(.unverifiable, for: path, stamp: stamp)
+            return .unverifiable
+        }
+        if let check = running[path], check.target == target, check.fingerprint == fingerprint {
+            let result = await check.task.value
+            return result.unchanged ? result.validation.verdict : .unverifiable
+        }
 
         let (validator, queue) = (validator, queue)
         let task = Task {
             await withCheckedContinuation { continuation in
-                queue.async { continuation.resume(returning: validator.validation(ofPath: target)) }
+                queue.async {
+                    let validation = validator.validation(ofPath: target)
+                    let after = treeFingerprint(target)
+                    // Ein unvollständig erfassbarer Baum darf geprüft, aber nie aus dem Cache freigegeben werden.
+                    let unchanged = fingerprint == nil || (after == fingerprint && FileFingerprint.target(of: path) == target)
+                    continuation.resume(returning: CheckResult(validation: validation, unchanged: unchanged,
+                                                               stamp: CodeTreeFingerprint.stamp(at: target)))
+                }
             }
         }
-        running[path] = RunningCheck(fingerprint: fingerprint, task: task)
-        let validation = await task.value
-        if running[path]?.task == task { running[path] = nil }
-        // Mit dem Fingerabdruck von vor der Prüfung: Ändert sich das Ziel währenddessen, wird es neu geprüft.
-        if validation.isConclusive {
-            cache.store(validation.verdict, for: path, fingerprint: fingerprint)
-            timeouts.removeValue(for: path)
-        } else {
-            timeouts.store(now(), for: path, fingerprint: fingerprint)
+        running[path] = RunningCheck(target: target, fingerprint: fingerprint, task: task)
+        let result = await task.value
+        guard running[path]?.task == task else { return .unverifiable }
+        running[path] = nil
+        if !result.validation.isConclusive { timedOutPaths.insert(path) }
+        guard result.unchanged else {
+            cache?.entries[path] = nil
+            confirmations[path] = nil
+            return .unverifiable
         }
-        return validation.verdict
+        // Auch unvollständig erfassbare Bäume und Zeitüberschreitungen: Teilscans starten sie nicht jede Minute neu,
+        // erst der nächste Vollscan (`completeTree` verwirft die Bestätigung ohne Cache-Eintrag).
+        confirm(result.validation.verdict, for: path, stamp: stamp == result.stamp ? stamp : nil)
+        if result.validation.isConclusive { timedOutPaths.remove(path) }
+        if let fingerprint, result.validation.isConclusive {
+            if cache?.entries.count ?? 0 >= DeepSignatureCache.maximumEntries,
+               cache?.entries[path] == nil, let evicted = cache?.entries.keys.first {
+                cache?.entries[evicted] = nil
+                confirmations[evicted] = nil
+            }
+            cache?.entries[path] = .init(fingerprint: fingerprint, verdict: result.validation.verdict)
+            timeouts[path] = nil
+            let saved = cache
+            let url = cacheURL
+            await metadata { saved?.save(to: url) }
+        } else if let fingerprint {
+            timeouts[path] = (fingerprint, now())
+        }
+        return result.validation.verdict
     }
 }

@@ -17,6 +17,16 @@ struct UpdateCommands: Commands {
 /// Zeigt das Ergebnis einer manuellen Prüfung in einem Hinweisfenster; bei neuer Version mit „Laden …“.
 @MainActor
 enum UpdateAlert {
+    static func showIdentityWarning(_ message: String) {
+        let alert = NSAlert()
+        alert.alertStyle = .critical
+        alert.messageText = "Signatur der aktualisierten App nicht bestätigt"
+        alert.informativeText = message
+        alert.addButton(withTitle: "OK")
+        NSApp.activate()
+        alert.runModal()
+    }
+
     static func checkAndShow(_ updates: UpdateModel) async {
         guard let outcome = await updates.checkNow() else { return }
         let alert = NSAlert()

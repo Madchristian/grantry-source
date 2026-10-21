@@ -74,6 +74,7 @@ public struct LoadedAppIcon: Hashable, Sendable {
 
 /// Lädt Symbole auf eigener serieller Queue (nie im kooperativen Pool, nie auf dem Main Actor) und merkt sie je Pfad
 /// und `FileFingerprint` – ein Update der App liest neu. Fehlende Pfade werden nicht gemerkt.
+/// Der LRU-Cache hält höchstens 8 MiB ICNS-Daten und 128 Pfade; Verdrängtes wird bei Bedarf neu gelesen.
 ///
 /// Jedes Symbol hat eine Frist (`timeout`, `BlockingCallGuard.icons`, Review N5): Hängt das Lesen (etwa auf einem
 /// nicht antwortenden Volume), gilt das Symbol als generisch (Revision 0, nicht gemerkt), und die Queue lädt die
@@ -83,10 +84,53 @@ public final class AppIconLoader: Sendable {
     /// Frist je Symbol – üblich sind Millisekunden.
     static let defaultTimeout: Duration = .seconds(5)
 
-    private struct State {
-        var cache = FingerprintCache<LoadedAppIcon>()
-        var nextRevision: UInt64 = 1
+    static let maximumCachedBytes = 8 << 20
+    static let maximumCachedIcons = 128
+
+    private struct Entry {
+        let fingerprint: FileFingerprint
+        let loaded: LoadedAppIcon
+        let byteCount: Int
     }
+
+    private struct State {
+        var cache: [String: Entry] = [:]
+        /// Älteste Nutzung zuerst; durch maximumCachedIcons begrenzte Metadaten.
+        var recency: [String] = []
+        var byteCount = 0
+        var nextRevision: UInt64 = 1
+
+        mutating func remove(_ path: String) {
+            if let removed = cache.removeValue(forKey: path) { byteCount -= removed.byteCount }
+            recency.removeAll { $0 == path }
+        }
+
+        mutating func cached(_ path: String, fingerprint: FileFingerprint) -> LoadedAppIcon? {
+            guard let entry = cache[path] else { return nil }
+            guard entry.fingerprint == fingerprint else { remove(path); return nil }
+            recency.removeAll { $0 == path }
+            recency.append(path)
+            return entry.loaded
+        }
+
+        mutating func store(_ loaded: LoadedAppIcon, path: String, fingerprint: FileFingerprint) {
+            remove(path)
+            let cost: Int = if case .icns(let data) = loaded.icon { data.count } else { 0 }
+            // Auch injizierte Reader dürfen das Byte-Limit nicht überschreiten.
+            guard cost <= AppIconLoader.maximumCachedBytes else { return }
+            while let oldest = recency.first,
+                  cache.count >= AppIconLoader.maximumCachedIcons || byteCount + cost > AppIconLoader.maximumCachedBytes {
+                remove(oldest)
+            }
+            cache[path] = Entry(fingerprint: fingerprint, loaded: loaded, byteCount: cost)
+            recency.append(path)
+            byteCount += cost
+        }
+    }
+
+    /// Logische ICNS-Nutzdaten und Einträge; kein Prozess-Footprint (Tests).
+    var cachedByteCount: Int { state.withLock { $0.byteCount } }
+    var cachedIconCount: Int { state.withLock { $0.cache.count } }
 
     private let reader: any AppIconReading
     private let queue = DispatchQueue(label: "de.cstrube.Grantry.app-icons", qos: .utility)
@@ -112,15 +156,15 @@ public final class AppIconLoader: Sendable {
 
     private func loadNow(_ path: String) -> LoadedAppIcon {
         guard let fingerprint = FileFingerprint(of: path) else {
-            state.withLock { $0.cache.removeValue(for: path) }
+            state.withLock { $0.remove(path) }
             return LoadedAppIcon(icon: read(path) ?? .genericApplication, revision: 0)
         }
-        if let cached = state.withLock({ $0.cache.value(for: path, matching: fingerprint) }) { return cached }
+        if let cached = state.withLock({ $0.cached(path, fingerprint: fingerprint) }) { return cached }
         guard let icon = read(path) else { return LoadedAppIcon(icon: .genericApplication, revision: 0) }
         return state.withLock { state in
             let loaded = LoadedAppIcon(icon: icon, revision: state.nextRevision)
             state.nextRevision += 1
-            state.cache.store(loaded, for: path, fingerprint: fingerprint)
+            state.store(loaded, path: path, fingerprint: fingerprint)
             return loaded
         }
     }

@@ -15,7 +15,7 @@ struct UpdateSettingsSection: View {
                 get: { updates.installsAutomatically }, set: { updates.setAutomaticInstallation($0) }
             ))
             .toggleStyle(.switch)
-            .disabled(!updates.supportsInstallation || !updates.isEnabled)
+            .disabled(!updates.supportsInstallation || !updates.isEnabled || updates.installationIdentityError != nil)
             Text("Lädt Updates im Hintergrund und installiert sie beim nächsten Beenden. Standardmäßig ausgeschaltet.")
                 .font(.callout).foregroundStyle(.secondary)
             if let error = updates.installationError {

@@ -72,6 +72,12 @@ import Testing
     private final class Installer: UpdateInstalling {
         var onStatus: ((String?, String?) -> Void)?
         var item: AppcastItem?
+        var safetyError: String?
+        var validation: (() async -> String?)?
+        func verifyInstalledApplication() async -> String? {
+            if let validation { return await validation() }
+            return safetyError
+        }
         var checks = 0
         var automaticSetting = false
         var installations: [Bool] = []
@@ -88,6 +94,62 @@ import Testing
         }
     }
 
+    @Test func failedIdentityCheckDisablesAutomaticInstallationAndKeepsWarning() async {
+        let preferences = UpdatePreferences(store: InMemorySettingsStore())
+        preferences.installsAutomatically = true
+        let installer = Installer()
+        installer.safetyError = "Fremdes Signaturteam"
+        var warnings: [String] = []
+        let model = UpdateModel(preferences: preferences, notifier: RecordingNotifier(),
+            checksAutomatically: false, installer: installer,
+            onInstallationIdentityFailure: { warnings.append($0) }, openURL: { _ in })
+        await model.verifyInstallation()
+        await model.verifyInstallation()
+        #expect(warnings == ["Fremdes Signaturteam"])
+        #expect(!model.installsAutomatically)
+        #expect(!preferences.installsAutomatically)
+        #expect(!installer.automaticSetting)
+        #expect(model.installationError == installer.safetyError)
+        model.setAutomaticInstallation(true)
+        installer.onStatus?("Prüfung abgeschlossen", nil)
+        #expect(!model.installsAutomatically)
+        #expect(model.installationError == installer.safetyError)
+    }
+
+    @Test func automaticInstallationWaitsForIdentityVerification() async {
+        let preferences = UpdatePreferences(store: InMemorySettingsStore())
+        preferences.consent = .enabled
+        preferences.installsAutomatically = true
+        let installer = Installer()
+        var pending: CheckedContinuation<String?, Never>?
+        installer.validation = { await withCheckedContinuation { pending = $0 } }
+        let model = UpdateModel(preferences: preferences, notifier: RecordingNotifier(),
+            checksAutomatically: false, installer: installer, openURL: { _ in })
+        while pending == nil { await Task.yield() }
+        model.setAutomaticInstallation(true)
+        #expect(!installer.automaticSetting)
+        pending?.resume(returning: nil)
+        await model.verifyInstallation()
+        #expect(installer.automaticSetting)
+        #expect(model.installationIdentityError == nil)
+    }
+
+    @Test func disablingChecksDuringIdentityVerificationDoesNotFetchTheFeed() async {
+        let preferences = UpdatePreferences(store: InMemorySettingsStore())
+        preferences.consent = .enabled
+        let installer = Installer()
+        var pending: CheckedContinuation<String?, Never>?
+        installer.validation = { await withCheckedContinuation { pending = $0 } }
+        let model = UpdateModel(preferences: preferences, notifier: RecordingNotifier(),
+            checksAutomatically: true, installer: installer, openURL: { _ in })
+        let checking = Task { await model.checkIfDue() }
+        while pending == nil || model.runningCheck == nil { await Task.yield() }
+        model.setEnabled(false)
+        pending?.resume(returning: nil)
+        await checking.value
+        #expect(installer.checks == 0)
+    }
+
     @Test func usesOnlySparkleFeedAndOptInInstallation() async throws {
         let store = InMemorySettingsStore()
         let preferences = UpdatePreferences(store: store)
@@ -98,6 +160,7 @@ import Testing
         let model = UpdateModel(preferences: preferences,
             checker: UpdateChecker(fetcher: NoNetwork()), notifier: RecordingNotifier(),
             checksAutomatically: false, installer: installer, openURL: { _ in Issue.record("Browser statt Installer") })
+        await model.verifyInstallation()
         _ = await model.checkNow()
         #expect(installer.checks == 1)
         #expect(installer.installations.isEmpty)

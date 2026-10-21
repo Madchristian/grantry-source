@@ -1049,6 +1049,82 @@ struct MonitoringEngineTests {
         }
     }
 
+    @Test func validDeepChecksRemainVisibleUntilTheyFinish() async throws {
+        try await ScratchDirectory.with(prefix: "engine-deep-status") { directory in
+            let app = directory.appending(path: "Valid.app")
+            try Data("x".utf8).write(to: app)
+            let validator = ScriptedSignatureValidator(holding: true)
+            let harness = try Harness(
+                script: [contribution(sensitiveGrant(clientAt: app.path))],
+                deepVerifier: DeepSignatureVerifier(validator: validator)
+            )
+            var states = await harness.engine.states().makeAsyncIterator()
+            await harness.engine.start()
+            let scanned = try #require(await states.next(where: scanned(at: harness.now)))
+            #expect(scanned.pendingSignatureChecks == 1, "Scan-Ende ist noch kein Idle")
+            validator.release()
+            let idle = try #require(await states.next { !$0.isScanning && $0.pendingSignatureChecks == 0 })
+            #expect(idle.findings.isEmpty, "auch gültige Prüfungen veröffentlichen das Ende")
+            await harness.engine.stop()
+        }
+    }
+
+    /// #259: Lauscher-Teilscans (alle 60 s) traversieren die Code-Bäume nicht erneut; erst der nächste Vollscan prüft
+    /// sie vollständig.
+    @Test func sourceRefreshDoesNotTraverseCodeTrees() async throws {
+        try await ScratchDirectory.with(prefix: "engine-deep-idle") { directory in
+            let app = try Codesign.bundle(in: directory, named: "Idle", adHoc: true)
+            let trees = CountingTreeFingerprint()
+            let triggers = ControlledTriggers()
+            let dates = ManualClock()
+            let listeners = SightingSource(TestData.listener(uid: getuid()), now: { dates.now })
+            let harness = try Harness(
+                script: [contribution(sensitiveGrant(clientAt: app.path))], triggers: triggers,
+                deepVerifier: DeepSignatureVerifier(validator: ScriptedSignatureValidator(), treeFingerprint: trees.reader),
+                extraSources: [listeners], dates: dates
+            )
+            var states = await harness.engine.states().makeAsyncIterator()
+            var listenerStarts = listeners.starts.makeAsyncIterator()
+            await harness.engine.start()
+            #expect(await listenerStarts.next() != nil)
+            _ = try #require(await states.next { !$0.isScanning && $0.lastCheckedAt != nil && $0.pendingSignatureChecks == 0 })
+            let settled = trees.count
+            #expect(settled > 0)
+
+            // Beginnt der dritte Teilscan, sind die ersten beiden abgeschlossen.
+            for _ in 0..<3 {
+                harness.advance(seconds: 60)
+                triggers.send(.sourceRefresh([.networkListeners]))
+                #expect(await listenerStarts.next() != nil)
+            }
+            #expect(trees.count == settled, "Teilscans ohne Metadatenänderung traversieren nichts")
+
+            harness.advance(seconds: 60)
+            triggers.send(.manual)
+            _ = try #require(await states.next(where: scanned(at: harness.now)))
+            #expect(trees.count == settled + 1, "der Vollscan prüft den ganzen Baum")
+            await harness.engine.stop()
+        }
+    }
+
+    @Test func timeoutDoesNotAdvertiseCompletedBackgroundWork() async throws {
+        try await ScratchDirectory.with(prefix: "engine-deep-timeout") { directory in
+            let app = directory.appending(path: "Slow.app")
+            try Data("x".utf8).write(to: app)
+            let validator = ScriptedSignatureValidator(timeouts: [app.path])
+            let harness = try Harness(
+                script: [contribution(sensitiveGrant(clientAt: app.path))],
+                deepVerifier: DeepSignatureVerifier(validator: validator)
+            )
+            var states = await harness.engine.states().makeAsyncIterator()
+            await harness.engine.start()
+            let timedOut = try #require(await states.next { !$0.isScanning && $0.signatureChecksTimedOut })
+            #expect(timedOut.pendingSignatureChecks == 0)
+            #expect(timedOut.findings.isEmpty, "ein Timeout ist kein Manipulationsbeleg")
+            await harness.engine.stop()
+        }
+    }
+
     @Test func knownVerdictsApplyImmediatelyOnTheNextScan() async throws {
         try await ScratchDirectory.with(prefix: "engine-deep") { directory in
             let app = directory.appending(path: "iCUE.app")

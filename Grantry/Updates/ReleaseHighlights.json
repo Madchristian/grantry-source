@@ -1,26 +1,26 @@
 {
-  "version": "2026.10.20",
-  "intro": "Updates künftig direkt in Grantry installieren.",
+  "version": "2026.10.202",
+  "intro": "Mehr Platz schaffen und Scans besser verfolgen.",
   "highlights": [
     {
-      "symbol": "arrow.down.circle",
-      "title": "Installieren und neu starten",
-      "body": "Lade kommende Updates direkt in Grantry herunter und übernimm sie mit einem Neustart."
-    },
-    {
-      "symbol": "shippingbox",
-      "title": "Einmal noch manuell installieren",
-      "body": "Installiere diese Version über das DMG. Ab der nächsten Version steht die Installation direkt in Grantry bereit."
-    },
-    {
       "symbol": "clock.arrow.circlepath",
-      "title": "Optional beim Beenden aktualisieren",
-      "body": "Auf Wunsch lädt Grantry Updates im Hintergrund und installiert sie beim regulären Beenden. Standardmäßig ist diese Option aus."
+      "title": "Time-Machine-Vorschläge",
+      "body": "Nimm neu erzeugbare Ordner wie Caches oder DerivedData nach Bestätigung aus der Sicherung aus und sichere sie bei Bedarf wieder."
+    },
+    {
+      "symbol": "folder.badge.gearshape",
+      "title": "Agenten-Arbeitsordner",
+      "body": "Länger unbenutzte Arbeitsordner von Claude Code und Codex werden zum Aufräumen vorgeschlagen."
+    },
+    {
+      "symbol": "chart.bar.fill",
+      "title": "Fortschritt mit Restdauer",
+      "body": "Scans zeigen einen gemeinsamen Fortschrittsbalken und eine ungefähre Restdauer."
     },
     {
       "symbol": "checkmark.shield",
       "title": "Geprüfte Updates",
-      "body": "Grantry prüft signierte Update-Informationen und Downloads vor der Installation und wartet laufende Aufräum- oder Wartungsaktionen ab."
+      "body": "Nach einem Update prüft Grantry die eigene Signatur und warnt deutlich, falls sie nicht stimmt."
     }
   ]
 }

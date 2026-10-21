@@ -6,6 +6,7 @@ struct StatusLabel: View {
     enum Status {
         case toned(PresentationTone, String)
         case loading(String)
+        case scanning(ScanProgress)
 
         static func ok(_ text: String) -> Status { .toned(.positive, text) }
         static func warning(_ text: String) -> Status { .toned(.warning, text) }
@@ -26,6 +27,8 @@ struct StatusLabel: View {
             } icon: {
                 Image(systemName: tone.systemImage).foregroundStyle(tone.color)
             }
+        case .scanning(let progress):
+            ScanProgressView(progress: progress).frame(width: 180)
         case .loading(let text):
             HStack {
                 ProgressView().controlSize(.small)

@@ -37,6 +37,8 @@ public enum UpdateInstallationPolicy {
 @MainActor
 public protocol UpdateInstalling: AnyObject {
     var onStatus: ((String?, String?) -> Void)? { get set }
+    /// Startprüfung vor automatischen Downloads; eine Warnung sperrt die Automatik für diesen Start.
+    func verifyInstalledApplication() async -> String?
     func check() async throws -> AppcastItem?
     func install(_ item: AppcastItem, automatically: Bool)
     func setAutomaticInstallation(_ enabled: Bool)
@@ -46,5 +48,6 @@ public protocol UpdateInstalling: AnyObject {
 }
 
 public extension UpdateInstalling {
+    func verifyInstalledApplication() async -> String? { nil }
     func prepareToTerminate() async {}
 }

@@ -1,7 +1,8 @@
 import Foundation
 
 /// Heruntergeladene Installer (#226, VirtualBuddy: `.ipsw`): reguläre Dateien mit passender Endung direkt in den
-/// Wurzeln der Kategorie. Vorausgewählt sind Installer, die seit `minimumAgeDays` weder geladen noch geändert wurden.
+/// Wurzeln der Kategorie. Vorausgewählt sind Installer, die seit `minimumAgeDays` weder geladen noch geändert wurden und
+/// deren Größenmessung ein Ergebnis hat (#220).
 /// Immer in den Papierkorb, auch bei Risiko „niedrig“: ein Installer ist groß und nicht schnell neu geladen.
 struct DownloadedInstallersProvider: StorageCategoryProvider {
     let category: StorageCategory
@@ -19,7 +20,7 @@ struct DownloadedInstallersProvider: StorageCategoryProvider {
         let items = zip(files, sizes).map { file, size in
             let date = Self.newestDate(of: file.path)
             return StorageItem(id: file.path, title: file.name, path: file.path, size: size, removal: .trash,
-                               isPreselected: date.map { $0 < limit } ?? false,
+                               isPreselected: (date.map { $0 < limit } ?? false) && size.permitsPreselection,
                                detail: date.map { "Vom \($0.formatted(date: .abbreviated, time: .omitted))" },
                                identity: file.identity)
         }

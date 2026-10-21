@@ -18,9 +18,11 @@ final class FakeOpenFileProbe: OpenFileProbing {
 
     var callCount: Int { calls.withLock { $0 } }
 
-    func usage(ofProcessesNamed names: Set<String>) throws -> ProcessUsage {
+    /// `names == nil`: alle Prozesse (#229).
+    func usage(ofProcessesNamed names: Set<String>?) throws -> ProcessUsage {
         calls.withLock { $0 += 1 }
         guard let openPaths else { throw Unreadable() }
+        guard let names else { return ProcessUsage(running: running, openPaths: openPaths) }
         return ProcessUsage(running: running.intersection(names), openPaths: openPaths.filter { names.contains($0.processName) })
     }
 }

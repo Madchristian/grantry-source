@@ -16,6 +16,8 @@ final class SparkleUpdateService: NSObject, UpdateInstalling, SPUUserDriver, SPU
         updater.httpHeaders = ["Accept-Language": "*"]
         return updater
     }()
+    private let preferences: UpdatePreferences
+    private let identityCheck: PostUpdateIdentityCheck
     private let installed: InstalledBuild
     private var started = false
     private let canInstall: () -> Bool
@@ -37,14 +39,38 @@ final class SparkleUpdateService: NSObject, UpdateInstalling, SPUUserDriver, SPU
         return SparkleUpdateService(canInstall: canInstall)
     }
 
-    init(installed: InstalledBuild = .current(), canInstall: @escaping () -> Bool, canWrite: @escaping () -> Bool = {
+    init(installed: InstalledBuild = .current(), preferences: UpdatePreferences = UpdatePreferences(), canInstall: @escaping () -> Bool, canWrite: @escaping () -> Bool = {
         FileManager.default.isWritableFile(atPath: Bundle.main.bundleURL.path)
             && FileManager.default.isWritableFile(atPath: Bundle.main.bundleURL.deletingLastPathComponent().path)
     }) {
+        self.preferences = preferences
+        #if DEBUG
+        let isRelease = false
+        #else
+        let isRelease = true
+        #endif
+        self.identityCheck = PostUpdateIdentityCheck(preferences: preferences, build: installed.build, isRelease: isRelease)
         self.installed = installed
         self.canInstall = canInstall
         self.canWrite = canWrite
         super.init()
+    }
+
+    func verifyInstalledApplication() async -> String? { await identityCheck.verify() }
+
+    func updater(_ updater: SPUUpdater, didExtractUpdate item: SUAppcastItem) {
+        // Beim regulären Beenden muss die App für willInstallUpdate nicht mehr laufen.
+        recordIdentityVerification(for: item)
+    }
+
+    func updater(_ updater: SPUUpdater, willInstallUpdate item: SUAppcastItem) {
+        // Zusätzlich für bereits vorbereitete, fortgesetzte Installationen.
+        recordIdentityVerification(for: item)
+    }
+
+    private func recordIdentityVerification(for item: SUAppcastItem) {
+        guard let build = Int(item.versionString), build > installed.build else { return }
+        preferences.pendingIdentityVerificationBuild = build
     }
 
     func check() async throws -> AppcastItem? {

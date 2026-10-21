@@ -30,11 +30,12 @@ struct ReportOnlyProvider: StorageCategoryProvider {
 struct TimeMachineSnapshotsProvider: StorageCategoryProvider {
     static let prefix = "com.apple.TimeMachine."
     static let suffix = ".local"
+    static let categoryID = "timeMachine"
 
     let runner: any CommandRunning
 
     var category: StorageCategory {
-        StorageCategory(id: "timeMachine", title: "Lokale Time-Machine-Snapshots",
+        StorageCategory(id: Self.categoryID, title: "Lokale Time-Machine-Snapshots",
                         summary: "macOS gibt sie bei Platzmangel selbst frei; löschen nur per Terminal.",
                         risk: .reportOnly, roots: [])
     }
@@ -47,7 +48,7 @@ struct TimeMachineSnapshotsProvider: StorageCategoryProvider {
             return StorageCategoryReport(category: category, status: .failed(error.localizedDescription), items: [])
         }
         guard result.succeeded else {
-            return StorageCategoryReport(category: category, status: .failed(Self.failureReason(of: result)), items: [])
+            return StorageCategoryReport(category: category, status: .failed(result.failureReason), items: [])
         }
         let items = result.stdout.split(separator: "\n").compactMap { line -> StorageItem? in
             guard let token = line.split(whereSeparator: \.isWhitespace).first, let date = Self.snapshotDate(in: token)
@@ -67,13 +68,15 @@ struct TimeMachineSnapshotsProvider: StorageCategoryProvider {
         let isSafe = date.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-") }
         return !date.isEmpty && isSafe ? date : nil
     }
+}
 
+extension CommandResult {
     /// stderr, sonst stdout, sonst der Exit-Code (ein leerer Grund wäre in der Ansicht nichtssagend).
-    private static func failureReason(of result: CommandResult) -> String {
-        for text in [result.stderr, result.stdout] {
+    var failureReason: String {
+        for text in [stderr, stdout] {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             if !trimmed.isEmpty { return trimmed }
         }
-        return "Exit-Code \(result.exitCode)"
+        return "Exit-Code \(exitCode)"
     }
 }

@@ -6,11 +6,12 @@ import TestSupport
 @Suite struct DownloadedInstallersProviderTests {
     private static let now = Date(timeIntervalSince1970: 1_792_000_000)
 
-    private func provider(_ root: URL) -> DownloadedInstallersProvider {
+    private func provider(_ root: URL, measurer: FixedSizeMeasurer = FixedSizeMeasurer(otherwise: .bytes(1)))
+        -> DownloadedInstallersProvider {
         DownloadedInstallersProvider(
             category: StorageCategory(id: "virtualBuddyDownloads", title: "VirtualBuddy-Downloads", summary: "", risk: .low,
                                       roots: [root.path]),
-            extensions: ["ipsw"], minimumAgeDays: 90, now: { Self.now }, measurer: FixedSizeMeasurer())
+            extensions: ["ipsw"], minimumAgeDays: 90, now: { Self.now }, measurer: measurer)
     }
 
     private func file(_ name: String, in root: URL, daysOld: Double) throws {
@@ -34,6 +35,14 @@ import TestSupport
             #expect(report.items.map(\.title) == ["UniversalMac_26.0_Restore.IPSW", "UniversalMac_27.0_Restore.ipsw"])
             #expect(report.items.map(\.isPreselected) == [true, false])
             #expect(report.items.allSatisfy { $0.removal == .trash && $0.identity != nil && $0.detail?.hasPrefix("Vom ") == true })
+        }
+    }
+
+    @Test func oldInstallerWithoutFinishedMeasurementIsNotPreselected() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "installers") { root in
+            try file("UniversalMac_26.0_Restore.ipsw", in: root, daysOld: 120)
+            let report = await provider(root, measurer: FixedSizeMeasurer()).scan()
+            #expect(report.items.map(\.isPreselected) == [false])
         }
     }
 

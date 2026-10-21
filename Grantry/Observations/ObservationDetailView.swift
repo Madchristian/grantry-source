@@ -77,7 +77,8 @@ struct ObservationDetailView: View {
     private func content(_ observation: InstallationObservation) -> some View {
         List {
             Section {
-                ObservationHeader(observation: observation, observations: observations)
+                ObservationHeader(observation: observation, observations: observations,
+                                  scanProgress: appModel.monitoring.scanProgress)
             }
             if observation.isActive {
                 liveSections(observation)
@@ -153,6 +154,7 @@ struct ObservationDetailView: View {
 private struct ObservationHeader: View {
     let observation: InstallationObservation
     let observations: ObservationModel
+    let scanProgress: ScanProgress
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -178,8 +180,7 @@ private struct ObservationHeader: View {
                         .buttonStyle(.borderedProminent)
                         .disabled(observations.isBusy)
                     if observations.phase == .finishing {
-                        ProgressView().controlSize(.small)
-                        Text("Abschließender Scan läuft …").foregroundStyle(.secondary)
+                        ScanProgressView(progress: scanProgress).frame(width: 180)
                     }
                 }
             }

@@ -26,7 +26,7 @@ import TestSupport
         #expect(Set(ids) == ["derivedData", "caches", "uv", "homebrew", "npm", "pnpm", "unavailableSimulators",
                              "deviceSupport", "archives", "logs", "projectArtifacts", "docker", "simulatorRuntimes",
                              "simulatorDevices", "simulatorDyldCache", "webKitWAL", "timeMachine", "llmModels",
-                             "virtualMachines", "virtualBuddyDownloads", "steam", "agentWorktrees", "trash"])
+                             "virtualMachines", "virtualBuddyDownloads", "steam", "agentWorktrees", "agentWorkdirs", "trash"])
     }
 
     /// Codex-Review #226: Nach einem Nachscan steht „Nicht verfügbare Simulatoren“ hinten; aufgeräumt wird trotzdem vor
@@ -45,7 +45,7 @@ import TestSupport
     @Test func derivedDataIsLockedByRunningBuilds() throws {
         let derivedData = try #require(catalog().first { $0.category.id == "derivedData" } as? PathCategoryProvider)
         #expect(derivedData.category.processLock?.processes == ["xcodebuild", "SWBBuildService", "XCBBuildService"])
-        #expect(catalog().filter { $0.category.processLock != nil }.map(\.category.id) == ["derivedData"])
+        #expect(catalog().filter { $0.category.processLock != nil }.map(\.category.id) == ["derivedData", "agentWorkdirs"])
         let lock = try #require(derivedData.category.processLock)
         #expect(!lock.isShared("Grantry-azvkmficvosdguallwvtkongfdne"))
         for shared in ["ModuleCache.noindex", "SDKStatCaches.noindex", "CompilationCache.noindex", "Grantry-short"] {
@@ -77,6 +77,14 @@ import TestSupport
             #expect(downloads.category.roots == [library.path + "/_Downloads"])
             #expect(downloads.category.risk == .low && downloads.minimumAgeDays == 90 && downloads.extensions == ["ipsw"])
         }
+    }
+
+    /// #229: Claude Code nur im Ordner der eigenen UID, Codex unter `~/.codex/.tmp`; jeder eigene Prozess sperrt.
+    @Test func agentWorkdirsCoverOwnClaudeAndCodexFolders() throws {
+        let workdirs = try #require(catalog().first { $0.category.id == "agentWorkdirs" } as? AgentWorkdirsProvider)
+        #expect(workdirs.category.roots == ["/private/tmp/claude-\(getuid())", "/home/.codex/.tmp"])
+        #expect(workdirs.category.risk == .low && workdirs.category.processLock == .anyProcess)
+        #expect(workdirs.minimumAgeDays == 2)
     }
 
     @Test func dockerNeverPrunesVolumes() throws {

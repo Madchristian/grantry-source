@@ -30,6 +30,19 @@ struct StorageLiveTests {
         #expect(report.category.risk == .reportOnly)
     }
 
+    /// #229: liest nur. Ein gerade benutzter Arbeitsordner (etwa der des aufrufenden Agenten) ist nie vorausgewählt.
+    @Test func agentWorkdirsScanTheRealFolders() async {
+        let home = NSHomeDirectory()
+        let start = ContinuousClock.now
+        let report = await AgentWorkdirsProvider(claudeRoot: "/private/tmp/claude-\(getuid())", codexRoot: home + "/.codex/.tmp",
+                                                 home: home, minimumAgeDays: StorageCatalog.agentWorkdirMinimumAgeDays,
+                                                 measurer: FileSizeCalculator()).scan()
+        print(report)
+        Swift.print("  Dauer: \(ContinuousClock.now - start), vorausgewählt: \(report.items.filter(\.isPreselected).count)")
+        let busy = report.items.filter { $0.detail?.hasPrefix("Wird gerade benutzt") == true }
+        #expect(busy.allSatisfy { !$0.isPreselected })
+    }
+
     @Test func openFilesOfRunningBuilds() throws {
         let usage = try LibprocOpenFileProbe().usage(ofProcessesNamed: StorageCatalog.buildLock.processes)
         Swift.print("[openFiles] laufend: \(usage.running.sorted()), \(usage.openPaths.count) Pfade")

@@ -1,6 +1,7 @@
 import Foundation
 import Synchronization
 import Testing
+import TestSupport
 @testable import ManagerKit
 
 /// Zeitgrenze für Aufrufe, die blockieren können (Signaturprüfung an einer FIFO): Der Aufrufer wartet höchstens die
@@ -66,6 +67,33 @@ import Testing
         #expect(SecuritySigningInspector(timeout: .seconds(5), callGuard: callGuard).inspect(path: "/bin/ls").kind == .apple)
         #expect(SecuritySigningInspector(timeout: .seconds(5), callGuard: callGuard).inspection(ofPath: "/bin/ls").info.kind == .apple)
         #expect(SecuritySignatureValidator(timeout: .seconds(30), callGuard: callGuard).validate(path: "/bin/ls") == .valid)
+    }
+
+    @Test func deepChecksKeepLowPriorityAndDoNotOverlapAfterTimeout() async throws {
+        let callGuard = BlockingCallGuard(maximumHanging: 1, qualityOfService: .background)
+        let latch = Latch()
+        defer { latch.release() }
+        let observedQoS = Mutex<QualityOfService?>(nil)
+        let (starts, started) = AsyncStream<Void>.makeStream()
+        let first = Task {
+            await onOwnThread {
+                callGuard.run(timeout: .milliseconds(20)) {
+                    observedQoS.withLock { $0 = Thread.current.qualityOfService }
+                    started.yield(())
+                    latch.wait()
+                    return 1
+                }
+            }
+        }
+        for await _ in starts { break }
+        #expect(await first.value == nil)
+        let ran = Mutex(false)
+        #expect(callGuard.run(timeout: .seconds(5)) { ran.withLock { $0 = true } } == nil)
+        #expect(!ran.withLock { $0 }, "abgelaufene Systemprüfung muss ihre Belegung behalten")
+        #expect(observedQoS.withLock { $0 } == .background)
+        latch.release()
+        try await waitUntil { callGuard.hangingCount == 0 }
+        #expect(callGuard.run(timeout: .seconds(5)) { 2 } == 2)
     }
 
     @Test func standardLimitsAreBounded() {

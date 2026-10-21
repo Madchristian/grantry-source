@@ -5,6 +5,7 @@ import SwiftUI
 /// Ausgangsstand. Konnte der Scan Quellen nicht lesen, fragt das Blatt nach („Trotzdem starten“).
 struct ObservationStartSheet: View {
     let observations: ObservationModel
+    var scanProgress = ScanProgress()
     /// Nach erfolgreichem Start mit der ID der neuen Beobachtung.
     let onStarted: (UUID) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -39,7 +40,7 @@ struct ObservationStartSheet: View {
             }
             HStack {
                 if observations.phase == .starting {
-                    ProgressView().controlSize(.small)
+                    ScanProgressView(progress: scanProgress).frame(width: 160)
                     Text("Ausgangsstand wird erfasst …").foregroundStyle(.secondary)
                 }
                 Spacer()

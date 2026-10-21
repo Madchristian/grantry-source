@@ -5,13 +5,16 @@ import SwiftUI
 /// Segment „Speicher“ (Spec Speicher §2): Knopf „Scannen“, Kategorien nach Größe mit Risiko und Status, aufklappbar
 /// mit Einzelauswahl, Sammeldialog vor dem Aufräumen, Ergebnis und „Zuletzt aufgeräumt“. Fehlt der
 /// Festplattenvollzugriff, weist `PrerequisitesBanner` schon vor dem Scan darauf hin; nach dem Scan nennen Hinweise
-/// nicht erfassbare Ordner und den keiner Kategorie zugeordneten Platz (#226).
+/// nicht erfassbare Ordner und den keiner Kategorie zugeordneten Platz (#226) sowie, bei Agenten-Arbeitsordnern, dass ein
+/// Neustart `/private/tmp` leert (#229). Darunter die Time-Machine-Vorschläge mit eigenem Bestätigungsdialog; jede
+/// Kategorie nennt, ob Time Machine sie sichert (#227).
 struct StorageCleanupView: View {
     @Bindable var model: StorageCleanupModel
     /// Öffnet die Einstellungen zum Festplattenvollzugriff; `nil`, wenn er nicht fehlt.
     var openFullDiskAccess: (() -> Void)?
     let showSetup: () -> Void
     @State private var isConfirming: Bool?
+    @State private var timeMachineChange: TimeMachineChange?
     @State private var showsOptions = false
 
     var body: some View {
@@ -25,10 +28,18 @@ struct StorageCleanupView: View {
                 .padding([.horizontal, .bottom], 12)
             }
             coverage
+            if let restart = StoragePresentation.restartNote(model.reports) {
+                Text(verbatim: restart).font(.callout).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding([.horizontal, .bottom], 12)
+            }
             if !model.lastOutcomes.isEmpty {
                 VStack(alignment: .leading, spacing: 6) {
                     NoticeList(notices: [StoragePresentation.summary(model.lastOutcomes)])
                     OutcomeDetails(outcomes: model.lastOutcomes)
+                    if let note = TimeMachinePresentation.snapshotNote(after: model.lastOutcomes, reports: model.reports) {
+                        CopyableCommandNote(note: note)
+                    }
                 }
                 .padding([.horizontal, .bottom], 12)
             }
@@ -124,7 +135,14 @@ struct StorageCleanupView: View {
             List {
                 ForEach(model.sortedReports) { report in
                     StorageCategoryRow(report: report, selection: $model.selection,
+                                       timeMachineNote: model.timeMachine.flatMap {
+                                           TimeMachinePresentation.categoryNote(report.id, in: $0.suggestions)
+                                       },
                                        isLocked: model.phase == .cleaning)
+                }
+                if let report = model.timeMachine, !report.suggestions.isEmpty || report.failure != nil {
+                    TimeMachineSuggestionsSection(report: report, selection: $model.timeMachineSelection,
+                                                  canChange: model.phase == .scanned) { timeMachineChange = $0 }
                 }
                 if !model.recentLog.isEmpty {
                     Section("Zuletzt aufgeräumt") {
@@ -139,6 +157,87 @@ struct StorageCleanupView: View {
                 }
             }
             .listStyle(.inset)
+            .actionConfirmation(for: $timeMachineChange, confirmation: { change in
+                TimeMachinePresentation.confirmation(change, targets: timeMachineTargets(change))
+            }) { model.changeTimeMachine($0) }
+        }
+    }
+
+    private func timeMachineTargets(_ change: TimeMachineChange) -> [TimeMachineSuggestion] {
+        TimeMachinePresentation.targets(of: change, in: model.timeMachine?.suggestions ?? [],
+                                        selection: model.timeMachineSelection)
+    }
+}
+
+/// „Time-Machine-Vorschläge“ (#227): Ordner, die sich neu erzeugen oder laden lassen, mit Status, Größe und Risiko;
+/// vorausgewählt nur Risiko „gering“. Die Knöpfe ändern nur gewählte Ordner, deren Status die Änderung betrifft.
+private struct TimeMachineSuggestionsSection: View {
+    let report: TimeMachineReport
+    @Binding var selection: Set<String>
+    let canChange: Bool
+    let confirm: (TimeMachineChange) -> Void
+
+    var body: some View {
+        Section {
+            if let failure = report.failure {
+                Text(verbatim: "Status nicht lesbar: \(failure)").font(.caption).foregroundStyle(.orange)
+            }
+            ForEach(report.suggestions) { suggestion in
+                HStack {
+                    Toggle(isOn: isSelected(suggestion)) { label(suggestion) }
+                        .disabled(!canChange || suggestion.state == .unknown)
+                    Spacer()
+                    Text(verbatim: StoragePresentation.riskText(suggestion.candidate.risk)).font(.caption)
+                        .padding(.horizontal, 6).background(.quaternary, in: Capsule())
+                    Text(verbatim: suggestion.sizeText).foregroundStyle(.secondary)
+                }
+            }
+            HStack {
+                Button("Aus Time Machine ausnehmen …") { confirm(.exclude) }
+                    .disabled(!canChange || targets(.exclude).isEmpty)
+                Button("Wieder sichern …") { confirm(.include) }
+                    .disabled(!canChange || targets(.include).isEmpty)
+            }
+        } header: {
+            Text("Time-Machine-Vorschläge")
+        } footer: {
+            Text("Lässt sich neu erzeugen oder herunterladen. Grantry ändert nur die Sicherung, nicht die Ordner.")
+        }
+    }
+
+    private func targets(_ change: TimeMachineChange) -> [TimeMachineSuggestion] {
+        TimeMachinePresentation.targets(of: change, in: report.suggestions, selection: selection)
+    }
+
+    private func label(_ suggestion: TimeMachineSuggestion) -> some View {
+        VStack(alignment: .leading) {
+            Text(verbatim: suggestion.candidate.title)
+            Text(verbatim: "\(abbreviatedTarget(suggestion.candidate.path)) · \(TimeMachinePresentation.stateText(suggestion.state))")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func isSelected(_ suggestion: TimeMachineSuggestion) -> Binding<Bool> {
+        Binding(get: { selection.contains(suggestion.id) },
+                set: { if $0 { selection.insert(suggestion.id) } else { selection.remove(suggestion.id) } })
+    }
+}
+
+/// Hinweis mit kopierbarem Terminal-Befehl; Grantry führt ihn nicht aus (lokale Snapshots: nur Bericht).
+private struct CopyableCommandNote: View {
+    let note: TimeMachinePresentation.SnapshotNote
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: note.text).font(.callout).foregroundStyle(.secondary)
+            HStack {
+                Text(verbatim: note.command).font(.caption.monospaced()).textSelection(.enabled)
+                Button("Befehl kopieren") {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(note.command, forType: .string)
+                }
+                .buttonStyle(.link)
+            }
         }
     }
 }
@@ -191,6 +290,8 @@ private func abbreviatedTarget(_ target: String) -> String { (target as NSString
 private struct StorageCategoryRow: View {
     let report: StorageCategoryReport
     @Binding var selection: Set<String>
+    /// „Time Machine: gesichert/ausgenommen/teilweise gesichert“ (#227); `nil` ohne Vorschlag der Kategorie.
+    let timeMachineNote: String?
     let isLocked: Bool
 
     var body: some View {
@@ -203,6 +304,9 @@ private struct StorageCategoryRow: View {
                 VStack(alignment: .leading) {
                     Text(verbatim: report.category.title)
                     Text(verbatim: report.category.summary).font(.caption).foregroundStyle(.secondary)
+                    if let timeMachineNote {
+                        Text(verbatim: timeMachineNote).font(.caption).foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 if let status = StoragePresentation.statusText(report.status) {

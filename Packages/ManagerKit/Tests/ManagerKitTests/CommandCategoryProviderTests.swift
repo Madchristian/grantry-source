@@ -7,14 +7,15 @@ import TestSupport
     private func provider(installed: Set<String>, measured: String? = "/home/.cache/uv",
                           arguments: [String] = ["cache", "prune"], risk: StorageRisk = .low,
                           companions: [String] = [], requiredPath: String? = nil,
-                          directories: Set<String> = []) -> CommandCategoryProvider {
+                          directories: Set<String> = [], kind: ExecutableKind? = nil,
+                          sizes: [String: FileSize] = ["/home/.cache/uv": .bytes(2_048)]) -> CommandCategoryProvider {
         CommandCategoryProvider(
             category: StorageCategory(id: "uv", title: "uv-Cache", summary: "", risk: risk, roots: []),
             tool: "uv", arguments: arguments, measuredPath: measured, requiredCompanions: companions,
             requiredPath: requiredPath,
             locator: ToolLocator(home: "/home", isExecutable: { installed.contains($0) },
-                                 isDirectory: { directories.contains($0) }),
-            measurer: FixedSizeMeasurer(["/home/.cache/uv": .bytes(2_048)])
+                                 isDirectory: { directories.contains($0) }, kind: { _ in kind }),
+            measurer: FixedSizeMeasurer(sizes)
         )
     }
 
@@ -68,6 +69,16 @@ import TestSupport
         #expect(try #require(report.items.first).size == .unknown)
     }
 
+    @Test func expiredMeasurementIsNotPreselected() async throws {
+        // #220: Die Messung lief in die Frist – im Zweifel nicht vorauswählen.
+        let report = await provider(installed: ["/opt/homebrew/bin/uv"], sizes: [:]).scan()
+        let item = try #require(report.items.first)
+        #expect(item.size == .unknown && !item.isPreselected)
+        // Ohne Messort ist „unbekannt“ gewollt und kein Zweifel.
+        let unmeasured = await provider(installed: ["/opt/homebrew/bin/uv"], measured: nil).scan()
+        #expect(try #require(unmeasured.items.first).isPreselected)
+    }
+
     @Test func pathStartsWithTheToolsOwnDirectory() async throws {
         let report = await provider(installed: ["/home/.local/bin/uv"]).scan()
         guard case .command(let spec) = try #require(report.items.first).removal else {
@@ -91,6 +102,32 @@ import TestSupport
         let beside = await provider(installed: ["/opt/homebrew/bin/uv", "/opt/homebrew/bin/node"],
                                     companions: ["node"]).scan()
         #expect(beside.status == .available)
+    }
+
+    @Test func nativeBinaryNeedsNoCompanion() async {
+        // #220: Homebrew-pnpm ist ein eigenständiges Programm mit eingebautem Node.
+        let report = await provider(installed: ["/opt/homebrew/bin/uv"], companions: ["node"], kind: .binary).scan()
+        #expect(report.status == .available)
+    }
+
+    @Test func environmentScriptStillNeedsCompanionBesideIt() async {
+        let report = await provider(installed: ["/opt/homebrew/bin/uv", "/usr/local/bin/node"], companions: ["node"],
+                                    kind: .environmentScript("node")).scan()
+        #expect(report.status == .notInstalled)
+    }
+
+    @Test func scriptWithOwnInterpreterNeedsThatInterpreter() async {
+        let node = "/opt/homebrew/Cellar/pnpm/9.0.0/libexec/node"
+        let bundled = await provider(installed: ["/opt/homebrew/bin/uv", node], companions: ["node"],
+                                     kind: .script(interpreter: node)).scan()
+        #expect(bundled.status == .available)
+        let missing = await provider(installed: ["/opt/homebrew/bin/uv"], companions: ["node"],
+                                     kind: .script(interpreter: node)).scan()
+        #expect(missing.status == .notInstalled)
+        // Ein Shell-Wrapper bringt kein Node mit: `node` muss weiter daneben liegen.
+        let shell = await provider(installed: ["/opt/homebrew/bin/uv", "/bin/bash"], companions: ["node"],
+                                   kind: .script(interpreter: "/bin/bash")).scan()
+        #expect(shell.status == .notInstalled)
     }
 
     @Test func missingRequiredPathIsNotInstalled() async {

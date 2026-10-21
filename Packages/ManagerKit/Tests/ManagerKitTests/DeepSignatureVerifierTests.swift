@@ -140,6 +140,196 @@ struct DeepSignatureVerifierTests {
         }
     }
 
+    /// Ein Bundle-Siegel bleibt bei nachträglicher Manipulation unverändert: alle Ressourcen zählen.
+    @Test func changingResourceWithoutResigningInvalidatesCachedVerdict() async throws {
+        try await ScratchDirectory.with(prefix: "deep-resource-cache") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Cache", adHoc: true,
+                                            resources: ["config.txt": "before"])
+            let verifier = DeepSignatureVerifier()
+            #expect(await verifier.verify(path: bundle.path) == .valid)
+            let resource = bundle.appending(path: "Contents/Resources/config.txt")
+            let originalDate = try FileManager.default.attributesOfItem(atPath: resource.path)[.modificationDate]
+            try Data("after!".utf8).write(to: resource)
+            if let originalDate {
+                try FileManager.default.setAttributes([.modificationDate: originalDate], ofItemAtPath: resource.path)
+            }
+            #expect(await verifier.cachedVerdicts(for: [bundle.path]).isEmpty)
+            #expect(await verifier.verify(path: bundle.path).isInvalid)
+        }
+    }
+
+    @Test func unchangedTreeSurvivesVerifierRestartAndResourceChangesRecheck() async throws {
+        try await ScratchDirectory.with(prefix: "deep-persistent") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Persistent", adHoc: true,
+                                            resources: ["config.txt": "before"])
+            let url = directory.appending(path: "cache.json")
+            let validator = ScriptedSignatureValidator()
+            let first = DeepSignatureVerifier(validator: validator, cacheURL: url)
+            #expect(await first.verify(path: bundle.path) == .valid)
+            let restarted = DeepSignatureVerifier(validator: validator, cacheURL: url)
+            #expect(await restarted.cachedVerdicts(for: [bundle.path]) == [bundle.path: .valid])
+            #expect(await restarted.verify(path: bundle.path) == .valid)
+            #expect(validator.calls.count == 1, "ein Validator-Aufruf über zwei Instanzen und mehrere Scans")
+            try Data("changed".utf8).write(to: bundle.appending(path: "Contents/Resources/config.txt"))
+            let changed = DeepSignatureVerifier(cacheURL: url)
+            #expect(await changed.cachedVerdicts(for: [bundle.path]).isEmpty)
+            #expect(await changed.verify(path: bundle.path).isInvalid)
+        }
+    }
+
+    /// #259: Teilscans (alle 60 s) übernehmen bestätigte Urteile anhand billiger Bundle-Metadaten, ohne den Code-Baum
+    /// zu traversieren; nur `completeTree` (Vollscan) liest ihn vollständig.
+    @Test func bundleMetadataLookupSkipsTreeTraversalWhileMetadataIsUnchanged() async throws {
+        try await ScratchDirectory.with(prefix: "deep-stamp") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Stamp", adHoc: true, resources: ["config.txt": "x"])
+            let trees = CountingTreeFingerprint()
+            let validator = ScriptedSignatureValidator()
+            let verifier = DeepSignatureVerifier(validator: validator, treeFingerprint: trees.reader)
+            #expect(await verifier.verify(path: bundle.path) == .valid)
+            let afterVerify = trees.count
+
+            for _ in 0..<3 {
+                #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata)
+                    == [bundle.path: .valid])
+            }
+            #expect(trees.count == afterVerify, "Teilscan ohne Metadatenänderung traversiert nichts")
+
+            #expect(await verifier.cachedVerdicts(for: [bundle.path]) == [bundle.path: .valid])
+            #expect(trees.count == afterVerify + 1, "Vollscan prüft den ganzen Baum")
+            #expect(validator.calls == [bundle.path])
+        }
+    }
+
+    /// Ohne bestätigte Metadaten (etwa nach einem Neustart) und nach einer Metadatenänderung fällt der Teilscan auf die
+    /// vollständige Baumprüfung zurück.
+    @Test func bundleMetadataLookupFallsBackToTreeWhenMetadataChanges() async throws {
+        try await ScratchDirectory.with(prefix: "deep-stamp-change") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Changed", adHoc: true, resources: ["config.txt": "x"])
+            let url = directory.appending(path: "cache.json")
+            #expect(await DeepSignatureVerifier(cacheURL: url).verify(path: bundle.path) == .valid)
+
+            let trees = CountingTreeFingerprint()
+            let restarted = DeepSignatureVerifier(cacheURL: url, treeFingerprint: trees.reader)
+            #expect(await restarted.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata)
+                == [bundle.path: .valid])
+            #expect(trees.count == 1, "nach Neustart einmal vollständig")
+            _ = await restarted.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata)
+            #expect(trees.count == 1)
+
+            try Data("neu".utf8).write(to: bundle.appending(path: "Contents/Resources/injected.txt"))
+            #expect(await restarted.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata).isEmpty)
+            #expect(trees.count == 2, "geänderte Metadaten: vollständige Prüfung")
+            #expect(await restarted.verify(path: bundle.path).isInvalid)
+        }
+    }
+
+    /// Akzeptierte Erkennungsverzögerung (#259): Eine in place überschriebene Ressource bei unverändertem Siegel und
+    /// zurückgesetzter mtime ändert keine Bundle-Metadaten. Teilscans übernehmen das alte Urteil bis zum nächsten
+    /// Vollscan; der verwirft es und die Tiefenprüfung erkennt die Manipulation (#239 bleibt erhalten).
+    @Test func overwrittenResourceIsCaughtByTheNextCompleteRevalidation() async throws {
+        try await ScratchDirectory.with(prefix: "deep-stamp-resource") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Delayed", adHoc: true,
+                                            resources: ["config.txt": "before"])
+            let verifier = DeepSignatureVerifier()
+            #expect(await verifier.verify(path: bundle.path) == .valid)
+            let resource = bundle.appending(path: "Contents/Resources/config.txt")
+            let originalDate = try FileManager.default.attributesOfItem(atPath: resource.path)[.modificationDate]
+            try Data("after!".utf8).write(to: resource)
+            if let originalDate {
+                try FileManager.default.setAttributes([.modificationDate: originalDate], ofItemAtPath: resource.path)
+            }
+            #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata)
+                == [bundle.path: .valid], "bis zum nächsten Vollscan")
+            #expect(await verifier.cachedVerdicts(for: [bundle.path]).isEmpty)
+            #expect(await verifier.verify(path: bundle.path).isInvalid)
+            #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata)[bundle.path]?
+                .isInvalid == true)
+        }
+    }
+
+    /// Nicht vollständig erfassbare Bäume landen nie im Cache. Teilscans übernehmen ihr letztes Ergebnis bei
+    /// unveränderten Metadaten, statt alle 60 s erneut die vollständige Security-Prüfung zu starten; der Vollscan prüft
+    /// sie wie bisher neu.
+    @Test func incompleteTreesAreRecheckedOnlyByCompleteRevalidation() async throws {
+        try await ScratchDirectory.with(prefix: "deep-stamp-incomplete") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Incomplete", adHoc: true)
+            let validator = ScriptedSignatureValidator(verdicts: [bundle.path: .invalid(status: errSecCSBadResource)])
+            let verifier = DeepSignatureVerifier(validator: validator,
+                                                 treeFingerprint: CountingTreeFingerprint(incomplete: true).reader)
+            #expect(await verifier.verify(path: bundle.path).isInvalid)
+            #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata)
+                == [bundle.path: .invalid(status: errSecCSBadResource)])
+            #expect(await verifier.cachedVerdicts(for: [bundle.path]).isEmpty)
+            #expect(validator.calls == [bundle.path])
+        }
+    }
+
+    @Test func changesDuringValidationNeverBecomeCachedSuccess() async throws {
+        try await ScratchDirectory.with(prefix: "deep-changing") { directory in
+            let path = try files(1, in: directory)[0]
+            let validator = ScriptedSignatureValidator(holding: true)
+            let verifier = DeepSignatureVerifier(validator: validator)
+            var starts = validator.starts.makeAsyncIterator()
+            let request = Task { await verifier.verify(path: path) }
+            #expect(await starts.next() == path)
+            try Data("changed".utf8).write(to: URL(fileURLWithPath: path))
+            validator.release()
+            #expect(await request.value == .unverifiable)
+            #expect(await verifier.cachedVerdicts(for: [path]).isEmpty)
+        }
+    }
+
+    @Test func incompleteTreesAndExternalSymlinksCannotSupplyCachedSuccess() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "deep-links") { directory in
+            let bundle = directory.appending(path: "Test.app")
+            try FileManager.default.createDirectory(at: bundle, withIntermediateDirectories: true)
+            let external = directory.appending(path: "outside")
+            try Data("x".utf8).write(to: external)
+            let link = bundle.appending(path: "link")
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: external)
+            let validator = ScriptedSignatureValidator()
+            let verifier = DeepSignatureVerifier(validator: validator)
+            _ = await verifier.verify(path: bundle.path)
+            #expect(await verifier.cachedVerdicts(for: [bundle.path]).isEmpty)
+            _ = await verifier.verify(path: bundle.path)
+            #expect(validator.calls.count == 2)
+            #expect(CodeTreeFingerprint.read(at: bundle.path, maximumEntries: 0) == nil)
+            #expect(CodeTreeFingerprint.read(at: bundle.path, timeout: .zero) == nil)
+            try FileManager.default.removeItem(at: link)
+            let inside = bundle.appending(path: "file")
+            try Data("x".utf8).write(to: inside)
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: inside)
+            #expect(CodeTreeFingerprint.read(at: bundle.path) != nil, "interne Framework-Links sind cachebar")
+        }
+    }
+
+    @Test func transientUnverifiableResultDoesNotSurviveRestart() async throws {
+        try await ScratchDirectory.with(prefix: "deep-transient") { directory in
+            let path = try files(1, in: directory)[0]
+            let url = directory.appending(path: "cache.json")
+            let unavailable = ScriptedSignatureValidator(verdicts: [path: .unverifiable])
+            #expect(await DeepSignatureVerifier(validator: unavailable, cacheURL: url).verify(path: path) == .unverifiable)
+            let recovered = ScriptedSignatureValidator()
+            let restarted = DeepSignatureVerifier(validator: recovered, cacheURL: url)
+            #expect(await restarted.cachedVerdicts(for: [path]).isEmpty)
+            #expect(await restarted.verify(path: path) == .valid)
+            #expect(recovered.calls == [path], "transiente Security-Fehler nicht dauerhaft übernehmen")
+        }
+    }
+
+    @Test func corruptOrOutdatedCacheTriggersValidation() async throws {
+        try await ScratchDirectory.with(prefix: "deep-corrupt") { directory in
+            let path = try files(1, in: directory)[0]
+            let url = directory.appending(path: "cache.json")
+            for content in ["broken", "{\"version\":0,\"entries\":{}}"] {
+                try Data(content.utf8).write(to: url)
+                let validator = ScriptedSignatureValidator()
+                #expect(await DeepSignatureVerifier(validator: validator, cacheURL: url).verify(path: path) == .valid)
+                #expect(validator.calls == [path])
+            }
+        }
+    }
+
     @Test func missingPathsAreNotValidated() async {
         let validator = ScriptedSignatureValidator()
         let verifier = DeepSignatureVerifier(validator: validator)

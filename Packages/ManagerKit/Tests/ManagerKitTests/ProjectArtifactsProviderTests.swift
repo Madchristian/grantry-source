@@ -25,8 +25,23 @@ import TestSupport
         provider(roots: [root.path])
     }
 
-    private func provider(roots: [String]) -> ProjectArtifactsProvider {
-        ProjectArtifactsProvider(roots: roots, minimumAgeDays: 30, now: { Self.now }, measurer: FixedSizeMeasurer())
+    private func provider(roots: [String], deepEntryBudget: Int = ProjectArtifactsProvider.deepEntryBudget)
+        -> ProjectArtifactsProvider {
+        ProjectArtifactsProvider(roots: roots, minimumAgeDays: 30, now: { Self.now }, deepEntryBudget: deepEntryBudget,
+                                 measurer: FixedSizeMeasurer())
+    }
+
+    /// Legt `relative` mit alten Ordnern an; nur die Datei selbst trägt `modified`.
+    private func file(_ root: URL, _ relative: String, modified: Date) throws {
+        let url = root.appending(path: relative)
+        try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try Data().write(to: url)
+        var folder = url.deletingLastPathComponent()
+        while folder.path.count > root.path.count {
+            try touch(folder, Self.old)
+            folder = folder.deletingLastPathComponent()
+        }
+        try touch(url, modified)
     }
 
     @Test func findsArtifactsOfStaleProjectsOnly() async throws {
@@ -111,6 +126,55 @@ import TestSupport
             let provider = provider(roots: [root.path + "/"])
             #expect(await provider.scan().items.map(\.title) == ["Old/.build"])
             #expect(provider.category.roots == [root.path])
+        }
+    }
+
+    @Test func deepChangeWithoutBuildOrCommitKeepsProjectFresh() async throws {
+        // #220: Nur eine tief liegende Quelldatei wurde bearbeitet; Ordner und direkte Einträge sind alt.
+        try await ScratchDirectory.withCanonical(prefix: "projects") { root in
+            try project(root, "Edited", manifest: "Package.swift", artifact: ".build", modified: Self.old)
+            try file(root, "Edited/Sources/Feature/Deep/File.swift", modified: Self.now)
+            try project(root, "Old", manifest: "Package.swift", artifact: ".build", modified: Self.old)
+            try file(root, "Old/Sources/Feature/Deep/File.swift", modified: Self.old)
+            #expect(await provider(root).scan().items.map(\.title) == ["Old/.build"])
+        }
+    }
+
+    @Test func recentGitIndexOrHeadKeepsProjectFresh() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "projects") { root in
+            for (name, marker) in [("Staged", ".git/index"), ("Switched", ".git/HEAD")] {
+                try project(root, name, manifest: "package.json", artifact: "node_modules", modified: Self.old)
+                try file(root, name + "/" + marker, modified: Self.now)
+                try touch(root.appending(path: name + "/.git"), Self.old)
+                try touch(root.appending(path: name), Self.old)
+            }
+            #expect(await provider(root).scan().items.isEmpty)
+        }
+    }
+
+    @Test func deepWalkIgnoresSymlinkTargetsHiddenFoldersAndNestedArtifacts() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "projects") { root in
+            try file(root, "elsewhere/new.txt", modified: Self.now)
+            try project(root, "Old", manifest: "Package.swift", artifact: ".build", modified: Self.old)
+            try FileManager.default.createDirectory(at: root.appending(path: "Old/Sources"), withIntermediateDirectories: true)
+            try FileManager.default.createSymbolicLink(at: root.appending(path: "Old/Sources/link"),
+                                                       withDestinationURL: root.appending(path: "elsewhere"))
+            try touch(root.appending(path: "Old/Sources"), Self.old)
+            try file(root, "Old/.swiftpm/deep/state.json", modified: Self.now)
+            try file(root, "Old/Packages/Lib/node_modules/dep/index.js", modified: Self.now)
+            try touch(root.appending(path: "Old"), Self.old)
+            #expect(await provider(roots: [root.appending(path: "Old").path]).scan().items.map(\.title) == [".build"])
+        }
+    }
+
+    @Test func projectBeyondTheEntryBudgetCountsAsUsed() async throws {
+        // Im Zweifel nicht anbieten: Ein Projekt, dessen Einträge das Budget übersteigen, gilt als benutzt.
+        try await ScratchDirectory.withCanonical(prefix: "projects") { root in
+            try project(root, "Big", manifest: "Package.swift", artifact: ".build", modified: Self.old)
+            for index in 0..<4 { try file(root, "Big/Sources/A/file\(index).swift", modified: Self.old) }
+            try touch(root.appending(path: "Big"), Self.old)
+            #expect(await provider(roots: [root.path], deepEntryBudget: 3).scan().items.isEmpty)
+            #expect(await provider(roots: [root.path], deepEntryBudget: 6).scan().items.map(\.title) == ["Big/.build"])
         }
     }
 }

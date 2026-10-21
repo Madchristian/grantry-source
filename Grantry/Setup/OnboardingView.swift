@@ -71,7 +71,7 @@ struct OnboardingView: View {
     }
 
     private var baselineStatus: StatusLabel.Status {
-        if appModel.monitoring.isScanning { return .loading(String(localized: "Scan läuft …")) }
+        if appModel.monitoring.isScanning { return .scanning(appModel.monitoring.scanProgress) }
         return appModel.monitoring.lastCheckedAt == nil
             ? .toned(.neutral, String(localized: "Folgt nach „Fertig“"))
             : .ok(String(localized: "Ausgangsbasis gespeichert"))

@@ -34,7 +34,12 @@ public final class UpdateModel {
     public var onboardingChoice: Bool
     public private(set) var installsAutomatically: Bool
     public private(set) var installationStatus: String?
-    public private(set) var installationError: String?
+    private var transientInstallationError: String?
+    public private(set) var installationIdentityError: String?
+    public var installationError: String? { installationIdentityError ?? transientInstallationError }
+    @ObservationIgnored private let installationValidation: Task<String?, Never>
+    @ObservationIgnored private var identityVerificationCompleted = false
+    @ObservationIgnored private let onInstallationIdentityFailure: @MainActor (String) -> Void
     public var supportsInstallation: Bool { installer != nil }
     public var downloadButtonTitle: String { supportsInstallation ? "Installieren und neu starten" : UpdateTexts.download }
     @ObservationIgnored private let installer: (any UpdateInstalling)?
@@ -67,9 +72,12 @@ public final class UpdateModel {
         notifier: any UserNotifying = UNUserNotificationCenterNotifier(),
         checksAutomatically: Bool,
         installer: (any UpdateInstalling)? = nil,
+        onInstallationIdentityFailure: @escaping @MainActor (String) -> Void = { _ in },
         openURL: @escaping @MainActor (URL) -> Void
     ) {
+        self.onInstallationIdentityFailure = onInstallationIdentityFailure
         self.installer = installer
+        installationValidation = Task { await installer?.verifyInstalledApplication() }
         installsAutomatically = preferences.installsAutomatically
         self.preferences = preferences
         self.checker = checker
@@ -81,9 +89,25 @@ public final class UpdateModel {
         lastCheck = preferences.lastSuccessfulCheck
         installer?.onStatus = { [weak self] status, error in
             self?.installationStatus = status
-            self?.installationError = error
+            self?.transientInstallationError = error
         }
-        installer?.setAutomaticInstallation(preferences.installsAutomatically)
+        installer?.setAutomaticInstallation(false)
+        Task { [weak self] in await self?.verifyInstallation() }
+    }
+
+    /// Einmal pro Start prüfen, bevor automatische Downloads freigegeben werden.
+    func verifyInstallation() async {
+        guard !identityVerificationCompleted else { return }
+        let error = await installationValidation.value
+        guard !identityVerificationCompleted else { return }
+        identityVerificationCompleted = true
+        installationIdentityError = error
+        if let error {
+            preferences.installsAutomatically = false
+            installsAutomatically = false
+            onInstallationIdentityFailure(error)
+        }
+        installer?.setAutomaticInstallation(installsAutomatically && isEnabled)
     }
 
     /// Über die Update-Prüfung ist noch nicht entschieden (Onboarding erscheint dann einmal je Start).
@@ -99,7 +123,7 @@ public final class UpdateModel {
         consent = preferences.consent
         onboardingChoice = enabled
         if enabled {
-            installer?.setAutomaticInstallation(preferences.installsAutomatically)
+            installer?.setAutomaticInstallation(identityVerificationCompleted && installationIdentityError == nil && preferences.installsAutomatically)
             Task { await checkIfDue() }
         } else {
             cancelAutomaticCheck()
@@ -152,18 +176,23 @@ public final class UpdateModel {
 
     public func openDownload(_ item: AppcastItem) {
         if let installer {
-            installationError = nil
-            installer.install(item, automatically: false)
+            transientInstallationError = nil
+            if identityVerificationCompleted {
+                installer.install(item, automatically: false)
+            } else {
+                Task { await verifyInstallation(); installer.install(item, automatically: false) }
+            }
         } else {
             openURL(item.downloadURL)
         }
     }
 
     public func setAutomaticInstallation(_ enabled: Bool) {
-        preferences.installsAutomatically = enabled
-        installsAutomatically = enabled
-        installer?.setAutomaticInstallation(enabled)
-        if enabled, isEnabled, let availableUpdate { installer?.install(availableUpdate, automatically: true) }
+        let allowed = enabled && installationIdentityError == nil
+        preferences.installsAutomatically = allowed
+        installsAutomatically = allowed
+        installer?.setAutomaticInstallation(allowed && identityVerificationCompleted && isEnabled)
+        if allowed, identityVerificationCompleted, isEnabled, let availableUpdate { installer?.install(availableUpdate, automatically: true) }
     }
 
     public func openReleaseNotes(_ item: AppcastItem) {
@@ -220,6 +249,8 @@ public final class UpdateModel {
     /// - Parameter postsNotification: Beim ersten Fund einer Version eine Systembenachrichtigung zeigen (automatische
     ///   Prüfung); `false` bei der manuellen Prüfung, die ihr Ergebnis selbst anzeigt.
     private func performCheck(postsNotification: Bool) async throws -> AppcastItem? {
+        await verifyInstallation()
+        try Task.checkCancellation()
         let found: AppcastItem?
         if let installer { found = try await installer.check() } else { found = try await checker.check() }
         try Task.checkCancellation()

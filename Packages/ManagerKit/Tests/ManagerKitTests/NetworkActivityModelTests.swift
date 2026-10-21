@@ -164,9 +164,72 @@ import TestSupport
 
         model.stop(for: .activityView)
         #expect(model.status == .idle)
+        #expect(model.frame == .empty)
+        #expect(model.rows.isEmpty)
+        #expect(model.hostNames.isEmpty)
         await model.stopAndWait()
         #expect(streamer.startedRuns == 1)
         #expect(streamer.terminatedRuns == 1)
+    }
+
+    /// Bereichswechsel und Ablauf der Hidden-Frist rufen beide `stop(for:)` auf. Auch ein gerade
+    /// wartender nettop-Neustart muss dann entfallen; kein echter Prozess und keine Echtzeitwartefrist.
+    @Test(arguments: [NetworkActivityModel.Consumer.activityView, .listenerDetail])
+    func lastConsumerCancelsScheduledRestart(first: NetworkActivityModel.Consumer) async {
+        let clock = TestClock()
+        let streamer = ScriptedLineStreamer([.init(), .init()])
+        let model = NetworkActivityModel(sampler: NettopSampler(
+            streamer: streamer, sleep: { try await clock.sleep(for: $0) }
+        ))
+        let last: NetworkActivityModel.Consumer = first == .activityView ? .listenerDetail : .activityView
+        model.start(for: first)
+        model.start(for: last)
+        await clock.waitForSleeper(until: .at(.seconds(1)))
+
+        model.stop(for: first)
+        #expect(model.status == .running)
+        #expect(clock.advance(by: .seconds(1)) == 1)
+        await clock.waitForSleeper(until: .at(.seconds(3)))
+        #expect(streamer.startedRuns == 2)
+
+        model.stop(for: last)
+        #expect(model.status == .idle)
+        await model.stopAndWait()
+        // Der nächste Neustart wäre nach zwei Sekunden fällig. Selbst zehn Minuten später
+        // gibt es keinen Schläfer mehr; bloß den Prozessstatus zu prüfen würde das nicht belegen.
+        #expect(clock.advance(by: .seconds(600)) == 0)
+        #expect(streamer.startedRuns == 2)
+    }
+
+    /// Nach dem letzten Sichtbarkeits-Abnehmer bleibt auch keine DNS-Zeitlimitaufgabe geplant.
+    /// Der nicht abbrechbare Systemaufruf darf später enden; seine Warteaufgabe muss sofort entfallen.
+    @Test(arguments: [NetworkActivityModel.Consumer.activityView, .listenerDetail])
+    func lastConsumerCancelsScheduledDNSDeadline(first: NetworkActivityModel.Consumer) async throws {
+        let clock = TestClock()
+        let gate = Gate()
+        defer { gate.open() }
+        let lookup = FakeReverseDNS(["192.0.2.10": "api.example.com"], gate: gate)
+        let resolver = HostNameResolver(lookup: lookup, timeout: .seconds(3600),
+                                        sleep: { try await clock.sleep(for: $0) })
+        let streamer = ScriptedLineStreamer([.init(twoSamples, ending: .hangUntilCancelled)])
+        let model = model(streamer, hostNames: resolver)
+        let last: NetworkActivityModel.Consumer = first == .activityView ? .listenerDetail : .activityView
+        model.start(for: first)
+        model.start(for: last)
+        await clock.waitForSleeper(until: .at(.seconds(3600)))
+        try await eventually("DNS-Abfrage gestartet") { lookup.lookedUp.count == 1 }
+
+        model.stop(for: first)
+        #expect(model.status == .running)
+        model.stop(for: last)
+        #expect(model.status == .idle)
+        await model.stopAndWait()
+
+        #expect(model.hostNameLookupCount == 0)
+        #expect(model.hostNames.isEmpty)
+        #expect(streamer.startedRuns == 1)
+        #expect(streamer.terminatedRuns == 1)
+        #expect(clock.advance(by: .seconds(7200)) == 0)
     }
 
     /// Kopf der Ansicht: Summe ↓/↑ des Macs und Verlauf – unabhängig von Filter und Suche.

@@ -80,12 +80,13 @@ public struct ScanCoordinator: Sendable {
     /// - Throws: ausschließlich `CancellationError`, wenn der aufrufende Task abgebrochen wurde. Ein Abbruch ist
     ///   kein Quellenfehler: Als `SourceError` erfasst, würde er fortgeschrieben und wie ein Ausfall aussehen.
     public func scan(
-        previous: Snapshot? = nil, only: Set<SourceID>? = nil
+        previous: Snapshot? = nil, only: Set<SourceID>? = nil,
+        onSourceCompletion: (@Sendable (ScanSourceCompletion) async -> Void)? = nil
     ) async throws(CancellationError) -> Snapshot {
         let startedAt = now()
         let selected = previous == nil ? nil : only
         let indices = sources.indices.filter { selected?.contains(sources[$0].id) ?? true }
-        let outcomes = await collectOutcomes(of: indices)
+        let outcomes = await collectOutcomes(of: indices, onSourceCompletion: onSourceCompletion)
         if Task.isCancelled { throw CancellationError() }
 
         var snapshot = if let previous, let selected {
@@ -169,7 +170,10 @@ public struct ScanCoordinator: Sendable {
     /// `indices` und hat für jede gewählte Quelle genau einen Eintrag – eine Quelle ohne Ergebnis gilt als
     /// fehlgeschlagen, statt die Zuordnung zu verschieben. Der Merker `running` gilt je Index in `sources`, damit ein
     /// Teilscan keine Quelle erneut startet, die ein Vollscan noch abfragt (und umgekehrt).
-    private func collectOutcomes(of indices: [Int]) async -> [Outcome] {
+    private func collectOutcomes(
+        of indices: [Int], onSourceCompletion: (@Sendable (ScanSourceCompletion) async -> Void)?
+    ) async -> [Outcome] {
+        let started = ContinuousClock.now
         let timeout = sourceTimeout, running = running
         return await withTaskGroup(of: IndexedOutcome.self) { group in
             for (position, index) in indices.enumerated() {
@@ -184,7 +188,14 @@ public struct ScanCoordinator: Sendable {
                 }
             }
             var outcomes = [Outcome?](repeating: nil, count: indices.count)
-            for await result in group { outcomes[result.index] = result.outcome }
+            for await result in group {
+                outcomes[result.index] = result.outcome
+                if !Task.isCancelled, let onSourceCompletion {
+                    let succeeded = if case .success = result.outcome { true } else { false }
+                    await onSourceCompletion(ScanSourceCompletion(source: sources[indices[result.index]].id,
+                        elapsed: started.duration(to: .now).scanSeconds, succeeded: succeeded))
+                }
+            }
             return outcomes.map { $0 ?? .failure("Kein Ergebnis geliefert") }
         }
     }

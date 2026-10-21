@@ -60,6 +60,10 @@ import TestSupport
             #expect(usage.lockReason(for: scratch.path, lock: ProcessLock(processes: [name])) == "Wird gerade benutzt von \(name)")
             let none = try LibprocOpenFileProbe().usage(ofProcessesNamed: ["no-such-process-\(getpid())"])
             #expect(none.running.isEmpty && none.openPaths.isEmpty)
+            // #229: ohne Namen jeder eigene Prozess, benannt nach sich selbst.
+            let any = try LibprocOpenFileProbe().usage(ofProcessesNamed: nil)
+            #expect(any.running.contains(name))
+            #expect(any.lockReason(for: scratch.path, lock: .anyProcess) == "Wird gerade benutzt von \(name)")
         }
     }
 }

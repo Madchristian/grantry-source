@@ -240,6 +240,15 @@ import Testing
         #expect(StoragePresentation.coverageNote([report("c", .low, [("/c", 1, .delete)])]) == nil)
     }
 
+    /// #229: Neben gefundenen Agenten-Arbeitsordnern der Hinweis, dass ein Neustart `/private/tmp` leert.
+    @Test func restartNoteAppearsOnlyWithAgentWorkdirs() {
+        let workdirs = report(AgentWorkdirsProvider.categoryID, .low, [("/private/tmp/claude-501/p/s", 1, .trash)])
+        #expect(StoragePresentation.restartNote([workdirs])
+                == "Ein Neustart des Mac leert /private/tmp und damit auch die Arbeitsordner von Claude Code.")
+        #expect(StoragePresentation.restartNote([report(AgentWorkdirsProvider.categoryID, .low, [])]) == nil)
+        #expect(StoragePresentation.restartNote([report("caches", .low, [("/c", 1, .delete)])]) == nil)
+    }
+
     @Test func unassignedNoteSubtractsCountedCategoriesFromUsedSpace() {
         let volume = VolumeUsage(totalBytes: 1_000_000_000_000, availableBytes: 100_000_000_000)
         let counted = [report("a", .low, [("/a", 200_000_000_000, .delete)])]

@@ -34,6 +34,10 @@ public struct StorageLocation: Hashable, Sendable {
     /// Ergebnisprotokoll des Speicher-Aufräumens (`CleanupLog`).
     public var cleanupLogURL: URL { directory.appending(path: "CleanupLog.jsonl") }
 
+    public var deepSignatureCacheURL: URL { directory.appending(path: "DeepSignatures.json") }
+
+    public var scanDurationsURL: URL { directory.appending(path: "ScanDurations.json") }
+
     public var appRiskAcceptancesURL: URL { directory.appending(path: "AppRiskAcceptances.json") }
 
     /// Backups entfernter Benutzer-LaunchAgents (`PlistBackupStore.user(root:)`).

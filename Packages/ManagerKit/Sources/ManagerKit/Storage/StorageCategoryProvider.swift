@@ -12,13 +12,17 @@ struct ToolLocator: Sendable {
     let isExecutable: @Sendable (String) -> Bool
     /// Ob ein Ordner existiert (Symlinks werden nicht verfolgt); für Voraussetzungen wie den CoreSimulator-Ordner.
     let isDirectory: @Sendable (String) -> Bool
+    /// Wie ein gefundenes Werkzeug startet (liest den Dateianfang); `nil`: unklar.
+    let kind: @Sendable (String) -> ExecutableKind?
 
     init(home: String = NSHomeDirectory(),
          isExecutable: @escaping @Sendable (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) },
-         isDirectory: @escaping @Sendable (String) -> Bool = { FileIdentity.of($0)?.type == .directory }) {
+         isDirectory: @escaping @Sendable (String) -> Bool = { FileIdentity.of($0)?.type == .directory },
+         kind: @escaping @Sendable (String) -> ExecutableKind? = ExecutableKind.of) {
         self.home = home
         self.isExecutable = isExecutable
         self.isDirectory = isDirectory
+        self.kind = kind
     }
 
     /// Erster ausführbarer Kandidat. Ohne `candidates`: Homebrew (Apple Silicon, Intel), dann `~/.local/bin`. Mit

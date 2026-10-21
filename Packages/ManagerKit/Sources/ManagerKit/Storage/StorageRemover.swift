@@ -10,19 +10,25 @@ public struct StorageRemover: Sendable {
     static let cancelledReason = "Abgebrochen"
     static let stderrLineCount = 5
 
+    let treeRemover: StorageTreeRemover
     let pathGuard: StoragePathGuard
     let trash: any TrashPerforming
     let runner: any CommandRunning
     let measurer: any FileSizeMeasuring
     let openFiles: any OpenFileProbing
+    let validateTool: @Sendable (String) throws -> Void
+    private static let validationQueue = BlockingWorkQueue(label: "CleanupToolValidation")
 
     init(pathGuard: StoragePathGuard, trash: any TrashPerforming, runner: any CommandRunning, measurer: any FileSizeMeasuring,
-         openFiles: any OpenFileProbing = LibprocOpenFileProbe()) {
+         openFiles: any OpenFileProbing = LibprocOpenFileProbe(), treeRemover: StorageTreeRemover = StorageTreeRemover(),
+         validateTool: @escaping @Sendable (String) throws -> Void = { try CleanupToolValidator().validate($0) }) {
+        self.treeRemover = treeRemover
         self.pathGuard = pathGuard
         self.trash = trash
         self.runner = runner
         self.measurer = measurer
         self.openFiles = openFiles
+        self.validateTool = validateTool
     }
 
     /// Mit den echten Abhängigkeiten der App.
@@ -85,9 +91,12 @@ public struct StorageRemover: Sendable {
             // Vorab für beide Wege; der Papierkorb prüft mit `verify` zusätzlich unmittelbar vor dem Apple Event.
             if case .blocked(let reason) = verify(candidate) { return outcome(nil, .skipped(reason)) }
             if method == .delete {
+                guard let identity = item.identity else { return outcome(nil, .skipped("Kein Scan-Beleg")) }
                 do {
-                    try FileManager.default.removeItem(atPath: path)
+                    try treeRemover.remove(path, identity: identity)
                     return outcome(item.size.bytes, .removed)
+                } catch is CancellationError {
+                    return outcome(nil, .skipped(Self.cancelledReason))
                 } catch {
                     return outcome(nil, .failed(error.localizedDescription))
                 }
@@ -110,7 +119,17 @@ public struct StorageRemover: Sendable {
         let before = if let path = item.path { await measurer.measure(path) } else { FileSize.unknown }
         let result: CommandResult
         do {
-            result = try await runner.run(spec.executable, spec.arguments, timeout: Self.commandTimeout)
+            // Die Specs aus dem Katalog verwenden env mit genau einer PATH-Zuweisung.
+            let tool = spec.cleanupExecutable
+            try await Self.validationQueue.runThrowing { [validateTool] in
+                try validateTool(tool)
+                if ["npm", "pnpm"].contains((tool as NSString).lastPathComponent) {
+                    try validateTool((tool as NSString).deletingLastPathComponent + "/node")
+                }
+            }
+            try Task.checkCancellation()
+            result = try await runner.run(spec.executable, spec.arguments, timeout: Self.commandTimeout,
+                                          environment: spec.cleanupEnvironment())
         } catch CommandError.timedOut {
             return outcome(nil, .failed("Zeitüberschreitung"))
         } catch {

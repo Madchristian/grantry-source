@@ -130,8 +130,9 @@ final class AppModel {
                 ),
                 // Die Einstellung wird je Event frisch gelesen; `SettingsStore` ist nicht `Sendable`, daher nichts einfangen.
                 notificationPolicy: NotificationPolicy(listenerSetting: { ListenerNotificationPreferences().setting }),
-                deepVerifier: DeepSignatureVerifier(),
-                appRiskAcceptances: AppRiskAcceptanceStore(url: storage.appRiskAcceptancesURL)
+                deepVerifier: DeepSignatureVerifier(cacheURL: storage.deepSignatureCacheURL),
+                appRiskAcceptances: AppRiskAcceptanceStore(url: storage.appRiskAcceptancesURL),
+                scanDurationsURL: storage.scanDurationsURL
             )
         }
         let receipts = ReceiptStore(url: storage.receiptsURL)
@@ -265,13 +266,16 @@ final class AppModel {
     private func mirror(_ state: MonitoringState) {
         let eventsChanged = state.recentEvents != monitoring.recentEvents || additionsTask == nil
         let newSnapshot = state.snapshot.flatMap { $0.takenAt != monitoring.snapshot?.takenAt ? $0 : nil }
+        // Fortschritt ändert nur die Anzeige: keine Snapshot-Aufbereitung oder Pipeline-Vergleiche je Schritt.
+        let presentationChanged = newSnapshot != nil || eventsChanged || state.findings != monitoring.findings
+            || state.activeSources != monitoring.activeSources
         if let newSnapshot {
             AppIconCache.shared.invalidate()
             trashedApps.prune(confirmedBy: newSnapshot)
             observations.update(with: newSnapshot)
         }
         monitoring = state
-        updatePresentation()
+        if presentationChanged { updatePresentation() }
         if eventsChanged { reloadRecentAdditions() }
         if let newSnapshot { onNewSnapshot?(newSnapshot) }
     }

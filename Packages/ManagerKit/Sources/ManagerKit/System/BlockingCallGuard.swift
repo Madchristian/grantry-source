@@ -23,7 +23,7 @@ final class BlockingCallGuard: Sendable {
     /// Signaturprüfung.
     static let launchServices = BlockingCallGuard(maximumHanging: 2)
     /// Für die Tiefenprüfung (`SecuritySignatureValidator`): läuft ohnehin seriell.
-    static let deepValidation = BlockingCallGuard(maximumHanging: 2)
+    static let deepValidation = BlockingCallGuard(maximumHanging: 1, qualityOfService: .background)
     /// Für Größenberechnungen (`FileSizeCalculator`): laufen seriell je Aufrufer (`AppDetailsLoader`) bzw. begrenzt
     /// parallel (`LeftoverScanner`) und brechen nach der Frist selbst ab.
     static let fileSize = BlockingCallGuard(maximumHanging: 2)
@@ -33,10 +33,12 @@ final class BlockingCallGuard: Sendable {
     static let icons = BlockingCallGuard(maximumHanging: 2)
 
     let maximumHanging: Int
+    private let qualityOfService: QualityOfService
     private let hanging = Mutex(0)
 
-    init(maximumHanging: Int) {
+    init(maximumHanging: Int, qualityOfService: QualityOfService = .utility) {
         self.maximumHanging = maximumHanging
+        self.qualityOfService = qualityOfService
     }
 
     /// Aufrufe nach Ablauf ihrer Frist, die noch laufen.
@@ -55,7 +57,7 @@ final class BlockingCallGuard: Sendable {
             if call.finish(with: body()) { hanging.withLock { $0 -= 1 } }
             done.signal()
         }
-        thread.qualityOfService = .utility
+        thread.qualityOfService = qualityOfService
         thread.start()
         if done.wait(timeout: .now() + Self.interval(timeout)) == .success { return call.result }
         return call.abandon { hanging.withLock { $0 += 1 } }

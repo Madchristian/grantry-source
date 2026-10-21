@@ -3,16 +3,23 @@ import Foundation
 /// `.build` (neben `Package.swift`) und `node_modules` (neben `package.json`) in Projekten unter den Code-Wurzeln,
 /// höchstens `maximumDepth` Ordner tief, die seit `minimumAgeDays` unberührt sind: weder die übrigen Einträge des
 /// Projekts noch die Artefakt-Ordner samt ihren direkten Einträgen sind jünger (Builds und `npm install` schreiben
-/// dort, ohne die Einträge des Projekts anzufassen). Folgt keinen Symlinks, betritt weder versteckte Ordner noch
-/// gefundene Artefakte. Risiko „mittel“: Papierkorb, nie vorausgewählt. Größen begrenzt parallel.
+/// dort, ohne die Einträge des Projekts anzufassen), ebenso wenig `.git/HEAD` und `.git/index` (Commit, Checkout,
+/// Staging) und tiefer liegende Einträge (Bearbeitung ohne Build oder Commit, #220; höchstens `deepEntryBudget`
+/// Einträge je Projekt, darüber gilt es im Zweifel als benutzt). Folgt keinen Symlinks, betritt weder versteckte Ordner
+/// noch Artefakte. Risiko „mittel“: Papierkorb, nie vorausgewählt. Größen begrenzt parallel.
 struct ProjectArtifactsProvider: StorageCategoryProvider {
     static let maximumDepth = 4
     /// Artefakt-Ordner → Manifest, das ein Projekt belegt.
     static let artifacts = [".build": "Package.swift", "node_modules": "package.json"]
+    /// Git schreibt sie bei Commit, Checkout und Staging.
+    static let gitMarkers = [".git/HEAD", ".git/index"]
+    /// Höchstzahl tiefer Einträge, deren Änderungsdatum je Projekt gelesen wird (ein `lstat` je Eintrag).
+    static let deepEntryBudget = 10_000
 
     let roots: [String]
     let minimumAgeDays: Int
     var now: @Sendable () -> Date = { Date() }
+    var deepEntryBudget = Self.deepEntryBudget
     let measurer: any FileSizeMeasuring
 
     var category: StorageCategory {
@@ -73,25 +80,55 @@ struct ProjectArtifactsProvider: StorageCategoryProvider {
         return found
     }
 
-    /// Das Projekt ist unberührt: kein Eintrag außer den Artefakten, kein Artefakt-Ordner und kein direkter Eintrag
-    /// darin ist jünger als die Altersgrenze. Die billigen Prüfungen (Projekt) kommen zuerst; `allSatisfy` bricht früh ab.
+    /// Das Projekt ist unberührt: kein Eintrag außer den Artefakten, kein Git-Marker, kein Artefakt-Ordner samt direkten
+    /// Einträgen und kein tieferer Eintrag ist jünger als die Altersgrenze. Die billigen Prüfungen kommen zuerst, der
+    /// Tiefenlauf zuletzt; `allSatisfy` bricht früh ab.
     private func isStale(_ directory: String, _ names: [String]) -> Bool {
         let limit = now().addingTimeInterval(-Double(minimumAgeDays) * 86_400)
-        let projectEntries = names.filter { Self.artifacts[$0] == nil }
+        let projectEntries = names.filter { Self.artifacts[$0] == nil }.map { directory + "/" + $0 }
         let artifactFolders = names.filter { Self.artifacts[$0] != nil }.map { directory + "/" + $0 }
-        return projectEntries.allSatisfy { isOlder(directory + "/" + $0, than: limit) }
+        return (projectEntries + Self.gitMarkers.map { directory + "/" + $0 }).allSatisfy { isOlder($0, than: limit) }
             && artifactFolders.allSatisfy { folder in
                 isOlder(folder, than: limit) && entries(of: folder).allSatisfy { isOlder($0, than: limit) }
             }
+            && deepEntriesAreOlder(below: projectEntries, than: limit)
+    }
+
+    /// Tiefe Änderungen (#220): Läuft durch die Unterordner von `folders`, ohne Symlinks, versteckte Ordner oder
+    /// Artefakte zu betreten, und liest höchstens `deepEntryBudget` Änderungsdaten. Reicht das Budget nicht oder wird
+    /// abgebrochen, gilt das Projekt im Zweifel als benutzt; unlesbare Ordner bleiben außen vor.
+    private func deepEntriesAreOlder(below folders: [String], than limit: Date) -> Bool {
+        var pending = folders.filter { isDescendable($0, status: FileType.linkStatus(of: $0)) }
+        var budget = deepEntryBudget
+        while let folder = pending.popLast() {
+            guard !Task.isCancelled else { return false }
+            for child in entries(of: folder) {
+                budget -= 1
+                guard budget >= 0 else { return false }
+                let status = FileType.linkStatus(of: child)
+                guard status.map({ Self.modificationDate(of: $0) < limit }) ?? true else { return false }
+                if isDescendable(child, status: status) { pending.append(child) }
+            }
+        }
+        return true
+    }
+
+    /// Ordner (kein Symlink), weder versteckt noch Artefakt.
+    private func isDescendable(_ path: String, status: stat?) -> Bool {
+        let name = (path as NSString).lastPathComponent
+        return status.map(FileType.isDirectory) == true && !RawPath.isHidden(name) && Self.artifacts[name] == nil
     }
 
     private func entries(of folder: String) -> [String] {
         ((try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []).map { folder + "/" + $0 }
     }
 
-    /// Ohne lesbares Änderungsdatum zählt der Eintrag als alt.
+    /// Änderungsdatum des Eintrags selbst (`lstat`, Symlinks nicht verfolgt); ohne lesbares Datum zählt er als alt.
     private func isOlder(_ path: String, than limit: Date) -> Bool {
-        let modified = (try? FileManager.default.attributesOfItem(atPath: path))?[.modificationDate] as? Date
-        return modified.map { $0 < limit } ?? true
+        FileType.linkStatus(of: path).map { Self.modificationDate(of: $0) < limit } ?? true
+    }
+
+    private static func modificationDate(of status: stat) -> Date {
+        Date(timeIntervalSince1970: Double(status.st_mtimespec.tv_sec) + Double(status.st_mtimespec.tv_nsec) / 1e9)
     }
 }

@@ -24,7 +24,13 @@ public struct ProcessCommandRunner: CommandRunning {
     }
 
     public func run(_ executable: String, _ arguments: [String], timeout: Duration) async throws -> CommandResult {
+        try await run(executable, arguments, timeout: timeout, environment: nil)
+    }
+
+    public func run(_ executable: String, _ arguments: [String], timeout: Duration,
+                    environment: [String: String]?) async throws -> CommandResult {
         let process = Process()
+        if let environment { process.environment = environment }
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
         process.standardInput = FileHandle.nullDevice

@@ -7,6 +7,32 @@ import TestSupport
     let runner = ProcessCommandRunner()
     let clock = ContinuousClock()
 
+    @Test func explicitEnvironmentReplacesInheritedValues() async throws {
+        let result = try await runner.run("/usr/bin/env", [], timeout: .seconds(5),
+                                          environment: ["HOMEBREW_NO_AUTOREMOVE": "1"])
+        #expect(result.stdout == "HOMEBREW_NO_AUTOREMOVE=1\n")
+    }
+
+    @Test func nilEnvironmentKeepsExistingCallersCompatible() async throws {
+        let result = try await runner.run("/usr/bin/env", [], timeout: .seconds(5), environment: nil)
+        let inheritedPath = try #require(ProcessInfo.processInfo.environment["PATH"])
+        #expect(result.stdout.split(separator: "\n").contains(Substring("PATH=" + inheritedPath)))
+    }
+
+    @Test func legacyRunnerFailsClosedForExplicitEnvironment() async throws {
+        let legacy: any CommandRunning = LegacyRunner()
+        #expect(try await legacy.run("/unused", [], timeout: .seconds(1)).stdout == "legacy")
+        await #expect(throws: CommandError.self) {
+            try await legacy.run("/unused", [], timeout: .seconds(1), environment: [:])
+        }
+    }
+
+    private struct LegacyRunner: CommandRunning {
+        func run(_ executable: String, _ arguments: [String], timeout: Duration) async throws -> CommandResult {
+            CommandResult(exitCode: 0, stdout: "legacy")
+        }
+    }
+
     @Test func capturesStdoutAndExitCode() async throws {
         let result = try await runner.run("/bin/echo", ["hallo"])
         #expect(result.exitCode == 0)

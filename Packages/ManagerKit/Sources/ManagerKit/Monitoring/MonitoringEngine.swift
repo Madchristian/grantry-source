@@ -15,7 +15,12 @@ public struct MonitoringState: Sendable, Equatable {
     public var riskAcceptanceError: String?
     /// Beginn des letzten abgeschlossenen Vollscans – auch wenn er nichts Neues ergab (Teilscans zählen nicht).
     public var lastCheckedAt: Date?
+    public var scanProgress = ScanProgress()
     public var isScanning: Bool
+    /// Ausstehende und laufende Tiefenprüfungen; das Ende des Inventarscans ist noch kein Leerlauf.
+    public var pendingSignatureChecks: Int = 0
+    /// Nach Fristablauf kann der nicht abbrechbare Security-Aufruf noch laufen.
+    public var signatureChecksTimedOut = false
     public var unreadCount: Int
     /// Die jüngsten Events (höchstens `MonitoringEngine.recentEventsLimit`), neueste zuerst.
     public var recentEvents: [HistoryEvent]
@@ -96,6 +101,9 @@ public actor MonitoringEngine {
     private var appRiskAcceptances: AppRiskAcceptanceStore
 
     private var state = MonitoringState()
+    private let scanDurationStore: ScanDurationStore
+    private var lastScanDurations: ScanDurations?
+    private var scanProgressTracker: ScanProgressTracker?
     /// Der Snapshot, wie er zuletzt nachweislich in der Ablage lag (geladen, gespeichert oder aufgefrischt); `nil`,
     /// solange keiner gespeichert ist. Grundlage für `persistSightings()`.
     private var storedSnapshot: Snapshot?
@@ -111,6 +119,8 @@ public actor MonitoringEngine {
     /// Noch zu prüfende Ziele, in Prüfreihenfolge.
     private var pendingVerifications: [String] = []
     private var verification: Task<Void, Never>?
+    private var activeVerificationPath: String?
+    private var lastSignaturePublication = ContinuousClock.now
 
     public init(
         coordinator: ScanCoordinator,
@@ -122,6 +132,7 @@ public actor MonitoringEngine {
         notificationPolicy: NotificationPolicy = NotificationPolicy(),
         deepVerifier: DeepSignatureVerifier? = nil,
         appRiskAcceptances: AppRiskAcceptanceStore = AppRiskAcceptanceStore(),
+        scanDurationsURL: URL? = nil,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.coordinator = coordinator
@@ -133,6 +144,7 @@ public actor MonitoringEngine {
         self.notificationPolicy = notificationPolicy
         self.deepVerifier = deepVerifier
         self.appRiskAcceptances = appRiskAcceptances
+        self.scanDurationStore = ScanDurationStore(url: scanDurationsURL)
         self.now = now
         state.activeSources = coordinator.sourceIDs
     }
@@ -289,6 +301,8 @@ public actor MonitoringEngine {
             // `.notice` wird persistiert; je tatsächlichem Vollscan genau ein Eintrag (Auslöser sind entprellt und
             // zusammengefasst). Teilscans kommen alle 60 s und landen daher nur als `.debug` im Protokoll.
             Self.logger.notice("Scan: \(reason.description, privacy: .public)")
+            scanProgressTracker = ScanProgressTracker(sources: coordinator.sourceIDs, previous: lastScanDurations)
+            state.scanProgress = ScanProgress()
             state.isScanning = true
             publish()
         } else {
@@ -300,15 +314,30 @@ public actor MonitoringEngine {
             if publishes { publish() }
         }
 
+        let started = ContinuousClock.now
         let previous = state.snapshot
         let current: Snapshot
+        let onSourceCompletion: (@Sendable (ScanSourceCompletion) async -> Void)?
+        if isFullScan {
+            onSourceCompletion = { [weak self] completion in
+                await self?.recordScanCompletion(completion)
+            }
+        } else {
+            onSourceCompletion = nil
+        }
         do {
-            current = try await coordinator.scan(previous: previous, only: isFullScan ? nil : only)
+            current = try await coordinator.scan(previous: previous, only: isFullScan ? nil : only,
+                                                 onSourceCompletion: onSourceCompletion)
         } catch {
+            if isFullScan {
+                scanProgressTracker?.cancel()
+                state.scanProgress = scanProgressTracker?.progress ?? ScanProgress()
+                scanProgressTracker = nil
+            }
             return  // Abbruch durch `stop()`: nichts speichern, die Schleife endet.
         }
         state.snapshot = current
-        await refreshSignatureVerdicts(for: current)
+        await refreshSignatureVerdicts(for: current, revalidation: isFullScan ? .completeTree : .bundleMetadata)
         let findings = findings(for: current)
         if !isFullScan, let previous, current.isEquivalent(to: previous), findings == state.findings,
            current.sourceLimitations == previous.sourceLimitations, current.sourceErrors == previous.sourceErrors {
@@ -321,26 +350,52 @@ public actor MonitoringEngine {
         await persist(current, previous: previous, checkedAt: isFullScan ? current.takenAt : nil)
         await pruneIfDue()
         await refreshHistory()
+        if isFullScan {
+            if Task.isCancelled {
+                scanProgressTracker?.cancel()
+            } else {
+                scanProgressTracker?.finish(elapsed: started.duration(to: .now).scanSeconds)
+            }
+            state.scanProgress = scanProgressTracker?.progress ?? ScanProgress()
+            if let durations = scanProgressTracker?.completedDurations {
+                lastScanDurations = durations
+                scanDurationStore.save(durations)
+            }
+            scanProgressTracker = nil
+        }
         startPendingVerifications()
+    }
+
+    private func recordScanCompletion(_ completion: ScanSourceCompletion) {
+        guard state.isScanning, lifecycle != .stopped,
+              scanProgressTracker?.complete(completion.source, elapsed: completion.elapsed,
+                                            succeeded: completion.succeeded) == true else { return }
+        state.scanProgress = scanProgressTracker?.progress ?? ScanProgress()
+        publish()
     }
 
     // MARK: Tiefe Signaturprüfung
 
     /// Übernimmt die noch gültigen Ergebnisse für die Ziele von `snapshot` aus dem Cache des Verifiers und merkt die
-    /// übrigen zur Prüfung vor.
-    private func refreshSignatureVerdicts(for snapshot: Snapshot) async {
+    /// übrigen zur Prüfung vor. Teilscans bestätigen nur Bundle-Metadaten (`bundleMetadata`), Vollscans den ganzen
+    /// Code-Baum (#259): Eine in place überschriebene Ressource fällt spätestens beim nächsten Vollscan auf.
+    private func refreshSignatureVerdicts(for snapshot: Snapshot, revalidation: DeepSignatureRevalidation) async {
         guard let deepVerifier else { return }
         let targets = InvalidSignatureRule.verificationTargets(in: snapshot)
-        let cached = await deepVerifier.cachedVerdicts(for: targets)
+        let cached = await deepVerifier.cachedVerdicts(for: targets, revalidation: revalidation)
         verificationTargets = Set(targets)
         signatureVerdicts = cached
-        pendingVerifications = targets.filter { cached[$0] == nil }
+        pendingVerifications = targets.filter { cached[$0] == nil && $0 != activeVerificationPath }
+        updateSignatureCheckCount()
+        state.signatureChecksTimedOut = await deepVerifier.hasTimedOutChecks(for: verificationTargets)
     }
 
     /// Startet die Hintergrund-Prüfung, sofern Ziele offen sind und sie nicht schon läuft. Sie arbeitet
     /// `pendingVerifications` nacheinander ab – auch Ziele, die ein späterer Scan währenddessen vormerkt.
     private func startPendingVerifications() {
         guard deepVerifier != nil, verification == nil, !pendingVerifications.isEmpty, lifecycle != .stopped else { return }
+        updateSignatureCheckCount()
+        lastSignaturePublication = .now
         verification = Task { await self.drainPendingVerifications() }
     }
 
@@ -348,21 +403,36 @@ public actor MonitoringEngine {
         defer { verification = nil }
         while let deepVerifier, !Task.isCancelled, !pendingVerifications.isEmpty {
             let path = pendingVerifications.removeFirst()
+            activeVerificationPath = path
             let verdict = await deepVerifier.verify(path: path)
+            activeVerificationPath = nil
             guard !Task.isCancelled else { return }
-            record(verdict, for: path)
+            state.signatureChecksTimedOut = await deepVerifier.hasTimedOutChecks(for: verificationTargets)
+            guard !Task.isCancelled else { return }
+            let findingsChanged = record(verdict, for: path)
+            updateSignatureCheckCount()
+            // Schnelle Cache-Ergebnisse lösen keine unbegrenzte Folge von UI-Zuständen aus.
+            if findingsChanged || state.pendingSignatureChecks == 0
+                || lastSignaturePublication.duration(to: .now) >= .milliseconds(250) {
+                lastSignaturePublication = .now
+                publish()
+            }
         }
     }
 
-    /// Übernimmt ein Prüfergebnis und veröffentlicht den Zustand, wenn sich die Findings dadurch ändern.
-    private func record(_ verdict: DeepSignatureVerdict, for path: String) {
-        guard verificationTargets.contains(path), let snapshot = state.snapshot else { return }
+    private func updateSignatureCheckCount() {
+        state.pendingSignatureChecks = Set(pendingVerifications + [activeVerificationPath].compactMap { $0 }).count
+    }
+
+    /// Übernimmt ein Prüfergebnis; die Drain-Schleife veröffentlicht Ergebnis und Restarbeit gemeinsam.
+    private func record(_ verdict: DeepSignatureVerdict, for path: String) -> Bool {
+        guard verificationTargets.contains(path), let snapshot = state.snapshot else { return false }
         signatureVerdicts[path] = verdict
         let previousAppFindings = state.appFindings
         let updated = findings(for: snapshot)
-        guard updated != state.findings || previousAppFindings != state.appFindings else { return }
+        guard updated != state.findings || previousAppFindings != state.appFindings else { return false }
         state.findings = updated
-        publish()
+        return true
     }
 
     private func findings(for snapshot: Snapshot) -> [RiskFinding] {
@@ -449,6 +519,7 @@ public actor MonitoringEngine {
     // MARK: Zustand
 
     private func loadPersistedState() async {
+        lastScanDurations = scanDurationStore.load()
         do {
             state.snapshot = try await store.latestSnapshot()
             storedSnapshot = state.snapshot

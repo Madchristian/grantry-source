@@ -29,7 +29,9 @@ struct RootView: View {
                 .navigationTitle(window.section.title)
                 .navigationSubtitle(ScanStatusText.subtitle(for: appModel.monitoring))
                 .toolbar {
-                    ScanToolbarItem(isScanning: appModel.monitoring.isScanning) {
+                    ScanToolbarItem(isScanning: appModel.monitoring.isScanning, progress: appModel.monitoring.scanProgress,
+                                    pendingSignatureChecks: appModel.monitoring.pendingSignatureChecks,
+                                    signatureChecksTimedOut: appModel.monitoring.signatureChecksTimedOut) {
                         Task { await appModel.scanNow() }
                     }
                 }
@@ -41,7 +43,7 @@ struct RootView: View {
             RemovalSheet(request: request, appModel: appModel)
         }
         .sheet(isPresented: $window.isObservationStartPresented) {
-            ObservationStartSheet(observations: appModel.observations) { window.showObservation($0) }
+            ObservationStartSheet(observations: appModel.observations, scanProgress: appModel.monitoring.scanProgress) { window.showObservation($0) }
         }
         .environment(window)
         .environment(\.coverageSteps, coverageSteps)
@@ -150,6 +152,12 @@ struct SidebarView: View {
 enum ScanStatusText {
     static func subtitle(for state: MonitoringState, now: Date = .now) -> String {
         if state.isScanning { return String(localized: "Scan läuft …") }
+        if state.pendingSignatureChecks > 0 {
+            return String(localized: "Inventarscan beendet · Signaturen: \(state.pendingSignatureChecks) offen")
+        }
+        if state.signatureChecksTimedOut {
+            return String(localized: "Signaturprüfung unvollständig · Systemprüfung kann noch laufen")
+        }
         guard let lastCheckedAt = state.lastCheckedAt else { return String(localized: "Noch kein Scan durchgeführt") }
         return lastChecked(lastCheckedAt, now: now)
     }

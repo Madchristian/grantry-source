@@ -17,6 +17,46 @@ public struct CommandSpec: Hashable, Sendable {
 
     public var commandLine: String { ([executable] + arguments).joined(separator: " ") }
 
+    /// Das eigentliche Werkzeug hinter dem festen env-Vorsatz; direkt konstruierte Specs bleiben möglich.
+    var cleanupExecutable: String {
+        if executable == "/usr/bin/env", arguments.count >= 2, arguments[0].hasPrefix("PATH="),
+           arguments[1].hasPrefix("/") { return arguments[1] }
+        return executable
+    }
+
+    /// Keine geerbten Interpreter-, Loader- oder Paketmanager-Overrides und keine Tokens aus der App-Umgebung. Variablen,
+    /// die Ziel oder Ablageort wählen (`targetVariables`), bleiben erhalten: Der Befehl trifft denselben Docker-Daemon
+    /// bzw. Cache wie ohne Reduktion (#252).
+    func cleanupEnvironment(inheriting inherited: [String: String] = ProcessInfo.processInfo.environment)
+        -> [String: String] {
+        let directory = (cleanupExecutable as NSString).deletingLastPathComponent
+        let tool = (cleanupExecutable as NSString).lastPathComponent
+        var environment = inherited.filter { Self.sharedTargetVariables.contains($0.key)
+            || Self.targetVariables[tool, default: []].contains($0.key) }
+        environment.merge(["HOME": NSHomeDirectory(), "USER": NSUserName(), "LOGNAME": NSUserName(),
+                           "PATH": directory + ":" + Self.basePath, "TMPDIR": NSTemporaryDirectory(),
+                           "LANG": "en_US.UTF-8"]) { $1 }
+        if tool == "brew" {
+            environment["HOMEBREW_NO_AUTOREMOVE"] = "1"
+            environment["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+        }
+        return environment
+    }
+
+    /// XDG-Basisordner legen Konfiguration, Daten und Caches mehrerer Werkzeuge fest (uv, pnpm, npm-Ableger).
+    static let sharedTargetVariables: Set<String> = ["XDG_CACHE_HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME"]
+
+    /// Je Werkzeug nur Variablen für Ziel (Docker-Daemon) und Ablageort, keine Ausführungs-Overrides (Hooks, Optionen).
+    static let targetVariables: [String: Set<String>] = [
+        "docker": ["DOCKER_CONTEXT", "DOCKER_HOST", "DOCKER_CONFIG", "DOCKER_TLS", "DOCKER_TLS_VERIFY",
+                   "DOCKER_CERT_PATH"],
+        "brew": ["HOMEBREW_CACHE", "HOMEBREW_LOGS", "HOMEBREW_TEMP"],
+        "npm": ["npm_config_cache", "NPM_CONFIG_CACHE"],
+        "pnpm": ["PNPM_HOME", "npm_config_store_dir", "NPM_CONFIG_STORE_DIR", "npm_config_cache_dir",
+                 "NPM_CONFIG_CACHE_DIR"],
+        "uv": ["UV_CACHE_DIR"],
+    ]
+
     /// Fester Grund-`PATH` für jeden Befehl; eine aus dem Finder gestartete App erbt den von launchd.
     static let basePath = "/usr/bin:/bin:/usr/sbin:/sbin"
 
@@ -67,14 +107,17 @@ public struct StorageCategory: Identifiable, Hashable, Sendable {
 
 /// Sperre von Einträgen durch laufende Prozesse (#226, DerivedData während eines Builds).
 public struct ProcessLock: Hashable, Sendable {
-    /// Prozessnamen (`p_comm`); ihre Unterprozesse zählen mit.
-    public let processes: Set<String>
+    /// Jeder eigene Prozess mit offener Datei oder Arbeitsordner im Eintrag sperrt ihn (Agenten-Arbeitsordner, #229).
+    public static let anyProcess = ProcessLock(processes: nil)
+
+    /// Prozessnamen (`p_comm`); ihre Unterprozesse zählen mit. `nil`: jeder eigene Prozess.
+    public let processes: Set<String>?
     /// Namen der Einträge, die genau einem Vorgang gehören (DerivedData: `<Projekt>-<28 Kleinbuchstaben>`); sie sperrt nur
     /// eine offene Datei darin. Alle übrigen – geteilte Caches wie `ModuleCache.noindex`, die Compiler nur kurz öffnen
     /// oder bloß einblenden – sperrt schon ein laufender Prozess. `nil`: Jeder Eintrag gehört einem Vorgang.
     public let ownedEntryPattern: String?
 
-    public init(processes: Set<String>, ownedEntryPattern: String? = nil) {
+    public init(processes: Set<String>?, ownedEntryPattern: String? = nil) {
         self.processes = processes
         self.ownedEntryPattern = ownedEntryPattern
     }
@@ -125,6 +168,12 @@ public struct StorageItem: Identifiable, Hashable, Sendable {
     public var sizeText: String { RemovalSize(sizes: [size]).text }
 }
 
+extension FileSize {
+    /// Ob die Messung eine Vorauswahl trägt (#220): Ohne Ergebnis – Frist abgelaufen, abgebrochen – bleibt ein Eintrag
+    /// im Zweifel abgewählt. „Nicht lesbar“ ist ein Ergebnis und ändert die Vorauswahl nicht.
+    var permitsPreselection: Bool { self != .unknown }
+}
+
 public enum StorageCategoryStatus: Hashable, Sendable {
     case available, notInstalled, needsFullDiskAccess, failed(String)
 }
@@ -160,8 +209,9 @@ public struct StorageCategoryReport: Identifiable, Hashable, Sendable {
 /// Ausgang je Eintrag; auch Zeile im `CleanupLog`.
 public struct StorageCleanOutcome: Hashable, Sendable, Codable {
     public enum Method: String, Hashable, Sendable, Codable {
-        /// `signal`: Prozesse beendet (Segment „Prozesse“, #221).
-        case trash, delete, command, signal, none
+        /// `signal`: Prozesse beendet (Segment „Prozesse“, #221). `timeMachineExclude`/`timeMachineInclude`: Ordner aus
+        /// Time Machine ausgenommen bzw. wieder gesichert (#227); `Result.removed` heißt dort „ausgeführt“.
+        case trash, delete, command, signal, none, timeMachineExclude, timeMachineInclude
     }
 
     public enum Result: Hashable, Sendable, Codable {

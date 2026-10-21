@@ -10,11 +10,30 @@ public enum StorageCatalog {
         public let home: String
         public let codeRoots: [String]
         public let minimumAgeDays: Int
+        /// Programme-Ordner für Spieldaten der Time-Machine-Vorschläge (#227); Tests setzen einen eigenen.
+        public let applications: String
 
-        public init(home: String, codeRoots: [String], minimumAgeDays: Int) {
+        public init(home: String, codeRoots: [String], minimumAgeDays: Int, applications: String = "/Applications") {
             self.home = home
             self.codeRoots = codeRoots
             self.minimumAgeDays = minimumAgeDays
+            self.applications = applications
+        }
+    }
+
+    /// Orte, die Speicher-Kategorien und Time-Machine-Vorschläge teilen (#227): eine Quelle für beide Listen.
+    struct Locations {
+        let home: String
+
+        func at(_ relative: String) -> String { home + "/" + relative }
+        var xcode: String { at("Library/Developer/Xcode") }
+        var derivedData: String { xcode + "/DerivedData" }
+        var caches: String { at("Library/Caches") }
+        var deviceSupport: [String] { ["iOS", "watchOS", "tvOS", "visionOS"].map { xcode + "/\($0) DeviceSupport" } }
+        var simulatorDevices: String { at("Library/Developer/CoreSimulator/Devices") }
+        var llmModels: [String] {
+            [at(".ollama/models"), at(".omlx"), at(".lmstudio/models"), at(".cache/lm-studio/models"),
+             at("Library/Caches/llama.cpp")]
         }
     }
 
@@ -24,6 +43,8 @@ public enum StorageCatalog {
                                        ownedEntryPattern: ".+-[a-z]{28}")
     /// Ab diesem Alter sind heruntergeladene VM-Installer vorausgewählt (#226).
     static let installerMinimumAgeDays = 90
+    /// Ab so vielen Tagen ohne Änderung sind Agenten-Arbeitsordner vorausgewählt (#229).
+    static let agentWorkdirMinimumAgeDays = 2
 
     /// Mit den echten Abhängigkeiten der App.
     public static func providers(_ configuration: Configuration) -> [any StorageCategoryProvider] {
@@ -37,7 +58,8 @@ public enum StorageCatalog {
                           fullDiskAccess: @escaping @Sendable () async -> Bool = { await FullDiskAccessProbe().hasFullDiskAccess() })
         -> [any StorageCategoryProvider] {
         let home = configuration.home
-        @Sendable func at(_ relative: String) -> String { home + "/" + relative }
+        let places = Locations(home: home)
+        @Sendable func at(_ relative: String) -> String { places.at(relative) }
         func category(_ id: String, _ title: String, _ summary: String,
                       _ risk: StorageRisk, _ roots: [String] = [], lockedBy lock: ProcessLock? = nil) -> StorageCategory {
             StorageCategory(id: id, title: title, summary: summary, risk: risk, roots: roots, processLock: lock)
@@ -59,7 +81,7 @@ public enum StorageCatalog {
                     _ paths: @escaping @Sendable () -> [String]) -> ReportOnlyProvider {
             ReportOnlyProvider(category: category(id, title, summary, .reportOnly), paths: paths, measurer: measurer)
         }
-        let xcode = at("Library/Developer/Xcode")
+        let xcode = places.xcode
         let codeRoots = configuration.codeRoots
         // Eigene CLI-Kategorie (Homebrew), Modelle (llama.cpp, Bericht unter „LLM-Modelle“), Apple-Dienste ohne
         // `com.apple.`-Präfix, deren Daemons die Ordner offen halten (CloudKit: Datenbank von `cloudd`), und Daten, die
@@ -72,14 +94,14 @@ public enum StorageCatalog {
         ]
         // Grantrys eigener Cache (u. a. Sparkle-Downloads eines laufenden Updates) bleibt unangetastet.
         if let ownIdentifier = Bundle.main.bundleIdentifier { cachesExclusions.insert(ownIdentifier) }
-        let simulatorDevices = at("Library/Developer/CoreSimulator/Devices")
+        let simulatorDevices = places.simulatorDevices
         let virtualBuddy = at("Library/Application Support/VirtualBuddy")
         let installerDownloads = "_Downloads"
         return [
             paths("derivedData", "Xcode DerivedData", "Build-Zwischenstände; Xcode legt sie bei Bedarf neu an.", .low,
-                  [xcode + "/DerivedData"], lockedBy: buildLock),
+                  [places.derivedData], lockedBy: buildLock),
             paths("caches", "Caches", "Zwischenspeicher der Apps (inkl. pip, CocoaPods); werden neu aufgebaut.", .low,
-                  [at("Library/Caches")], excluding: cachesExclusions),
+                  [places.caches], excluding: cachesExclusions),
             command("uv", "uv-Cache", "Entfernt nicht mehr benötigte Pakete aus dem uv-Cache.", .low, tool: "uv",
                     ["cache", "prune"], measuring: at(".cache/uv")),
             command("homebrew", "Homebrew aufräumen",
@@ -93,7 +115,7 @@ public enum StorageCatalog {
                     tool: "xcrun", candidates: ["/usr/bin/xcrun"], ["simctl", "delete", "unavailable"], measuring: nil,
                     requiring: simulatorDevices),
             paths("deviceSupport", "Geräte-Support", "Symboldateien je iOS-/watchOS-/tvOS-/visionOS-Version.", .medium,
-                  ["iOS", "watchOS", "tvOS", "visionOS"].map { xcode + "/\($0) DeviceSupport" }),
+                  places.deviceSupport),
             paths("archives", "Xcode-Archive", "Archivierte Builds; nötig für Symbolisierung alter Releases.", .medium,
                   [xcode + "/Archives"]),
             paths("logs", "Protokolle", "Protokolle und Absturzberichte in ~/Library/Logs.", .medium, [at("Library/Logs")]),
@@ -114,10 +136,7 @@ public enum StorageCatalog {
                    """) { ["/Library/Developer/CoreSimulator/Caches/dyld"] },
             WebKitWALProvider(home: home, canReadAppContainers: fullDiskAccess),
             TimeMachineSnapshotsProvider(runner: runner),
-            report("llmModels", "LLM-Modelle", "Lokale Sprachmodelle (Ollama, oMLX, LM Studio).") {
-                [at(".ollama/models"), at(".omlx"), at(".lmstudio/models"), at(".cache/lm-studio/models"),
-                 at("Library/Caches/llama.cpp")]
-            },
+            report("llmModels", "LLM-Modelle", "Lokale Sprachmodelle (Ollama, oMLX, LM Studio).") { places.llmModels },
             // VirtualBuddy je Eintrag ohne die Installer-Downloads (eigene Kategorie, sonst doppelt gezählt).
             report("virtualMachines", "Virtuelle Maschinen", "VirtualBuddy, UTM, VMware, Parallels.") {
                 entries(of: virtualBuddy).filter { ($0 as NSString).lastPathComponent != installerDownloads }
@@ -135,8 +154,40 @@ public enum StorageCatalog {
             report("agentWorktrees", "Agent-Worktrees", "Arbeitskopien von KI-Agenten (`.claude/worktrees`).") {
                 codeRoots.flatMap { root in entries(of: root).map { $0 + "/.claude/worktrees" } }
             },
+            AgentWorkdirsProvider(claudeRoot: "/private/tmp/claude-\(getuid())", codexRoot: at(".codex/.tmp"), home: home,
+                                  minimumAgeDays: agentWorkdirMinimumAgeDays, measurer: measurer, openFiles: openFiles),
             report("trash", "Papierkorb", "Leeren im Finder.") { [at(".Trash")] },
         ]
+    }
+
+    /// Ordner, die Grantry zum Ausnehmen aus Time Machine vorschlägt (#227), aus denselben Orten wie die Kategorien.
+    /// Risiko „niedrig“ (vorausgewählt): Caches und Build-Zwischenstände, die von selbst neu entstehen, sowie die
+    /// Docker-VM-Disk, die sich ständig ändert und darum jedes Mal voll gesichert würde. „Mittel“: große, aber nur
+    /// mühsam neu ladbare Daten (Simulator-Geräte, LLM-Modelle, VM-Bundles, Spieldaten). Bei Spielen nur der
+    /// Datenordner, nie Einstellungen oder Addons (World of Warcraft: `Data`, nicht `_retail_`).
+    public static func timeMachineCandidates(_ configuration: Configuration) -> [TimeMachineCandidate] {
+        let places = Locations(home: configuration.home)
+        func candidate(_ title: String, _ path: String, _ risk: StorageRisk, category: String? = nil,
+                       needsFullDiskAccess: Bool = false) -> TimeMachineCandidate {
+            TimeMachineCandidate(title: title, path: path, risk: risk, categoryID: category,
+                                 needsFullDiskAccess: needsFullDiskAccess)
+        }
+        let packageCaches: [(String, String, String?)] = [
+            ("Paket-Caches (uv, pip, Hugging Face)", ".cache", nil), ("npm-Cache", ".npm", "npm"),
+            ("Bun-Cache", ".bun/install/cache", nil), ("Go-Module", "go/pkg/mod", nil),
+            ("Codex-Zwischenablage", ".codex/.tmp", nil),
+        ]
+        return [candidate("Xcode DerivedData", places.derivedData, .low, category: "derivedData"),
+                candidate("Caches", places.caches, .low, category: "caches")]
+            + places.deviceSupport.map { candidate("Geräte-Support", $0, .low, category: "deviceSupport") }
+            // Ordner in App-Containern liest Grantry nur mit Festplattenvollzugriff (wie `WebKitWALProvider`).
+            + [candidate("Docker-VM-Disk", places.at("Library/Containers/com.docker.docker/Data/vms"), .low,
+                         category: "docker", needsFullDiskAccess: true)]
+            + packageCaches.map { title, relative, category in candidate(title, places.at(relative), .low, category: category) }
+            + [candidate("Simulator-Geräte", places.simulatorDevices, .medium, category: "simulatorDevices")]
+            + places.llmModels.map { candidate("LLM-Modelle", $0, .medium, category: "llmModels") }
+            + [candidate("Claude-VM-Bundles", places.at("Library/Application Support/Claude/vm_bundles"), .medium),
+               candidate("World of Warcraft – Spieldaten", configuration.applications + "/World of Warcraft/Data", .medium)]
     }
 
     /// `reports` in der Reihenfolge der Kategorie-IDs `order` (aus `providers`), unbekannte zuletzt – unabhängig davon,

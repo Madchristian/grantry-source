@@ -26,6 +26,12 @@ public struct UpdatePreferences {
         nonmutating set { store.set(newValue.rawValue, forKey: Self.consentKey) }
     }
 
+    /// Vor dem Sparkle-Austausch gespeicherter Ziel-Build. Bleibt bei fehlgeschlagener Selbstprüfung erhalten.
+    public var pendingIdentityVerificationBuild: Int? {
+        get { store.object(forKey: "updatePendingIdentityVerificationBuild") as? Int }
+        nonmutating set { store.set(newValue, forKey: "updatePendingIdentityVerificationBuild") }
+    }
+
     /// Ausdrückliche Zustimmung zum Hintergrund-Download und zur Installation beim Beenden.
     public var installsAutomatically: Bool {
         get { store.object(forKey: "updateInstallsAutomatically") as? Bool ?? false }
