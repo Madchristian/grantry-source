@@ -118,14 +118,15 @@ import TestSupport
         #expect(WatchScope(paths: ["/", "/Library"]).roots == ["/Library"])
     }
 
-    /// Dateien beobachtet FSEvents über ihren Ordner; gemeldet wird der Ordner, nicht die Datei.
-    @Test func existingFileIsWatchedThroughItsDirectory() throws {
+    /// Dateien beobachtet FSEvents einzeln (Datei-Ereignisse), nicht über ihren Ordner als rekursive Wurzel.
+    @Test func existingFileIsWatchedOnItsOwn() throws {
         try ScratchDirectory.with(prefix: "scope") { directory in
             let root = try #require(WatchScope.canonicalPath(of: directory.path))
             let file = directory.appending(path: "com.apple.SoftwareUpdate.plist")
             try Data("x".utf8).write(to: file)
             let scope = WatchScope(paths: [], files: [file.path])
-            #expect(scope.roots == [root])
+            #expect(scope.roots.isEmpty)
+            #expect(scope.fileRoots == ["\(root)/com.apple.SoftwareUpdate.plist"])
             #expect(scope.entries == [
                 WatchScope.Entry(
                     source: file.path, root: root, target: "\(root)/com.apple.SoftwareUpdate.plist", isFile: true
@@ -134,6 +135,9 @@ import TestSupport
             #expect(!scope.contains(root))  // Ordner allein genügt nicht – erst der Fingerabdruck entscheidet
             #expect(scope.files(reportedIn: root) == ["\(root)/com.apple.SoftwareUpdate.plist"])
             #expect(scope.files(reportedIn: "\(root)/") == ["\(root)/com.apple.SoftwareUpdate.plist"])
+            #expect(scope.files(reportedIn: "\(root)/com.apple.SoftwareUpdate.plist")
+                == ["\(root)/com.apple.SoftwareUpdate.plist"])
+            #expect(scope.files(reportedIn: "\(root)/com.apple.SoftwareUpdate.plist.lock").isEmpty)
             #expect(scope.files(reportedIn: "\(root)/other").isEmpty)
             #expect(scope.fileTargets == ["\(root)/com.apple.SoftwareUpdate.plist"])
         }
@@ -179,19 +183,64 @@ import TestSupport
             try FileManager.default.createDirectory(at: preferences, withIntermediateDirectories: true)
             let target = "\(root)/Preferences/a.plist"
             let scope = WatchScope(paths: [], files: [preferences.appending(path: "a.plist").path])
-            #expect(scope.roots == ["\(root)/Preferences"])
+            #expect(scope.fileRoots == [target])
             #expect(scope.files(reportedIn: root) == [target])
             #expect(scope.files(reportedIn: "\(root)/Preferences") == [target])
             #expect(scope.files(reportedIn: "\(root)/Preferences/Sub").isEmpty)
         }
     }
 
-    /// Verzeichnisse und Dateien teilen sich ein Wurzelverzeichnis.
-    @Test func directoriesAndFilesShareRoots() throws {
+    /// Eine Datei unter einem beobachteten Verzeichnis meldet schon dessen Stream (mit ihrem Ordner): Sie braucht keine
+    /// eigene Wurzel.
+    @Test func filesBelowWatchedDirectoriesNeedNoOwnRoot() throws {
         try ScratchDirectory.with(prefix: "scope") { directory in
+            let root = try #require(WatchScope.canonicalPath(of: directory.path))
             let scope = WatchScope(paths: [directory.path], files: [directory.appending(path: "a.plist").path])
-            #expect(scope.roots.count == 1)
+            #expect(scope.roots == [root])
+            #expect(scope.fileRoots.isEmpty)
             #expect(scope.entries.count == 2)
+            #expect(scope.files(reportedIn: root) == ["\(root)/a.plist"])
+        }
+    }
+
+    /// #279: Eine Datei direkt im Home (`~/.claude.json`) oder in einem fehlenden Home-Ordner (`~/.cursor/mcp.json`)
+    /// macht den Home-Baum nicht zur rekursiven Wurzel. Sonst lieferte FSEvents jede fremde Dateiaktivität im Home
+    /// (Simulatoren, Agenten-Sitzungen) an Grantry, auch wenn der Filter sie danach verwirft.
+    @Test func homeFilesDoNotWidenDirectoryRoots() throws {
+        try ScratchDirectory.with(prefix: "scope") { home in
+            let root = try #require(WatchScope.canonicalPath(of: home.path))
+            let agents = home.appending(path: "Library/LaunchAgents")
+            try FileManager.default.createDirectory(at: agents, withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: home.appending(path: ".claude.json"))
+            let scope = WatchScope(
+                paths: [agents.path],
+                files: [home.appending(path: ".claude.json").path, home.appending(path: ".cursor/mcp.json").path]
+            )
+            #expect(scope.roots == [root + "/Library/LaunchAgents"])
+            #expect(scope.fileRoots == [root + "/.claude.json", root + "/.cursor/mcp.json"])
+            #expect(scope.files(reportedIn: root + "/.claude.json") == [root + "/.claude.json"])
+            #expect(scope.files(reportedIn: root + "/.cursor/mcp.json") == [root + "/.cursor/mcp.json"])
+            #expect(scope.files(reportedIn: root + "/.claude.json.backup").isEmpty)
+            #expect(scope.files(reportedIn: root + "/Other/simulator.log").isEmpty)
+            #expect(!scope.contains(root + "/Other"))
+        }
+    }
+
+    /// Ist die Datei selbst ein Symlink (Dotfiles-Verwaltung), wird auch ihr Ziel beobachtet: Änderungen dort melden die
+    /// Datei.
+    @Test func symlinkedFileIsAlsoWatchedAtItsDestination() throws {
+        try ScratchDirectory.with(prefix: "scope") { home in
+            let root = try #require(WatchScope.canonicalPath(of: home.path))
+            let dotfiles = home.appending(path: "dotfiles")
+            try FileManager.default.createDirectory(at: dotfiles, withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: dotfiles.appending(path: "claude.json"))
+            let link = home.appending(path: ".claude.json")
+            try FileManager.default.createSymbolicLink(at: link, withDestinationURL: dotfiles.appending(path: "claude.json"))
+            let scope = WatchScope(paths: [], files: [link.path])
+            #expect(scope.roots.isEmpty)
+            #expect(scope.fileRoots == [root + "/.claude.json", root + "/dotfiles/claude.json"])
+            #expect(scope.files(reportedIn: root + "/dotfiles/claude.json") == [root + "/.claude.json"])
+            #expect(scope.files(reportedIn: root + "/dotfiles/other.json").isEmpty)
         }
     }
 
@@ -220,6 +269,24 @@ import TestSupport
                 [.modificationDate: Date.now.addingTimeInterval(120)], ofItemAtPath: file.path
             )
             #expect(box.receive([root]) == target)  // Zieldatei geändert
+        }
+    }
+
+    /// Datei-Ereignisse nennen die Datei selbst: Ihr Austausch löst aus, fremde Dateien daneben nicht.
+    @Test func boxSignalsFileEventsOfTheWatchedFile() throws {
+        try ScratchDirectory.with(prefix: "box") { home in
+            let root = try #require(WatchScope.canonicalPath(of: home.path))
+            let file = home.appending(path: ".claude.json")
+            try Data("1".utf8).write(to: file)
+            let (_, continuation) = AsyncStream<String>.makeStream()
+            defer { continuation.finish() }
+            let box = ContinuationBox(continuation, scope: WatchScope(paths: [], files: [file.path]))
+
+            try Data("x".utf8).write(to: home.appending(path: ".claude.json.backup"))
+            #expect(box.receive([root + "/.claude.json.backup", root + "/Other/simulator.log"]) == nil)
+            try Data("2".utf8).write(to: file, options: .atomic)
+            #expect(box.receive([root + "/.claude.json"]) == root + "/.claude.json")
+            #expect(box.receive([root + "/.claude.json"]) == nil)
         }
     }
 
@@ -320,8 +387,8 @@ import TestSupport
         }
     }
 
-    /// Liegt eine Wurzel unter einer anderen (Datei direkt im Home neben einer Datei in `~/.cursor`), beobachtet
-    /// FSEvents nur die äußere – sie meldet die Ereignisse darunter ohnehin.
+    /// Liegt ein beobachtetes Verzeichnis unter einem anderen, beobachtet FSEvents nur das äußere – es meldet die
+    /// Ereignisse darunter ohnehin.
     @Test func nestedRootsAreDropped() throws {
         try ScratchDirectory.with(prefix: "scope") { directory in
             let root = try #require(WatchScope.canonicalPath(of: directory.path))
@@ -329,12 +396,7 @@ import TestSupport
             try FileManager.default.createDirectory(at: nested, withIntermediateDirectories: true)
             let sibling = directory.appending(path: "nested-sibling")
             try FileManager.default.createDirectory(at: sibling, withIntermediateDirectories: true)
-            let scope = WatchScope(
-                paths: [sibling.path],
-                files: [nested.appending(path: "a.json").path, directory.appending(path: "b.json").path]
-            )
-            #expect(scope.roots == [root])
-            #expect(scope.entries.count == 3)
+            #expect(WatchScope(paths: [directory.path, nested.path]).roots == [root])
             #expect(WatchScope(paths: [sibling.path, nested.path]).roots == [root + "/nested-sibling", root + "/nested"])
         }
     }

@@ -45,6 +45,64 @@ import TestSupport
         #expect(!paths.contains { $0.contains("_retail_") || $0.contains("WTF") || $0.contains("Interface") })
     }
 
+    /// Weitere Steam-Bibliotheken aus `libraryfolders.vdf` (#257): nur deren installierte Spiele (`steamapps/common`).
+    /// Die Standardbibliothek nimmt Steam selbst aus; Manifeste, Workshop-Inhalte (Mods), Spielstände (`userdata`) und
+    /// Einstellungen (`config`) bleiben gesichert.
+    @Test func steamOffersOnlyGamesOfAdditionalLibraries() throws {
+        try ScratchDirectory.with(prefix: "steam-libraries") { home in
+            let steam = home.appending(path: "Library/Application Support/Steam")
+            try FileManager.default.createDirectory(at: steam.appending(path: "steamapps"), withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(at: steam.appending(path: "config"), withIntermediateDirectories: true)
+            try #"""
+                "libraryfolders"
+                {
+                	"0"
+                	{
+                		"path"		"\#(steam.path)"
+                		"apps"		{ "228980"		"0" }
+                	}
+                	"1"
+                	{
+                		"path"		"/Volumes/Spiele/SteamLibrary"
+                		"label"		""
+                	}
+                	"2"
+                	{
+                		"path"		"/Users/x/Games/Steam \"Zwei\""
+                	}
+                	"3"
+                	{
+                		"path"		"relativ/SteamLibrary"
+                	}
+                	"4"
+                	{
+                		"path"		"\#(steam.path)/steamapps/../Nested"
+                	}
+                }
+                """#.write(to: steam.appending(path: "steamapps/libraryfolders.vdf"), atomically: true, encoding: .utf8)
+            try #"""
+                "libraryfolders" { "1" { "path" "/Volumes/Spiele/SteamLibrary/" } }
+                """#.write(to: steam.appending(path: "config/libraryfolders.vdf"), atomically: true, encoding: .utf8)
+            let configuration = StorageCatalog.Configuration(home: home.path, codeRoots: [], minimumAgeDays: 30,
+                                                             applications: "/Apps")
+            let candidates = StorageCatalog.timeMachineCandidates(configuration).filter { $0.title.contains("Steam") }
+            #expect(candidates.map(\.path) == ["/Volumes/Spiele/SteamLibrary/steamapps/common",
+                                               "/Users/x/Games/Steam \"Zwei\"/steamapps/common"])
+            #expect(candidates.allSatisfy { $0.risk == .medium })
+            let paths = StorageCatalog.timeMachineCandidates(configuration).map(\.path)
+            #expect(!paths.contains { $0.hasPrefix(steam.path) })
+            #expect(!paths.contains { $0.hasSuffix("/steamapps") || $0.contains("workshop") || $0.contains("userdata")
+                                      || $0.hasSuffix("/config") || $0.hasSuffix("SteamLibrary") })
+        }
+    }
+
+    @Test func steamWithoutLibraryFoldersOffersNothing() throws {
+        try ScratchDirectory.with(prefix: "steam-none") { home in
+            let configuration = StorageCatalog.Configuration(home: home.path, codeRoots: [], minimumAgeDays: 30)
+            #expect(!StorageCatalog.timeMachineCandidates(configuration).contains { $0.title.contains("Steam") })
+        }
+    }
+
     /// Dieselben Orte wie die Speicher-Kategorien, keine eigene Liste (DRY).
     @Test func suggestionsReuseTheStorageCategoryLocations() throws {
         let providers = StorageCatalog.providers(Self.configuration, measurer: FixedSizeMeasurer(),
@@ -149,6 +207,83 @@ import TestSupport
             #expect(report.suggestions.map(\.state) == [.unknown])
             #expect(report.suggestions.map(\.isPreselected) == [false])
         }
+    }
+
+    // MARK: Nach dem Aufräumen (#285)
+
+    private func report(_ category: String, root: String, items: [(String, FileSize)]) -> StorageCategoryReport {
+        StorageCategoryReport(category: StorageCategory(id: category, title: "", summary: "", risk: .low, roots: [root]),
+                              status: .available,
+                              items: items.map { StorageItem(id: $0, title: $0, path: $0, size: $1, removal: .delete,
+                                                             isPreselected: false) })
+    }
+
+    /// Nur die Vorschläge der aufgeräumten Kategorien werden neu gelesen, ihre Größen aus dem Nachscan; unbetroffene große
+    /// Ordner werden weder gemessen noch abgefragt. Inzwischen fehlende Ordner fallen weg.
+    @Test func refreshUpdatesOnlyCleanedCategories() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "tm-refresh") { scratch in
+            let derived = scratch.appending(path: "DerivedData").path, models = scratch.appending(path: "models").path
+            let caches = scratch.appending(path: "Caches").path
+            for path in [derived, models] { try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true) }
+            let before = TimeMachineReport(suggestions: [
+                suggestion(derived, .included, categoryID: "derivedData", size: .bytes(10_000_000_000)),
+                suggestion(caches, .included, categoryID: "caches", size: .bytes(4)),
+                suggestion(models, .excluded, risk: .medium, categoryID: "llmModels", size: .bytes(50_000_000_000)),
+            ], failure: nil)
+            let runner = MockCommandRunner()
+            runner.stub("/usr/bin/tmutil isexcluded \(derived)", CommandResult(exitCode: 0, stdout: "[Included]  \(derived)\n"))
+            let refreshed = await exclusions(runner, sizes: [derived: .bytes(77), models: .bytes(1)])
+                .refresh(before, categories: ["derivedData", "caches"],
+                         reports: [report("derivedData", root: derived, items: [(derived + "/A", .bytes(3))])])
+            #expect(runner.calls == ["/usr/bin/tmutil isexcluded \(derived)"])
+            #expect(refreshed.failure == nil)
+            #expect(refreshed.suggestions.map(\.candidate.path) == [derived, models])
+            #expect(refreshed.suggestions.map(\.size) == [.bytes(3), .bytes(50_000_000_000)])
+            #expect(refreshed.suggestions.map(\.state) == [.included, .excluded])
+        }
+    }
+
+    /// Scheitert `tmutil` beim Nachlesen, sind nur die betroffenen Status unbekannt; ein geleerter Ordner ohne Einträge im
+    /// Nachscan wird gemessen.
+    @Test func refreshAfterFailedQueryKeepsUnaffectedSuggestions() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "tm-refresh-fail") { scratch in
+            let derived = scratch.appending(path: "DerivedData").path, models = scratch.appending(path: "models").path
+            for path in [derived, models] { try FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true) }
+            let before = TimeMachineReport(suggestions: [
+                suggestion(derived, .included, categoryID: "derivedData", size: .bytes(10_000_000_000)),
+                suggestion(models, .excluded, categoryID: "llmModels", size: .bytes(9)),
+            ], failure: nil)
+            let runner = MockCommandRunner()
+            runner.stub("/usr/bin/tmutil isexcluded \(derived)", CommandResult(exitCode: 1, stdout: "", stderr: "kaputt"))
+            let refreshed = await exclusions(runner, sizes: [derived: .bytes(0)])
+                .refresh(before, categories: ["derivedData"], reports: [report("derivedData", root: derived, items: [])])
+            #expect(refreshed.failure == "kaputt")
+            #expect(refreshed.suggestions.map(\.size) == [.bytes(0), .bytes(9)])
+            #expect(refreshed.suggestions.map(\.state) == [.unknown, .excluded])
+        }
+    }
+
+    @Test func refreshWithoutAffectedSuggestionsQueriesNothing() async {
+        let before = TimeMachineReport(suggestions: [suggestion("/m", .excluded, categoryID: "llmModels", size: .bytes(9))],
+                                       failure: "alt")
+        let runner = MockCommandRunner()
+        let refreshed = await exclusions(runner).refresh(before, categories: ["derivedData"], reports: [])
+        #expect(refreshed == before)
+        #expect(runner.calls.isEmpty)
+    }
+
+    /// Bis zum Nachscan – und dauerhaft, wenn er abbricht – nennen Liste und Bestätigung für aufgeräumte Kategorien
+    /// keine veraltete Größe.
+    @Test func cleanedCategoriesLoseTheirStaleSizes() {
+        let before = TimeMachineReport(suggestions: [
+            suggestion("/d", .included, categoryID: "derivedData", size: .bytes(10_000_000_000)),
+            suggestion("/m", .included, categoryID: "llmModels", size: .bytes(9)),
+        ], failure: nil)
+        let stale = before.invalidatingSizes(ofCategories: ["derivedData"])
+        #expect(stale.suggestions.map(\.size) == [.unknown, .bytes(9)])
+        #expect(stale.suggestions.map(\.state) == [.included, .included])
+        let confirmation = TimeMachinePresentation.confirmation(.exclude, targets: Array(stale.suggestions.prefix(1)))
+        #expect(confirmation.message?.hasSuffix("Größe unbekannt") == true)
     }
 
     // MARK: Ausnehmen und wieder sichern
@@ -292,11 +427,19 @@ import TestSupport
     @Test func categoryNoteSummarizesBackupState() {
         let suggestions = [suggestion("/a", .included, categoryID: "x"), suggestion("/b", .excluded, categoryID: "x"),
                            suggestion("/c", .excluded, categoryID: "y"), suggestion("/d", .included, categoryID: "z"),
-                           suggestion("/e", .unknown, categoryID: "u")]
+                           suggestion("/e", .unknown, categoryID: "u"),
+                           suggestion("/f", .included, categoryID: "iu"), suggestion("/g", .unknown, categoryID: "iu"),
+                           suggestion("/h", .excluded, categoryID: "eu"), suggestion("/i", .unknown, categoryID: "eu"),
+                           suggestion("/j", .included, categoryID: "ieu"), suggestion("/k", .excluded, categoryID: "ieu"),
+                           suggestion("/l", .unknown, categoryID: "ieu")]
         #expect(TimeMachinePresentation.categoryNote("x", in: suggestions) == "Time Machine: teilweise gesichert")
         #expect(TimeMachinePresentation.categoryNote("y", in: suggestions) == "Time Machine: ausgenommen")
         #expect(TimeMachinePresentation.categoryNote("z", in: suggestions) == "Time Machine: gesichert")
-        #expect(TimeMachinePresentation.categoryNote("u", in: suggestions) == nil)
+        #expect(TimeMachinePresentation.categoryNote("u", in: suggestions) == "Time Machine: Status unbekannt")
+        for categoryID in ["iu", "eu", "ieu"] {
+            #expect(TimeMachinePresentation.categoryNote(categoryID, in: suggestions)
+                == "Time Machine: Status teilweise unbekannt")
+        }
         #expect(TimeMachinePresentation.categoryNote("none", in: suggestions) == nil)
     }
 

@@ -39,10 +39,11 @@ struct HistoryView: View {
     }
 
     private func content(now: Date) -> some View {
-        let events = window.historyFilter.apply(history.events, now: now)
+        let filter = window.historyFilter
+        let events = filter.apply(history.events, now: now)
         let restorable = RestoreMatching.unmatchedRestorables(
             receipts: history.receipts, changes: history.agentChanges, matches: history.restorablesByEvent,
-            filter: window.historyFilter, now: now
+            filter: filter, now: now
         )
         return List {
             if let result = appModel.actions.result(in: .history) {
@@ -67,7 +68,7 @@ struct HistoryView: View {
                         pendingRestore = $0
                     }
                 }
-                if history.hasMore && window.historyFilter.canMatchEvents(olderThan: history.events.last, now: now) {
+                if filter.mayFindMoreEvents(hasMore: history.hasMore, olderThan: history.events.last, now: now) {
                     LoadMoreRow(isLoading: history.isLoading) { Task { await history.loadMore() } }
                 }
             } header: {
@@ -75,19 +76,22 @@ struct HistoryView: View {
             }
         }
         .overlay {
-            if events.isEmpty && restorable.isEmpty && !history.hasMore {
-                emptyState
+            let hasRows = !events.isEmpty || !restorable.isEmpty
+            if let state = filter.emptyState(loaded: history.events, hasRows: hasRows, hasMore: history.hasMore,
+                                             isLoading: history.isLoading, now: now) {
+                emptyState(state)
             }
         }
     }
 
     @ViewBuilder
-    private var emptyState: some View {
-        if window.historyFilter.isActive && !history.events.isEmpty {
+    private func emptyState(_ state: HistoryEmptyState) -> some View {
+        switch state {
+        case .noFilterMatches:
             NoFilterMatchesView(description: "Keine Änderung passt zu den gewählten Filtern.") {
                 window.historyFilter = HistoryFilter()
             }
-        } else if !history.isLoading {
+        case .noChanges:
             let isIncomplete = appModel.monitoring.snapshot?.hasIncompleteCoverage ?? false
             ContentUnavailableView("Keine Änderungen", systemImage: "clock",
                                    description: Text(verbatim: isIncomplete

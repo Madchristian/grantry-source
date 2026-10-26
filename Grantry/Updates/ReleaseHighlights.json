@@ -1,21 +1,21 @@
 {
-  "version": "2026.10.26",
-  "intro": "Auffälliges schneller finden.",
+  "version": "2026.10.261",
+  "intro": "Weniger Hintergrundarbeit, mehr Überblick.",
   "highlights": [
     {
-      "symbol": "exclamationmark.triangle",
-      "title": "„Auffällig“ führt überallhin",
-      "body": "Die Kachel in der Übersicht zählt nur, was die Listen auch zeigen, und ein Hinweis über der Liste springt zu den übrigen Bereichen mit Befunden."
+      "symbol": "doc.badge.gearshape",
+      "title": "Gezieltere Beobachtung",
+      "body": "Konfigurationsdateien wie ~/.claude.json werden direkt beobachtet – Grantry reagiert nicht mehr auf jede Änderung im Benutzerordner."
     },
     {
-      "symbol": "line.3.horizontal.decrease.circle",
-      "title": "Befund-Filter",
-      "body": "Wähle in den Listen „Nur auffällige“ oder „Auffällige und Hinweise“."
+      "symbol": "arrow.triangle.branch",
+      "title": "Orca-Worktrees im Speicher",
+      "body": "Eine neue Kategorie zeigt Größe, Branch und letzte Änderung jedes Orca-Worktrees – nur zur Übersicht."
     },
     {
-      "symbol": "chart.bar.fill",
-      "title": "Gleichmäßiger Scan-Fortschritt",
-      "body": "Der Fortschrittsbalken des Vollscans bleibt nicht mehr hängen und läuft gleichmäßig bis zum Ende."
+      "symbol": "clock.arrow.circlepath",
+      "title": "Genauere Time-Machine-Vorschläge",
+      "body": "Spiele weiterer Steam-Bibliotheken, aktuelle Größen nach dem Aufräumen und ehrliche Angaben bei unbekanntem Sicherungsstatus."
     }
   ]
 }

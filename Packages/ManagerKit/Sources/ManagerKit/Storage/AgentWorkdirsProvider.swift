@@ -55,7 +55,7 @@ struct AgentWorkdirsProvider: StorageCategoryProvider {
             let isIdle = summary.newestModification.map { $0 < limit } ?? false
             return StorageItem(id: session.entry.path, title: session.title, path: session.entry.path, size: summary.size,
                                removal: .trash, isPreselected: usage != nil && lockReason == nil && isIdle,
-                               detail: lockReason ?? Self.changeText(summary.newestModification, tool: session.tool),
+                               detail: lockReason ?? "\(session.tool), \(summary.changeText)",
                                identity: session.entry.identity)
         }
         let unreadable = claude.unreadableRoots + sessions.unreadableRoots + codex.unreadableRoots
@@ -85,10 +85,12 @@ struct AgentWorkdirsProvider: StorageCategoryProvider {
         if folder == encodedHome { return "~" }
         return folder.hasPrefix(encodedHome + "-") ? String(folder.dropFirst(encodedHome.count + 1)) : folder
     }
+}
 
-    /// Ohne belegte jüngste Änderung (Frist, nicht lesbare Teile) ehrlich offen.
-    private static func changeText(_ newest: Date?, tool: String) -> String {
-        guard let newest else { return "\(tool), zuletzt geändert: nicht vollständig geprüft" }
-        return "\(tool), zuletzt geändert am \(newest.formatted(date: .abbreviated, time: .shortened))"
+extension FileTreeSummary {
+    /// „zuletzt geändert am …“; ohne belegte jüngste Änderung (Frist, nicht lesbare Teile) ehrlich offen.
+    var changeText: String {
+        guard let newestModification else { return "zuletzt geändert: nicht vollständig geprüft" }
+        return "zuletzt geändert am \(newestModification.formatted(date: .abbreviated, time: .shortened))"
     }
 }

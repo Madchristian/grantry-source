@@ -31,6 +31,7 @@ public enum StorageCatalog {
         var caches: String { at("Library/Caches") }
         var deviceSupport: [String] { ["iOS", "watchOS", "tvOS", "visionOS"].map { xcode + "/\($0) DeviceSupport" } }
         var simulatorDevices: String { at("Library/Developer/CoreSimulator/Devices") }
+        var steam: String { at("Library/Application Support/Steam") }
         var llmModels: [String] {
             [at(".ollama/models"), at(".omlx"), at(".lmstudio/models"), at(".cache/lm-studio/models"),
              at("Library/Caches/llama.cpp")]
@@ -149,11 +150,13 @@ public enum StorageCatalog {
                                    """, .low, [virtualBuddy + "/" + installerDownloads]),
                 extensions: ["ipsw"], minimumAgeDays: installerMinimumAgeDays, measurer: measurer),
             report("steam", "Steam-Spiele", "Installierte Spiele; deinstallieren in Steam.") {
-                [at("Library/Application Support/Steam/steamapps")]
+                [places.steam + "/steamapps"]
             },
             report("agentWorktrees", "Agent-Worktrees", "Arbeitskopien von KI-Agenten (`.claude/worktrees`).") {
                 codeRoots.flatMap { root in entries(of: root).map { $0 + "/.claude/worktrees" } }
             },
+            // Orcas Standard-Arbeitsordner (Einstellung „workspaceDir“).
+            OrcaWorktreesProvider(workspaceRoot: at("orca/workspaces"), measurer: measurer),
             AgentWorkdirsProvider(claudeRoot: "/private/tmp/claude-\(getuid())", codexRoot: at(".codex/.tmp"), home: home,
                                   minimumAgeDays: agentWorkdirMinimumAgeDays, measurer: measurer, openFiles: openFiles),
             report("trash", "Papierkorb", "Leeren im Finder.") { [at(".Trash")] },
@@ -164,7 +167,8 @@ public enum StorageCatalog {
     /// Risiko „niedrig“ (vorausgewählt): Caches und Build-Zwischenstände, die von selbst neu entstehen, sowie die
     /// Docker-VM-Disk, die sich ständig ändert und darum jedes Mal voll gesichert würde. „Mittel“: große, aber nur
     /// mühsam neu ladbare Daten (Simulator-Geräte, LLM-Modelle, VM-Bundles, Spieldaten). Bei Spielen nur der
-    /// Datenordner, nie Einstellungen oder Addons (World of Warcraft: `Data`, nicht `_retail_`).
+    /// Datenordner, nie Einstellungen oder Addons (World of Warcraft: `Data`, nicht `_retail_`; weitere Steam-
+    /// Bibliotheken: `steamapps/common`, nicht Manifeste oder `workshop`).
     public static func timeMachineCandidates(_ configuration: Configuration) -> [TimeMachineCandidate] {
         let places = Locations(home: configuration.home)
         func candidate(_ title: String, _ path: String, _ risk: StorageRisk, category: String? = nil,
@@ -177,6 +181,9 @@ public enum StorageCatalog {
             ("Bun-Cache", ".bun/install/cache", nil), ("Go-Module", "go/pkg/mod", nil),
             ("Codex-Zwischenablage", ".codex/.tmp", nil),
         ]
+        let steamGames = SteamLibraries.additional(steamRoot: places.steam).map {
+            candidate("Steam-Bibliothek – Spiele", $0 + "/steamapps/common", .medium)
+        }
         return [candidate("Xcode DerivedData", places.derivedData, .low, category: "derivedData"),
                 candidate("Caches", places.caches, .low, category: "caches")]
             + places.deviceSupport.map { candidate("Geräte-Support", $0, .low, category: "deviceSupport") }
@@ -188,6 +195,7 @@ public enum StorageCatalog {
             + places.llmModels.map { candidate("LLM-Modelle", $0, .medium, category: "llmModels") }
             + [candidate("Claude-VM-Bundles", places.at("Library/Application Support/Claude/vm_bundles"), .medium),
                candidate("World of Warcraft – Spieldaten", configuration.applications + "/World of Warcraft/Data", .medium)]
+            + steamGames
     }
 
     /// `reports` in der Reihenfolge der Kategorie-IDs `order` (aus `providers`), unbekannte zuletzt – unabhängig davon,

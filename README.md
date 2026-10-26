@@ -4,7 +4,7 @@ Grantry ist eine kostenlose macOS-App zur Übersicht und Verwaltung von Systemzu
 Autostart-Einträgen, installierter Software, Netzwerkdiensten und Agenten-/MCP-Konfigurationen.
 Dieses Repository macht das Verhalten der veröffentlichten App nachvollziehbar.
 
-**Quellstand: 2026.10.26 · Build 937**
+**Quellstand: 2026.10.261 · Build 953**
 
 Die offizielle App und weitere Informationen gibt es auf [grantry.cstrube.de](https://grantry.cstrube.de).
 

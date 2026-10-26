@@ -76,9 +76,10 @@ final class StorageCleanupModel {
             self.show(outcomes, at: date)
             self.phase = .scanned
             // Aufgeräumtes und betroffene Kategorien vor dem Nachscan verwerfen: Bricht er ab, bietet die Liste weder
-            // Entferntes noch Befehle mit veralteter Größe erneut an.
+            // Entferntes noch Befehle mit veralteter Größe erneut an – auch keine Time-Machine-Vorschläge (#285).
             self.selection.subtract(cleanedIDs)
             self.reports.removeAll { affected.contains($0.id) }
+            self.timeMachine = self.timeMachine?.invalidatingSizes(ofCategories: affected)
             self.scan(only: affected)
         }
     }
@@ -160,6 +161,12 @@ final class StorageCleanupModel {
                 guard !Task.isCancelled, let self else { return }
                 self.timeMachine = report
                 self.timeMachineSelection = Set(report.suggestions.filter(\.isPreselected).map(\.id))
+            } else if let ids, let current = self?.timeMachine, let reports = self?.reports {
+                // Nach dem Aufräumen nur die Vorschläge der betroffenen Kategorien neu lesen (#285).
+                let report = await exclusions.refresh(current, categories: ids, reports: reports)
+                guard !Task.isCancelled, let self else { return }
+                self.timeMachine = report
+                self.timeMachineSelection.formIntersection(report.suggestions.map(\.id))
             }
             let volume = await VolumeUsage.of(configuration.home)
             guard !Task.isCancelled, let self else { return }

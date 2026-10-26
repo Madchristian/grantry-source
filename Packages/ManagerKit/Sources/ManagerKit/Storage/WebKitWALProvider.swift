@@ -36,52 +36,102 @@ struct WebKitWALProvider: StorageCategoryProvider {
     func scan() async -> StorageCategoryReport {
         let readsContainers = await canReadAppContainers()
         var items: [StorageItem] = []
-        for (app, root) in webKitRoots(includingContainers: readsContainers) {
-            for folder in Self.dataFolders.map({ root + "/" + $0 }) where FileIdentity.of(folder)?.type == .directory {
+        var unreadablePaths: [String] = []
+        for (app, root) in webKitRoots(includingContainers: readsContainers, unreadablePaths: &unreadablePaths) {
+            for folder in Self.dataFolders.map({ root + "/" + $0 }) {
                 guard !Task.isCancelled else { break }
-                items += Self.walFiles(under: folder).compactMap { item($0.path, bytes: $0.bytes, app: app, in: folder) }
+                guard Self.isDirectory(folder, unreadablePaths: &unreadablePaths) else { continue }
+                let result = Self.walFiles(under: folder)
+                unreadablePaths += result.unreadablePaths
+                items += result.files.compactMap { item($0.path, bytes: $0.bytes, app: app, in: folder) }
             }
         }
-        return StorageCategoryReport(category: category, status: readsContainers ? .available : .needsFullDiskAccess,
+        let status: StorageCategoryStatus = !readsContainers ? .needsFullDiskAccess
+            : unreadablePaths.isEmpty ? .available : .failed("Websitedaten konnten nicht vollständig gelesen werden.")
+        if !readsContainers { unreadablePaths.append(containers) }
+        return StorageCategoryReport(category: category, status: status,
                                      items: items.sorted { ($0.size.bytes ?? 0) > ($1.size.bytes ?? 0) },
-                                     unreadablePaths: readsContainers ? [] : [containers])
+                                     unreadablePaths: Array(Set(unreadablePaths)).sorted())
+    }
+
+    /// Fehlende Pfade und Symlinks sind keine Lesefehler; andere Metadatenfehler lassen eine Abdeckungslücke.
+    private static func isDirectory(_ path: String, unreadablePaths: inout [String]) -> Bool {
+        var info = stat()
+        guard lstat(path, &info) == 0 else {
+            if errno != ENOENT && errno != ENOTDIR { unreadablePaths.append(path) }
+            return false
+        }
+        return FileType.isDirectory(info)
     }
 
     /// `WebKit`-Ordner je App: nicht sandboxte unter `~/Library/WebKit/<ID>`, sandboxte im Container. Ohne Symlinks.
-    private func webKitRoots(includingContainers: Bool) -> [(app: String, root: String)] {
+    private func webKitRoots(includingContainers: Bool, unreadablePaths: inout [String]) -> [(app: String, root: String)] {
         func directories(in folder: String, _ relative: String) -> [(app: String, root: String)] {
-            StorageCatalog.entries(of: folder)
-                .map { (app: ($0 as NSString).lastPathComponent, root: $0 + relative) }
-                .filter { FileIdentity.of($0.root)?.type == .directory }
+            guard Self.isDirectory(folder, unreadablePaths: &unreadablePaths) else { return [] }
+            let names: [String]
+            do { names = try FileManager.default.contentsOfDirectory(atPath: folder) }
+            catch {
+                let error = error as NSError
+                if error.domain != NSCocoaErrorDomain || error.code != NSFileReadNoSuchFileError {
+                    unreadablePaths.append(folder)
+                }
+                return []
+            }
+            return names.sorted().filter { !RawPath.isHidden($0) }
+                .map { (app: $0, root: folder + "/" + $0 + relative) }
+                .filter { Self.isDirectory($0.root, unreadablePaths: &unreadablePaths) }
         }
         let own = directories(in: home + "/Library/WebKit", "")
         return includingContainers ? own + directories(in: containers, "/Data/Library/WebKit") : own
     }
 
+    struct WALScan {
+        var files: [(path: String, bytes: Int64)] = []
+        var unreadablePaths: [String] = []
+    }
+
     /// Alle `-wal`-Dateien unter `folder` mit belegter Größe; `fts` physisch, ohne andere Volumes, bis `maximumDepth`.
-    static func walFiles(under folder: String) -> [(path: String, bytes: Int64)] {
-        guard let argument = strdup(folder) else { return [] }
+    static func walFiles(
+        under folder: String,
+        open: (UnsafeMutablePointer<UnsafeMutablePointer<CChar>?>) -> UnsafeMutablePointer<FTS>? = {
+            fts_open($0, FTS_PHYSICAL | FTS_NOCHDIR | FTS_XDEV, nil)
+        },
+        read: (UnsafeMutablePointer<FTS>) -> UnsafeMutablePointer<FTSENT>? = { fts_read($0) }
+    ) -> WALScan {
+        guard let argument = strdup(folder) else { return WALScan(unreadablePaths: [folder]) }
         defer { free(argument) }
         var arguments: [UnsafeMutablePointer<CChar>?] = [argument, nil]
-        guard let stream = fts_open(&arguments, FTS_PHYSICAL | FTS_NOCHDIR | FTS_XDEV, nil) else { return [] }
+        guard let stream = open(&arguments) else {
+            return WALScan(unreadablePaths: errno == ENOENT || errno == ENOTDIR ? [] : [folder])
+        }
         defer { fts_close(stream) }
-        var found: [(path: String, bytes: Int64)] = []
+        var result = WALScan()
         var count = 0
-        while let entry = fts_read(stream) {
+        while true {
+            // Nur errno des aktuellen fts_read zählt; Metadaten-/Origin-Abfragen können es ebenfalls setzen.
+            errno = 0
+            guard let entry = read(stream) else {
+                if errno != 0 && errno != ENOENT && errno != ENOTDIR { result.unreadablePaths.append(folder) }
+                break
+            }
             count += 1
             if count.isMultiple(of: FileSizeCalculator.checkInterval), Task.isCancelled { break }
             switch Int32(entry.pointee.fts_info) {
             case FTS_D where Int(entry.pointee.fts_level) >= maximumDepth:
                 fts_set(stream, entry, FTS_SKIP)
+            case FTS_DNR, FTS_ERR, FTS_NS:
+                if entry.pointee.fts_errno != ENOENT && entry.pointee.fts_errno != ENOTDIR {
+                    result.unreadablePaths.append(String(cString: entry.pointee.fts_path))
+                }
             case FTS_F:
                 let path = String(cString: entry.pointee.fts_path)
                 guard path.hasSuffix("-wal") else { continue }
-                found.append((path, Int64(entry.pointee.fts_statp.pointee.st_blocks) * 512))
+                result.files.append((path, Int64(entry.pointee.fts_statp.pointee.st_blocks) * 512))
             default:
                 continue
             }
         }
-        return found
+        return result
     }
 
     /// Ein Ausreißer als Eintrag; `nil`, wenn die WAL die Regel nicht erfüllt.

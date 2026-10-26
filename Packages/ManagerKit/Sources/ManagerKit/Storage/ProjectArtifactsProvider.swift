@@ -3,8 +3,8 @@ import Foundation
 /// `.build` (neben `Package.swift`) und `node_modules` (neben `package.json`) in Projekten unter den Code-Wurzeln,
 /// höchstens `maximumDepth` Ordner tief, die seit `minimumAgeDays` unberührt sind: weder die übrigen Einträge des
 /// Projekts noch die Artefakt-Ordner samt ihren direkten Einträgen sind jünger (Builds und `npm install` schreiben
-/// dort, ohne die Einträge des Projekts anzufassen), ebenso wenig `.git/HEAD` und `.git/index` (Commit, Checkout,
-/// Staging) und tiefer liegende Einträge (Bearbeitung ohne Build oder Commit, #220; höchstens `deepEntryBudget`
+/// dort, ohne die Einträge des Projekts anzufassen), ebenso wenig `HEAD` und `index` im Git-Ordner (Commit, Checkout,
+/// Staging; in verknüpften Worktrees der in der Datei `.git` genannte, #250) und tiefer liegende Einträge (Bearbeitung ohne Build oder Commit, #220; höchstens `deepEntryBudget`
 /// Einträge je Projekt, darüber gilt es im Zweifel als benutzt). Folgt keinen Symlinks, betritt weder versteckte Ordner
 /// noch Artefakte. Risiko „mittel“: Papierkorb, nie vorausgewählt. Größen begrenzt parallel.
 struct ProjectArtifactsProvider: StorageCategoryProvider {
@@ -12,7 +12,7 @@ struct ProjectArtifactsProvider: StorageCategoryProvider {
     /// Artefakt-Ordner → Manifest, das ein Projekt belegt.
     static let artifacts = [".build": "Package.swift", "node_modules": "package.json"]
     /// Git schreibt sie bei Commit, Checkout und Staging.
-    static let gitMarkers = [".git/HEAD", ".git/index"]
+    static let gitMarkers = ["HEAD", "index"]
     /// Höchstzahl tiefer Einträge, deren Änderungsdatum je Projekt gelesen wird (ein `lstat` je Eintrag).
     static let deepEntryBudget = 10_000
 
@@ -87,7 +87,8 @@ struct ProjectArtifactsProvider: StorageCategoryProvider {
         let limit = now().addingTimeInterval(-Double(minimumAgeDays) * 86_400)
         let projectEntries = names.filter { Self.artifacts[$0] == nil }.map { directory + "/" + $0 }
         let artifactFolders = names.filter { Self.artifacts[$0] != nil }.map { directory + "/" + $0 }
-        return (projectEntries + Self.gitMarkers.map { directory + "/" + $0 }).allSatisfy { isOlder($0, than: limit) }
+        let gitDirectory = GitWorktree.linkedGitDirectory(of: directory) ?? directory + "/.git"
+        return (projectEntries + Self.gitMarkers.map { gitDirectory + "/" + $0 }).allSatisfy { isOlder($0, than: limit) }
             && artifactFolders.allSatisfy { folder in
                 isOlder(folder, than: limit) && entries(of: folder).allSatisfy { isOlder($0, than: limit) }
             }

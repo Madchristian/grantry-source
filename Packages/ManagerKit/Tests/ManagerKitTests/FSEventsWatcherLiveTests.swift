@@ -74,6 +74,36 @@ struct FSEventsWatcherLiveTests {
         }
     }
 
+    /// #279: Konfigurationsdateien direkt im Home und in einem fehlenden Home-Ordner. Viele fremde Dateien im Home
+    /// lösen nichts aus; das Anlegen der fehlenden Datei und der atomare Austausch der vorhandenen schon.
+    @Test func homeConfigFilesSignalDespiteUnrelatedHomeActivity() async throws {
+        try await ScratchDirectory.with(prefix: "fsevents") { home in
+            let config = home.appending(path: ".claude.json")
+            let missing = home.appending(path: ".cursor/mcp.json")
+            let simulator = home.appending(path: "Library/Developer/CoreSimulator")
+            try FileManager.default.createDirectory(at: simulator, withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: config)
+            try await Task.sleep(for: .seconds(1))
+            let files = [config.path, missing.path]
+            let quiet = FSEventsWatcher().changes(in: [], files: files)
+            for index in 0..<200 {
+                try Data("\(index)".utf8).write(to: simulator.appending(path: "device-\(index).log"))
+            }
+            try Data("x".utf8).write(to: home.appending(path: ".claude.json.backup"))
+            await #expect(throws: NoSignal.self) {
+                try await expectSignal(from: quiet, within: .seconds(2))
+            }
+            let appearing = FSEventsWatcher().changes(in: [], files: files)
+            try FileManager.default.createDirectory(at: missing.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try Data("{}".utf8).write(to: missing)
+            try await expectSignal(from: appearing, within: .seconds(5))
+            try await Task.sleep(for: .seconds(1))
+            let replacing = FSEventsWatcher().changes(in: [], files: files)
+            try Data("{\"mcpServers\":{}}".utf8).write(to: config, options: .atomic)
+            try await expectSignal(from: replacing, within: .seconds(5))
+        }
+    }
+
     /// App-Ordner: Ein Hersteller, der in seinen Unterordner schreibt (iCUE), löst nichts aus; eine neue App schon.
     @Test func appFolderSignalsOnlyBundleChanges() async throws {
         try await ScratchDirectory.with(prefix: "fsevents") { directory in

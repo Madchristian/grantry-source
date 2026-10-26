@@ -84,6 +84,30 @@ public struct HistoryFilter: Hashable, Sendable {
         return oldest.event.detectedAt > start
     }
 
+    /// Ob weiteres Nachladen noch Treffer bringen kann: Die Ablage hat ältere Events (`hasMore`), und sie liegen
+    /// nicht schon vor dem Zeitraum (`canMatchEvents`). Steuert das Angebot „Ältere Änderungen laden“ und
+    /// entscheidet, ob eine leere Liste schon abschließend leer ist.
+    public func mayFindMoreEvents(hasMore: Bool, olderThan oldest: HistoryEvent?, now: Date) -> Bool {
+        hasMore && canMatchEvents(olderThan: oldest, now: now)
+    }
+
+    /// Was anstelle fehlender Zeilen steht; `nil`, solange Zeilen sichtbar sind oder die Liste noch nicht
+    /// abschließend leer ist.
+    ///
+    /// - Parameters:
+    ///   - events: Alle geladenen Events, neueste zuerst (ungefiltert).
+    ///   - hasRows: Ob gefilterte Events oder wiederherstellbare Belege angezeigt werden.
+    ///   - hasMore: Ob die Ablage weitere, ältere Events hat.
+    ///   - isLoading: Ob gerade geladen wird. Ein Filter, der die geladenen Events ausschließt, bleibt auch während
+    ///     eines Neuladens leer (sonst flackert der Hinweis); „Keine Änderungen“ gilt erst nach dem ersten Laden.
+    public func emptyState(
+        loaded events: [HistoryEvent], hasRows: Bool, hasMore: Bool, isLoading: Bool, now: Date
+    ) -> HistoryEmptyState? {
+        guard !hasRows, !mayFindMoreEvents(hasMore: hasMore, olderThan: events.last, now: now) else { return nil }
+        if isActive && !events.isEmpty { return .noFilterMatches }
+        return isLoading ? nil : .noChanges
+    }
+
     private func matchesCategory(_ subject: ChangeSubject) -> Bool {
         switch (category, subject) {
         case (.all, _), (.apps, .installedApp), (.permissions, .grant), (.autostart, .autostartItem),
@@ -93,6 +117,15 @@ public struct HistoryFilter: Hashable, Sendable {
         case (.apps, _), (.permissions, _), (.autostart, _), (.security, _), (.network, _): false
         }
     }
+}
+
+/// Leerzustand des Verlaufs (`HistoryFilter.emptyState`).
+public enum HistoryEmptyState: Equatable, Sendable {
+    /// Geladene Events vorhanden, aber der Filter schließt sie alle aus und ältere können nicht mehr passen:
+    /// Filter zurücksetzen anbieten.
+    case noFilterMatches
+    /// Der Verlauf hat (noch) keine Änderungen.
+    case noChanges
 }
 
 extension ChangeEvent.Kind {

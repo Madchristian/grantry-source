@@ -26,7 +26,7 @@ import TestSupport
         #expect(Set(ids) == ["derivedData", "caches", "uv", "homebrew", "npm", "pnpm", "unavailableSimulators",
                              "deviceSupport", "archives", "logs", "projectArtifacts", "docker", "simulatorRuntimes",
                              "simulatorDevices", "simulatorDyldCache", "webKitWAL", "timeMachine", "llmModels",
-                             "virtualMachines", "virtualBuddyDownloads", "steam", "agentWorktrees", "agentWorkdirs", "trash"])
+                             "virtualMachines", "virtualBuddyDownloads", "steam", "agentWorktrees", "orcaWorktrees", "agentWorkdirs", "trash"])
     }
 
     /// Codex-Review #226: Nach einem Nachscan steht „Nicht verfügbare Simulatoren“ hinten; aufgeräumt wird trotzdem vor
@@ -85,6 +85,13 @@ import TestSupport
         #expect(workdirs.category.roots == ["/private/tmp/claude-\(getuid())", "/home/.codex/.tmp"])
         #expect(workdirs.category.risk == .low && workdirs.category.processLock == .anyProcess)
         #expect(workdirs.minimumAgeDays == 2)
+    }
+
+    /// #255: Orca-Worktrees nur als Bericht aus Orcas Standard-Arbeitsordner, ohne Sperre und Löschweg.
+    @Test func orcaWorktreesAreOnlyReported() throws {
+        let worktrees = try #require(catalog().first { $0.category.id == "orcaWorktrees" } as? OrcaWorktreesProvider)
+        #expect(worktrees.category.roots == ["/home/orca/workspaces"])
+        #expect(worktrees.category.risk == .reportOnly && worktrees.category.processLock == nil)
     }
 
     @Test func dockerNeverPrunesVolumes() throws {

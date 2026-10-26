@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 import Testing
 import TestSupport
@@ -103,11 +104,124 @@ import TestSupport
         }
     }
 
+    @Test func unreadableSubtreeKeepsReadableFindings() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "webkit-wal") { home in
+            let data = home.appending(path: "Library/WebKit/app/WebsiteData")
+            let readable = data.appending(path: "readable/site.sqlite3-wal")
+            let blocked = data.appending(path: "blocked")
+            try write(1_000_000, to: readable)
+            try write(1_000_000, to: blocked.appending(path: "hidden.sqlite3-wal"))
+            try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: blocked.path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: blocked.path) }
+
+            let report = await provider(home: home, fullDiskAccess: true).scan()
+            #expect(report.items.map(\.path) == [readable.path])
+            #expect(report.unreadablePaths == [blocked.path])
+            if case .failed = report.status {} else { Issue.record("Lesefehler muss den Status einschränken") }
+        }
+    }
+
+    @Test func unreadableRootListingIsNotAnEmptySuccessfulScan() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "webkit-wal") { home in
+            let root = home.appending(path: "Library/Containers")
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: root.path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: root.path) }
+
+            let report = await provider(home: home, fullDiskAccess: true).scan()
+            #expect(report.items.isEmpty)
+            #expect(report.unreadablePaths == [root.path])
+            if case .failed = report.status {} else { Issue.record("Unlesbare Wurzel muss als Fehler erscheinen") }
+        }
+    }
+
+    @Test func inaccessibleWebKitRootIsReported() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "webkit-wal") { home in
+            let app = home.appending(path: "Library/Containers/app")
+            try FileManager.default.createDirectory(at: app.appending(path: "Data/Library/WebKit/WebsiteData"),
+                                                    withIntermediateDirectories: true)
+            try FileManager.default.setAttributes([.posixPermissions: 0], ofItemAtPath: app.path)
+            defer { try? FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: app.path) }
+            let report = await provider(home: home, fullDiskAccess: true).scan()
+            #expect(report.unreadablePaths == [app.path + "/Data/Library/WebKit"])
+        }
+    }
+
+    @Test func absentRootsAreNotReadFailures() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "webkit-wal") { home in
+            let report = await provider(home: home, fullDiskAccess: true).scan()
+            #expect(report.status == .available)
+            #expect(report.items.isEmpty && report.unreadablePaths.isEmpty)
+        }
+    }
+
+    @Test func traversalOpenFailureReportsTheRoot() throws {
+        try ScratchDirectory.withCanonical(prefix: "webkit-wal") { folder in
+            let result = WebKitWALProvider.walFiles(under: folder.path, open: { _ in
+                errno = EACCES
+                return nil
+            })
+            #expect(result.files.isEmpty)
+            #expect(result.unreadablePaths == [folder.path])
+        }
+    }
+
+    @Test func vanishedTraversalRootIsNotUnreadable() throws {
+        try ScratchDirectory.withCanonical(prefix: "webkit-wal") { folder in
+            let result = WebKitWALProvider.walFiles(under: folder.appending(path: "missing").path)
+            #expect(result.files.isEmpty && result.unreadablePaths.isEmpty)
+            let vanished = WebKitWALProvider.walFiles(under: folder.path, open: { _ in
+                errno = ENOENT
+                return nil
+            })
+            #expect(vanished.files.isEmpty && vanished.unreadablePaths.isEmpty)
+        }
+    }
+
+    @Test func traversalReadFailureKeepsFilesAlreadyFound() throws {
+        try ScratchDirectory.withCanonical(prefix: "webkit-wal") { folder in
+            let wal = folder.appending(path: "site.sqlite3-wal")
+            try write(1_000_000, to: wal)
+            var foundFile = false
+            let result = WebKitWALProvider.walFiles(under: folder.path, read: { stream in
+                if foundFile {
+                    errno = EIO
+                    return nil
+                }
+                let entry = fts_read(stream)
+                if let entry, Int32(entry.pointee.fts_info) == FTS_F { foundFile = true }
+                return entry
+            })
+            #expect(result.files.map(\.path) == [wal.path])
+            #expect(result.unreadablePaths == [folder.path])
+        }
+    }
+
+    @Test(arguments: [FTS_ERR, FTS_NS])
+    func traversalEntryErrorsReportTheAffectedPath(kind: Int32) throws {
+        try ScratchDirectory.withCanonical(prefix: "webkit-wal") { folder in
+            var injected = false
+            let result = WebKitWALProvider.walFiles(under: folder.path, read: { stream in
+                let entry = fts_read(stream)
+                if let entry, !injected {
+                    injected = true
+                    entry.pointee.fts_info = UInt16(kind)
+                    entry.pointee.fts_errno = EIO
+                }
+                return entry
+            })
+            #expect(result.files.isEmpty)
+            #expect(result.unreadablePaths == [folder.path])
+        }
+    }
+
     @Test func walksNoDeeperThanTheKnownLayout() async throws {
         try await ScratchDirectory.withCanonical(prefix: "webkit-wal") { home in
             let deep = home.appending(path: "Library/WebKit/app/WebsiteData/1/2/3/4/5/6/7")
             try write(1_000_000, to: deep.appending(path: "too-deep.sqlite3-wal"))
-            #expect(await provider(home: home, fullDiskAccess: true).scan().items.isEmpty)
+            let report = await provider(home: home, fullDiskAccess: true).scan()
+            #expect(report.items.isEmpty)
+            #expect(report.unreadablePaths.isEmpty && report.status == .available)
         }
     }
 }

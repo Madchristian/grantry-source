@@ -61,6 +61,17 @@ import Testing
         #expect(HistoryFilter(period: .day).canMatchEvents(olderThan: nil, now: now))
     }
 
+    @Test func offersOlderPagesOnlyWhileTheyMayStillMatch() {
+        let events = events()
+        let week = HistoryFilter(period: .week)
+        #expect(week.mayFindMoreEvents(hasMore: true, olderThan: events[1], now: now))
+        // Ältestes geladenes Event liegt vor dem Zeitraum: ältere Seiten können nicht mehr passen.
+        #expect(!week.mayFindMoreEvents(hasMore: true, olderThan: events[2], now: now))
+        #expect(!week.mayFindMoreEvents(hasMore: false, olderThan: events[1], now: now))
+        #expect(HistoryFilter().mayFindMoreEvents(hasMore: true, olderThan: events[3], now: now))
+        #expect(!HistoryFilter().mayFindMoreEvents(hasMore: false, olderThan: events[3], now: now))
+    }
+
     @Test func namesAreGerman() {
         #expect(HistoryFilter.Category.permissions.displayName == "Berechtigungen")
         #expect(HistoryFilter.Period.month.displayName == "Letzte 30 Tage")
@@ -95,6 +106,54 @@ import Testing
         #expect(filter.apply(events(), now: now).isEmpty)
         #expect(!HistoryFilter(category: .apps).matches(listenerEvent, now: now))
         #expect(HistoryFilter.Category.network.displayName == "Netzwerk")
+    }
+}
+
+/// Leerzustand des Verlaufs (#283): Entschieden wird über Treffer, noch passende ältere Seiten und Ladevorgang.
+@Suite struct HistoryEmptyStateTests {
+    private let now = TestData.date
+    private let hour: TimeInterval = 60 * 60
+
+    private func event(hoursAgo: TimeInterval) -> HistoryEvent {
+        TestData.historyEvent(.added, .grant(TestData.grant()), at: now.addingTimeInterval(-hoursAgo * hour))
+    }
+
+    private func emptyState(
+        _ filter: HistoryFilter, loaded: [HistoryEvent], hasRows: Bool = false, hasMore: Bool = false,
+        isLoading: Bool = false
+    ) -> HistoryEmptyState? {
+        filter.emptyState(loaded: loaded, hasRows: hasRows, hasMore: hasMore, isLoading: isLoading, now: now)
+    }
+
+    /// Befund aus #283: volle erste Seite (`hasMore`), alles älter als der Zeitraum – bisher weder Zeilen noch
+    /// Nachladen noch Leerzustand.
+    @Test func exhaustedPeriodWithFurtherPagesShowsNoMatches() {
+        let loaded = [event(hoursAgo: 30), event(hoursAgo: 48)]
+        #expect(emptyState(HistoryFilter(period: .day), loaded: loaded, hasMore: true) == .noFilterMatches)
+    }
+
+    @Test func olderPagesThatMayStillMatchShowNoEmptyState() {
+        let loaded = [event(hoursAgo: 20), event(hoursAgo: 23)]
+        #expect(emptyState(HistoryFilter(category: .apps, period: .day), loaded: loaded, hasMore: true) == nil)
+        #expect(emptyState(HistoryFilter(category: .apps, period: .day), loaded: loaded, hasMore: true, isLoading: true) == nil)
+    }
+
+    @Test func filterWithoutFurtherPagesShowsNoMatches() {
+        let loaded = [event(hoursAgo: 2)]
+        #expect(emptyState(HistoryFilter(category: .network), loaded: loaded) == .noFilterMatches)
+        #expect(emptyState(HistoryFilter(category: .network), loaded: loaded, isLoading: true) == .noFilterMatches)
+    }
+
+    @Test func visibleRowsShowNoEmptyState() {
+        let loaded = [event(hoursAgo: 30)]
+        #expect(emptyState(HistoryFilter(period: .day), loaded: loaded, hasRows: true, hasMore: true) == nil)
+        #expect(emptyState(HistoryFilter(period: .day), loaded: loaded, hasRows: true) == nil)
+    }
+
+    @Test func nothingLoadedIsEmptyOnlyOnceLoadingHasFinished() {
+        #expect(emptyState(HistoryFilter(), loaded: [], isLoading: true) == nil)
+        #expect(emptyState(HistoryFilter(), loaded: []) == .noChanges)
+        #expect(emptyState(HistoryFilter(category: .apps), loaded: []) == .noChanges)
     }
 }
 

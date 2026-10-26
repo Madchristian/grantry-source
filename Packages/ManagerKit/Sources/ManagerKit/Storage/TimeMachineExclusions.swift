@@ -59,6 +59,16 @@ public struct TimeMachineReport: Hashable, Sendable {
         self.suggestions = suggestions
         self.failure = failure
     }
+
+    /// Vorschläge der Kategorien `categoryIDs` mit unbekannter Größe: Ihre Ordner wurden gerade aufgeräumt (#285), die
+    /// Größe vom Scan ist veraltet, bis `TimeMachineExclusions.refresh` sie neu liest.
+    public func invalidatingSizes(ofCategories categoryIDs: Set<String>) -> TimeMachineReport {
+        TimeMachineReport(suggestions: suggestions.map { suggestion in
+            guard let categoryID = suggestion.candidate.categoryID, categoryIDs.contains(categoryID) else { return suggestion }
+            return TimeMachineSuggestion(candidate: suggestion.candidate, size: .unknown, state: suggestion.state,
+                                         identity: suggestion.identity)
+        }, failure: failure)
+    }
 }
 
 /// Gewünschte Änderung an der Time-Machine-Sicherung.
@@ -121,6 +131,23 @@ public struct TimeMachineExclusions: Sendable {
                                   state: states[candidate.path] ?? .unknown, identity: identity)
         }
         return TimeMachineReport(suggestions: suggestions, failure: failure)
+    }
+
+    /// Nach dem Aufräumen der Kategorien `categoryIDs` nur deren Vorschläge neu lesen (#285): Größen aus dem Nachscan
+    /// `reports`, sonst gemessen; die übrigen bleiben unverändert und werden weder gemessen noch abgefragt. Inzwischen
+    /// fehlende Ordner fallen weg.
+    @concurrent
+    public func refresh(_ report: TimeMachineReport, categories categoryIDs: Set<String>,
+                        reports: [StorageCategoryReport]) async -> TimeMachineReport {
+        func isAffected(_ suggestion: TimeMachineSuggestion) -> Bool {
+            suggestion.candidate.categoryID.map(categoryIDs.contains) ?? false
+        }
+        let affected = report.suggestions.filter(isAffected)
+        guard !affected.isEmpty else { return report }
+        let refreshed = await scan(affected.map(\.candidate), knownSizes: Self.knownSizes(from: reports))
+        let byPath = Dictionary(refreshed.suggestions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        return TimeMachineReport(suggestions: report.suggestions.compactMap { isAffected($0) ? byPath[$0.id] : $0 },
+                                 failure: refreshed.failure ?? report.failure)
     }
 
     /// Ein `tmutil isexcluded`-Aufruf für alle Pfade; `failure`, wenn er scheitert.

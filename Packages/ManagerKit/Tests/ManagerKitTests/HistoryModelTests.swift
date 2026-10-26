@@ -36,10 +36,11 @@ private final class PagedStore: SnapshotStore {
 
 @MainActor
 @Suite struct HistoryModelTests {
-    private static func events(_ count: Int) -> [HistoryEvent] {
+    /// `count` Events im Sekundenabstand, das neueste `age` Sekunden vor `TestData.date`.
+    private static func events(_ count: Int, age: TimeInterval = 0) -> [HistoryEvent] {
         (0..<count).map { index in
             TestData.historyEvent(.added, .autostartItem(TestData.item("e\(index)")),
-                                  at: TestData.date.addingTimeInterval(-TimeInterval(index)))
+                                  at: TestData.date.addingTimeInterval(-age - TimeInterval(index)))
         }
     }
 
@@ -87,6 +88,51 @@ private final class PagedStore: SnapshotStore {
             #expect(afterReload == Array(all.prefix(HistoryModel.pageSize)))
             #expect(model.events == afterReload)
             #expect(!model.isLoading)
+        }
+    }
+
+    /// #283: Volle erste Seite, alle Events älter als der Zeitraum – der Filter steht abschließend als leer fest,
+    /// obwohl die Ablage `hasMore` meldet.
+    @Test func exhaustedPeriodOnAFullPageEndsInTheEmptyState() async throws {
+        try await withReceipts { receipts in
+            let twoDays: TimeInterval = 2 * 24 * 60 * 60
+            let all = Self.events(HistoryModel.pageSize + 20, age: twoDays)
+            let model = HistoryModel(store: PagedStore(events: all), receipts: receipts)
+            await model.reload()
+            #expect(model.hasMore && model.events.count == HistoryModel.pageSize)
+
+            let day = HistoryFilter(period: .day)
+            #expect(day.apply(model.events, now: TestData.date).isEmpty)
+            #expect(!day.mayFindMoreEvents(hasMore: model.hasMore, olderThan: model.events.last, now: TestData.date))
+            let state = day.emptyState(loaded: model.events, hasRows: false, hasMore: model.hasMore,
+                                       isLoading: model.isLoading, now: TestData.date)
+            #expect(state == .noFilterMatches)
+
+            // Der Zeitraum „Letzte 30 Tage“ enthält die Events: Zeilen statt Leerzustand.
+            let month = HistoryFilter(period: .month)
+            #expect(month.apply(model.events, now: TestData.date).count == HistoryModel.pageSize)
+        }
+    }
+
+    /// Liegt das älteste geladene Event noch im Zeitraum, bleibt Nachladen angeboten (kein Leerzustand), bis die
+    /// nachgeladene Seite den Zeitraum verlässt.
+    @Test func olderPagesStayOfferedUntilThePeriodIsLeft() async throws {
+        try await withReceipts { receipts in
+            let recent = Self.events(HistoryModel.pageSize)
+            let old = Self.events(20, age: 2 * 24 * 60 * 60)
+            let model = HistoryModel(store: PagedStore(events: recent + old), receipts: receipts)
+            await model.reload()
+
+            let filter = HistoryFilter(category: .permissions, period: .day)
+            @MainActor func emptyState() -> HistoryEmptyState? {
+                filter.emptyState(loaded: model.events, hasRows: false, hasMore: model.hasMore,
+                                  isLoading: model.isLoading, now: TestData.date)
+            }
+            // Keine Berechtigungs-Ereignisse auf der ersten Seite, aber die nächste Seite könnte welche enthalten.
+            #expect(model.hasMore && emptyState() == nil)
+
+            await model.loadMore()
+            #expect(!model.hasMore && emptyState() == .noFilterMatches)
         }
     }
 

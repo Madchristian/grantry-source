@@ -8,7 +8,7 @@ import Synchronization
 public protocol FileSystemWatching: Sendable {
     /// Liefert bei jeder Änderung unter den Verzeichnissen `paths` oder an den Dateien `files` ein Signal mit dem
     /// auslösenden Pfad (geänderte Datei bzw. gemeldetes Verzeichnis). Dateien zählen auch, wenn sie beim Start fehlen:
-    /// Ihr Erscheinen und spätere Änderungen werden gemeldet.
+    /// Ihr Erscheinen, ihr (auch atomarer) Austausch und spätere Änderungen werden gemeldet.
     ///
     /// `shallowPaths`: App-Ordner (`/Applications`). Unter ihnen zählen nur Ereignisse bis `WatchScope.shallowDepth`
     /// Ebenen, und auch die nur, wenn sich dadurch die App-Bundles darin geändert haben (`AppFolderFingerprint`):
@@ -32,17 +32,16 @@ extension FileSystemWatching {
 /// `FileSystemWatching` über FSEvents. Beendet der Konsument den Strom, wird der FSEvents-Stream gestoppt und
 /// freigegeben.
 ///
-/// Ohne Datei-Ereignisse: FSEvents meldet nur das Verzeichnis, in dem sich etwas geändert hat – das genügt für die
-/// beobachteten Verzeichnisse und hält den Verkehr klein. Ein Pfad, der beim Start fehlt (etwa `~/Library/LaunchAgents`),
-/// wird über seinen nächsten existierenden Elternordner beobachtet (siehe `WatchScope`). Dateien (etwa
-/// `com.apple.SoftwareUpdate.plist`) werden – auch wenn sie noch fehlen – über ihren Ordner beobachtet und per
-/// Fingerabdruck gefiltert (siehe `FileStamps`), damit Änderungen an Nachbardateien nichts auslösen. App-Ordner filtert
-/// der Fingerabdruck ihrer Bundles (siehe `AppFolderStamps`). Ausgewählte Dateien filtert statt des Fingerabdrucks ein
-/// Inhalts-Stempel (`contentStamps`).
+/// Verzeichnisse ohne Datei-Ereignisse: FSEvents meldet nur das Verzeichnis, in dem sich etwas geändert hat – das
+/// genügt für die beobachteten Verzeichnisse und hält den Verkehr klein. Ein Pfad, der beim Start fehlt (etwa
+/// `~/Library/LaunchAgents`), wird über seinen nächsten existierenden Elternordner beobachtet (siehe `WatchScope`).
+/// App-Ordner filtert der Fingerabdruck ihrer Bundles (siehe `AppFolderStamps`).
 ///
-/// Liegt eine Wurzel unter einer anderen, beobachtet FSEvents nur die äußere (`WatchScope.roots`). Eine Datei direkt im
-/// Home (`~/.claude.json`) macht so den ganzen Home-Baum zur Wurzel: FSEvents liefert dann Ereignisse aus dem ganzen
-/// Home, die `WatchScope` und die Stempel herausfiltern.
+/// Dateien (etwa `com.apple.SoftwareUpdate.plist`, `~/.claude.json`) beobachtet ein zweiter Stream mit Datei-Ereignissen
+/// genau an ihrem Pfad (`WatchScope.fileRoots`) – auch wenn sie oder ihr Ordner noch fehlen. Ihr Ordner wird so nicht zur
+/// rekursiven Wurzel: Eine Datei direkt im Home lieferte sonst jede fremde Dateiaktivität im Home an Grantry (#279).
+/// Ob sich die Datei wirklich geändert hat, entscheidet ihr Fingerabdruck (siehe `FileStamps`), für ausgewählte Dateien
+/// ein Inhalts-Stempel (`contentStamps`). Beide Streams teilen sich Queue und Filter.
 public struct FSEventsWatcher: FileSystemWatching {
     /// Inhalts-Stempel einer beobachteten Datei: Ein Signal kommt nur, wenn sich der Stempel ändert (`nil` = fehlt).
     public typealias ContentStamp = @Sendable () -> Int?
@@ -63,11 +62,9 @@ public struct FSEventsWatcher: FileSystemWatching {
     public func changes(in paths: [String], files: [String], shallowPaths: [String]) -> AsyncStream<String> {
         let (stream, continuation) = AsyncStream<String>.makeStream(bufferingPolicy: .bufferingNewest(1))
         let scope = WatchScope(paths: paths, files: files, shallowPaths: shallowPaths)
-        guard !scope.roots.isEmpty,
-              let handle = EventStreamHandle(
+        guard let handle = EventStreamHandle(
                   scope: scope, contentStamps: contentStamps, latency: latency, continuation: continuation
-              )
-        else {
+        ) else {
             continuation.finish()
             return stream
         }
@@ -76,17 +73,18 @@ public struct FSEventsWatcher: FileSystemWatching {
     }
 }
 
-/// Was FSEvents beobachten soll (`roots`: existierende Verzeichnisse) und welche gemeldeten Verzeichnisse zählen.
+/// Was FSEvents beobachten soll (`roots`: existierende Verzeichnisse, `fileRoots`: einzelne Dateien) und welche gemeldeten
+/// Pfade zählen.
 ///
 /// FSEvents meldet ohne Datei-Ereignisse das Verzeichnis einer Änderung: Für eine Datei in `~/Library/LaunchAgents`
 /// also `~/Library/LaunchAgents`, für das Anlegen dieses Ordners `~/Library`. Alle Pfade sind kanonisch (Symlinks
 /// aufgelöst), wie FSEvents sie meldet. Die Wurzel `/` wird nie beobachtet: Ein Pfad, dessen nächster existierender
 /// Vorfahre `/` ist, wird übersprungen und protokolliert.
 ///
-/// Dateien sind ausdrücklich als solche angegeben (`isFile`) und werden über ihren Ordner beobachtet – fehlt der, über
-/// dessen nächsten existierenden Vorfahren. Ob die Datei beim Start existiert, spielt keine Rolle. Ein Ereignis zählt für
-/// sie nicht über `contains(_:)`, sondern liefert sie über `files(reportedIn:)` – ob sie sich wirklich geändert hat
-/// (auch: erschienen ist), entscheidet ihr Stempel (`FileStamps`).
+/// Dateien sind ausdrücklich als solche angegeben (`isFile`) und werden mit Datei-Ereignissen an ihrem eigenen Pfad
+/// beobachtet (`fileRoots`); `root` ist für sie nur der nächste existierende Ordner. Ob die Datei oder ihr Ordner beim
+/// Start existiert, spielt keine Rolle. Ein Ereignis zählt für sie nicht über `contains(_:)`, sondern liefert sie über
+/// `files(reportedIn:)` – ob sie sich wirklich geändert hat (auch: erschienen ist), entscheidet ihr Stempel (`FileStamps`).
 struct WatchScope: Sendable, Equatable {
     /// Ein beobachteter Pfad (`target`) und das existierende Verzeichnis, über das er beobachtet wird (`root`).
     struct Entry: Sendable, Equatable {
@@ -98,9 +96,11 @@ struct WatchScope: Sendable, Equatable {
         var isFile = false
         /// Höchstzahl Pfadbestandteile unterhalb von `target`, deren Ereignisse zählen; `nil` = alle.
         var maximumDepth: Int?
+        /// Kanonisches Ziel einer Datei, die beim Start ein Symlink ist (Dotfiles-Verwaltung); sonst `nil`.
+        var destination: String?
 
-        /// Ordner, in dem `target` liegt.
-        var directory: String { URL(filePath: target).deletingLastPathComponent().path }
+        /// Pfade, an denen FSEvents Ereignisse einer Datei meldet: der Pfad selbst und gegebenenfalls ihr Symlink-Ziel.
+        var watchedFilePaths: [String] { [target] + (destination.map { [$0] } ?? []) }
     }
 
     private static let logger = Logger(subsystem: ManagerKit.logSubsystem, category: "watcher")
@@ -127,14 +127,21 @@ struct WatchScope: Sendable, Equatable {
             + files.compactMap { Self.resolve($0, isFile: true) }
     }
 
-    /// Zu beobachtende Verzeichnisse, ohne Dubletten und ohne Verzeichnisse unter einem anderen (FSEvents meldet deren
-    /// Ereignisse über das äußere), in Reihenfolge der Pfade.
+    /// Rekursiv zu beobachtende Verzeichnisse, ohne Dubletten und ohne Verzeichnisse unter einem anderen (FSEvents meldet
+    /// deren Ereignisse über das äußere), in Reihenfolge der Pfade. Dateien tragen nichts bei (`fileRoots`).
     var roots: [String] {
-        let unique = entries.reduce(into: [String]()) { roots, entry in
-            if !roots.contains(entry.root) { roots.append(entry.root) }
-        }
+        let unique = Self.uniqued(entries.filter { !$0.isFile }.map(\.root))
         return unique.filter { root in
             !unique.contains { other in other != root && Self.isPath(root, atOrBelow: other) }
+        }
+    }
+
+    /// Einzeln mit Datei-Ereignissen zu beobachtende Dateipfade, ohne Dubletten und ohne Pfade unter `roots` (deren
+    /// Stream meldet sie bereits über ihren Ordner), in Reihenfolge der Pfade.
+    var fileRoots: [String] {
+        let directories = roots
+        return Self.uniqued(entries.filter(\.isFile).flatMap(\.watchedFilePaths)).filter { path in
+            !directories.contains { Self.isPath(path, atOrBelow: $0) }
         }
     }
 
@@ -157,12 +164,14 @@ struct WatchScope: Sendable, Equatable {
         }
     }
 
-    /// Beobachtete Dateien, deren Ordner das gemeldete Verzeichnis ist oder darunter liegt. Ein gemeldeter Vorfahre
-    /// zählt mit: FSEvents meldet bei `MustScanSubDirs` oder verworfenen Ereignissen einen Vorfahren, und fehlt der Ordner
-    /// noch, entsteht er dort.
+    /// Beobachtete Dateien, die der gemeldete Pfad ist (Datei-Ereignis, auch an ihrem Symlink-Ziel) oder unter ihm
+    /// liegen: Der Verzeichnis-Stream meldet ihren Ordner, und bei `MustScanSubDirs` oder verworfenen Ereignissen meldet
+    /// FSEvents einen Vorfahren.
     func files(reportedIn eventPath: String) -> [String] {
         let path = Self.normalized(eventPath)
-        return entries.filter { $0.isFile && Self.isPath($0.directory, atOrBelow: path) }.map(\.target)
+        return entries.filter { entry in
+            entry.isFile && entry.watchedFilePaths.contains { Self.isPath($0, atOrBelow: path) }
+        }.map(\.target)
     }
 
     /// Alle beobachteten Dateien.
@@ -194,6 +203,13 @@ struct WatchScope: Sendable, Equatable {
         eventPath.count > 1 && eventPath.hasSuffix("/") ? String(eventPath.dropLast()) : eventPath
     }
 
+    /// `paths` ohne Dubletten, in ihrer Reihenfolge.
+    private static func uniqued(_ paths: [String]) -> [String] {
+        paths.reduce(into: []) { unique, path in
+            if !unique.contains(path) { unique.append(path) }
+        }
+    }
+
     /// `true`, wenn `path` gleich `ancestor` ist oder darunter liegt.
     private static func isPath(_ path: String, atOrBelow ancestor: String) -> Bool {
         path == ancestor || path.hasPrefix(ancestor + "/")
@@ -215,7 +231,8 @@ struct WatchScope: Sendable, Equatable {
     }
 
     /// Beobachtet wird das nächste existierende Verzeichnis: bei einer Datei ab ihrem Ordner gesucht, sonst ab dem
-    /// Pfad selbst. Der Dateiname wird nicht aufgelöst – sie kann fehlen oder später ersetzt werden.
+    /// Pfad selbst. Der Dateiname wird nicht aufgelöst – sie kann fehlen oder später ersetzt werden; ist sie ein
+    /// Symlink, merkt sich der Eintrag sein kanonisches Ziel (`destination`).
     private static func unguardedEntry(for path: String, isFile: Bool) -> Entry? {
         let url = URL(filePath: path).standardized
         var existing = isFile ? url.deletingLastPathComponent() : url
@@ -226,7 +243,8 @@ struct WatchScope: Sendable, Equatable {
         }
         guard let canonical = canonicalPath(of: existing.path) else { return nil }
         let target = missing.reduce(URL(filePath: canonical)) { $0.appending(path: $1) }.path
-        return Entry(source: path, root: canonical, target: target, isFile: isFile)
+        let destination = isFile ? canonicalPath(of: target).flatMap { $0 == target ? nil : $0 } : nil
+        return Entry(source: path, root: canonical, target: target, isFile: isFile, destination: destination)
     }
 }
 
@@ -346,25 +364,63 @@ final class ContinuationBox: Sendable {
     }
 }
 
-/// Besitzt einen laufenden FSEvents-Stream samt der von ihm referenzierten `ContinuationBox`.
+/// Besitzt die laufenden FSEvents-Streams (Verzeichnisse und Dateien) samt der von ihnen referenzierten
+/// `ContinuationBox`.
 ///
-/// `@unchecked Sendable`, weil `FSEventStreamRef` ein nicht-`Sendable` Zeiger ist. Sicher, weil der Zeiger nach
-/// `init` unveränderlich ist und `stop()` (vom Termination-Handler genau einmal aufgerufen) Stoppen, Invalidieren und
-/// Freigeben auf der Dispatch-Queue des Streams ausführt – seriell zu allen Callbacks. Danach ruft FSEvents den
-/// Callback nicht mehr auf, erst dann wird die Box freigegeben.
+/// `@unchecked Sendable`, weil `FSEventStreamRef` ein nicht-`Sendable` Zeiger ist. Sicher, weil die Zeiger nach
+/// `init` unveränderlich sind und `stop()` (vom Termination-Handler genau einmal aufgerufen) Stoppen, Invalidieren und
+/// Freigeben auf der gemeinsamen Dispatch-Queue der Streams ausführt – seriell zu allen Callbacks. Danach ruft FSEvents
+/// den Callback nicht mehr auf, erst dann wird die Box freigegeben.
 private final class EventStreamHandle: @unchecked Sendable {
-    /// Bewusst ohne `kFSEventStreamCreateFlagFileEvents`: Verzeichnis-Ereignisse genügen (siehe `WatchScope`).
-    private static let flags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagNoDefer)
+    /// Verzeichnisse bewusst ohne `kFSEventStreamCreateFlagFileEvents`: Verzeichnis-Ereignisse genügen (siehe
+    /// `WatchScope`).
+    private static let directoryFlags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagNoDefer)
+    /// Dateien mit Datei-Ereignissen: Nur so meldet FSEvents genau ihren Pfad statt ihres ganzen Ordners.
+    private static let fileFlags = FSEventStreamCreateFlags(
+        kFSEventStreamCreateFlagNoDefer | kFSEventStreamCreateFlagFileEvents
+    )
 
-    private let stream: FSEventStreamRef
+    private let streams: [FSEventStreamRef]
     private let queue = DispatchQueue(label: "\(GrantryIdentity.logSubsystem).FSEventsWatcher")
     private let box: Unmanaged<ContinuationBox>
 
+    /// Ohne beobachtbaren Pfad oder wenn ein Stream scheitert `nil`; bereits gestartete Streams werden dann beendet.
     init?(
         scope: WatchScope, contentStamps: [String: FSEventsWatcher.ContentStamp], latency: TimeInterval,
         continuation: AsyncStream<String>.Continuation
     ) {
         let box = Unmanaged.passRetained(ContinuationBox(continuation, scope: scope, contentStamps: contentStamps))
+        var streams: [FSEventStreamRef] = []
+        for (paths, flags) in [(scope.roots, Self.directoryFlags), (scope.fileRoots, Self.fileFlags)] where !paths.isEmpty {
+            guard let stream = Self.startStream(paths: paths, flags: flags, box: box, latency: latency, queue: queue) else {
+                streams.forEach(Self.release)
+                box.release()
+                return nil
+            }
+            streams.append(stream)
+        }
+        guard !streams.isEmpty else {
+            box.release()
+            return nil
+        }
+        self.streams = streams
+        self.box = box
+    }
+
+    func stop() {
+        queue.async { self.tearDown() }
+    }
+
+    private func tearDown() {
+        streams.forEach(Self.release)
+        box.release()
+    }
+
+    /// Erzeugt und startet einen Stream über `paths`, der `box` auf `queue` beliefert; scheitert FSEvents, `nil`.
+    private static func startStream(
+        paths: [String], flags: FSEventStreamCreateFlags, box: Unmanaged<ContinuationBox>, latency: TimeInterval,
+        queue: DispatchQueue
+    ) -> FSEventStreamRef? {
         var context = FSEventStreamContext(
             version: 0, info: box.toOpaque(), retain: nil, release: nil, copyDescription: nil
         )
@@ -376,31 +432,22 @@ private final class EventStreamHandle: @unchecked Sendable {
             Unmanaged<ContinuationBox>.fromOpaque(info).takeUnretainedValue().receive(paths)
         }
         guard let stream = FSEventStreamCreate(
-            kCFAllocatorDefault, callback, &context, scope.roots as CFArray,
-            FSEventStreamEventId(kFSEventStreamEventIdSinceNow), latency, Self.flags
-        ) else {
-            box.release()
-            return nil
-        }
-        self.stream = stream
-        self.box = box
+            kCFAllocatorDefault, callback, &context, paths as CFArray,
+            FSEventStreamEventId(kFSEventStreamEventIdSinceNow), latency, flags
+        ) else { return nil }
         FSEventStreamSetDispatchQueue(stream, queue)
         guard FSEventStreamStart(stream) else {
             FSEventStreamInvalidate(stream)
             FSEventStreamRelease(stream)
-            box.release()
             return nil
         }
+        return stream
     }
 
-    func stop() {
-        queue.async { self.tearDown() }
-    }
-
-    private func tearDown() {
+    /// Stoppt, invalidiert und gibt einen gestarteten Stream frei.
+    private static func release(_ stream: FSEventStreamRef) {
         FSEventStreamStop(stream)
         FSEventStreamInvalidate(stream)
         FSEventStreamRelease(stream)
-        box.release()
     }
 }

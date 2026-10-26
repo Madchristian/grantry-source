@@ -17,11 +17,14 @@ public enum TimeMachinePresentation {
         }
     }
 
-    /// Merkmal einer Speicher-Kategorie: „Time Machine: gesichert“, „… ausgenommen“ oder „… teilweise gesichert“;
-    /// `nil` ohne Vorschlag mit bekanntem Status.
+    /// Merkmal einer Speicher-Kategorie mit Hinweis auf ganz oder teilweise unbekannte Status;
+    /// `nil` ohne Vorschlag für diese Kategorie.
     public static func categoryNote(_ categoryID: String, in suggestions: [TimeMachineSuggestion]) -> String? {
-        let states = Set(suggestions.filter { $0.candidate.categoryID == categoryID && $0.state != .unknown }.map(\.state))
+        let states = Set(suggestions.filter { $0.candidate.categoryID == categoryID }.map(\.state))
         guard !states.isEmpty else { return nil }
+        if states.contains(.unknown) {
+            return states.count == 1 ? "Time Machine: Status unbekannt" : "Time Machine: Status teilweise unbekannt"
+        }
         if states.count > 1 { return "Time Machine: teilweise gesichert" }
         return states.contains(.excluded) ? "Time Machine: ausgenommen" : "Time Machine: gesichert"
     }

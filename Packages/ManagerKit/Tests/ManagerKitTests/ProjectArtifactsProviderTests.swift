@@ -152,6 +152,27 @@ import TestSupport
         }
     }
 
+    @Test func recentGitMarkersOfLinkedWorktreeKeepProjectFresh() async throws {
+        // #250: In einem verknüpften Worktree ist `.git` eine Datei; HEAD und Index liegen im Git-Ordner des Worktrees.
+        try await ScratchDirectory.withCanonical(prefix: "projects") { root in
+            let cases = [("Staged", "index", root.path + "/main/.git/worktrees/staged"),
+                         ("Switched", "HEAD", "../main/.git/worktrees/switched"),
+                         ("Old", "HEAD", root.path + "/main/.git/worktrees/old")]
+            for (name, marker, gitDirectory) in cases {
+                let worktreeGitDirectory = gitDirectory.hasPrefix("/") ? gitDirectory : root.path + "/" + name + "/" + gitDirectory
+                try project(root, name, manifest: "package.json", artifact: "node_modules", modified: Self.old)
+                try Data("gitdir: \(gitDirectory)\n".utf8).write(to: root.appending(path: name + "/.git"))
+                try touch(root.appending(path: name + "/.git"), Self.old)
+                try touch(root.appending(path: name), Self.old)
+                try FileManager.default.createDirectory(atPath: worktreeGitDirectory, withIntermediateDirectories: true)
+                try Data().write(to: URL(filePath: worktreeGitDirectory + "/" + marker))
+                try touch(URL(filePath: worktreeGitDirectory + "/" + marker), name == "Old" ? Self.old : Self.now)
+            }
+            try touch(root.appending(path: "main"), Self.old)
+            #expect(await provider(root).scan().items.map(\.title) == ["Old/node_modules"])
+        }
+    }
+
     @Test func deepWalkIgnoresSymlinkTargetsHiddenFoldersAndNestedArtifacts() async throws {
         try await ScratchDirectory.withCanonical(prefix: "projects") { root in
             try file(root, "elsewhere/new.txt", modified: Self.now)
