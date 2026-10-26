@@ -64,19 +64,8 @@ public struct PresentationSnapshot: Hashable, Sendable {
             .compactMap(\.self).max()
     }
 
-    /// Bereich, den die Kachel „Auffällig“ öffnet: der mit auffälligen Einträgen (mittel oder hoch), Berechtigungen vor
-    /// Autostart vor Apps vor Agenten vor Netzwerk. Gibt es keine, zählen die Hinweise (niedrig) – so lenkt ein Hinweis bei den Berechtigungen
-    /// nicht von einem auffälligen Autostart-Eintrag oder einer auffälligen App ab. Ohne Befunde die Berechtigungen.
-    public var flaggedArea: FlaggedArea {
-        let threshold: RiskFinding.Severity = metrics.flaggedCount > 0 ? .medium : .low
-        let reaches = { (severity: RiskFinding.Severity?) in severity.map { $0 >= threshold } == true }
-        if reaches(serviceGroups.compactMap(\.highestSeverity).max()) { return .permissions }
-        if reaches(autostartSections.compactMap(\.highestSeverity).max()) { return .autostart }
-        if reaches(appsHighestSeverity) { return .apps }
-        if reaches(agentsHighestSeverity) { return .agents }
-        if reaches(networkHighestSeverity) { return .network }
-        return .permissions
-    }
+    /// Bereich, den die Kachel „Auffällig“ öffnet (`FlaggedBreakdown.tileArea`).
+    public var flaggedArea: FlaggedArea { metrics.flagged.tileArea }
 
     private var appsHighestSeverity: RiskFinding.Severity? {
         installedApps.compactMap { highestSeverity(for: $0.id) }.max()
@@ -99,18 +88,36 @@ public struct PresentationSnapshot: Hashable, Sendable {
         let knownIDs = Set(events.map(\.id))
         let allEvents = events + recentAdditions.filter { !knownIDs.contains($0.id) }
         let cleanupHints = CleanupHints.evaluate(snapshot)
+        let serviceGroups = InventoryPresenter.serviceGroups(snapshot: snapshot, findings: findings)
+        let autostartSections = InventoryPresenter.autostartSections(snapshot: snapshot, findings: findings)
+        let installedApps = snapshot.installedApps.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+        let network = NetworkOverview.make(snapshot: snapshot)
+        let agents = AgentPresentationState(snapshot: snapshot)
+        // Je Bereich genau die Einträge, die seine Liste zeigt (#275).
+        let flagged = FlaggedBreakdown(
+            recordIDs: [
+                .permissions: serviceGroups.flatMap(\.grants).map(\.id),
+                .autostart: autostartSections.flatMap(\.items).map(\.id),
+                .apps: installedApps.map(\.id),
+                .agents: agents.groups.flatMap(\.recordIDs),
+                .network: NetworkListenerPresenter.rows(
+                    network.listeners, severity: { _ in nil }, query: "", filter: .flagged
+                ).map(\.id),
+            ],
+            severities: SeverityIndex(findings)
+        )
         return PresentationSnapshot(
             appGroups: InventoryPresenter.appGroups(snapshot: snapshot, findings: findings),
-            serviceGroups: InventoryPresenter.serviceGroups(snapshot: snapshot, findings: findings),
-            autostartSections: InventoryPresenter.autostartSections(snapshot: snapshot, findings: findings),
+            serviceGroups: serviceGroups,
+            autostartSections: autostartSections,
             badges: RecordBadges(findings: findings, events: allEvents, cleanupHints: cleanupHints, now: now),
             cleanupHints: cleanupHints,
-            metrics: DashboardMetrics.compute(snapshot: snapshot, findings: findings, events: allEvents, now: now),
+            metrics: DashboardMetrics.compute(snapshot: snapshot, flagged: flagged, events: allEvents, now: now),
             security: SecurityOverview.make(checks: snapshot.securityChecks, now: now),
-            installedApps: snapshot.installedApps.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending },
+            installedApps: installedApps,
             coverage: CoverageOverview(snapshot: snapshot, activeSources: activeSources),
-            network: NetworkOverview.make(snapshot: snapshot),
-            agents: AgentPresentationState(snapshot: snapshot),
+            network: network,
+            agents: agents,
             appLinksByID: AppLinks.index(snapshot.installedApps, in: snapshot),
             findingsByRecordID: Dictionary(grouping: findings, by: \.recordID).mapValues { findings in
                 findings.enumerated()
@@ -125,9 +132,4 @@ public struct PresentationSnapshot: Hashable, Sendable {
             ).filter { $0.value.count > 1 }
         )
     }
-}
-
-/// Bereich mit Befunden, den die Übersicht öffnet (`PresentationSnapshot.flaggedArea`).
-public enum FlaggedArea: Hashable, Sendable {
-    case permissions, autostart, apps, agents, network
 }

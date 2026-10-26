@@ -58,7 +58,7 @@ import Testing
     @Test func newAppsCountAsRecentlyAdded() {
         let added = TestData.historyEvent(.added, .installedApp(zoom), at: TestData.date - TestData.day)
         let gone = TestData.historyEvent(.added, .installedApp(alfred), at: TestData.date - TestData.day)
-        let metrics = DashboardMetrics.compute(snapshot: TestData.appSnapshot([zoom]), findings: [], events: [added, gone],
+        let metrics = DashboardMetrics.compute(snapshot: TestData.appSnapshot([zoom]), flagged: .empty, events: [added, gone],
                                                now: TestData.date)
         #expect(metrics.newSince7Days == 1)
     }

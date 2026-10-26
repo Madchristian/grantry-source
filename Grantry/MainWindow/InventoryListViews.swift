@@ -20,9 +20,10 @@ struct InventoryEmptyState: View {
                                    description: Text("Der erste Scan ist noch nicht abgeschlossen."))
         } else if !window.query(for: section).isEmpty {
             ContentUnavailableView.search(text: window.query(for: section))
-        } else if window.filter(for: section) == ListFilter(onlyFlagged: true) {
+        } else if window.filter(for: section).isOnlyFindings {
             CoverageAwareUnavailableView(title: "Nichts Auffälliges", systemImage: "checkmark.shield",
-                                         description: "Kein Eintrag hat einen Prüfhinweis.", coverage: coverage)
+                                         description: window.filter(for: section).findings.emptyDescription,
+                                         coverage: coverage)
         } else if window.filter(for: section).isActive {
             NoFilterMatchesView(description: "Kein Eintrag passt zu den gewählten Filtern.") {
                 window.filters[section] = nil
@@ -66,7 +67,7 @@ private struct InventorySearchModifier: ViewModifier {
     }
 }
 
-/// Filtermenü: Zustand (erlaubt/verweigert bzw. aktiviert/deaktiviert), Bereich (Benutzer/System), nur auffällige.
+/// Filtermenü: Zustand (erlaubt/verweigert bzw. aktiviert/deaktiviert), Bereich (Benutzer/System), Befunde.
 private struct ListFilterMenu: View {
     @Binding var filter: ListFilter
     let context: FilterContext
@@ -85,7 +86,7 @@ private struct ListFilterMenu: View {
                 }
             }
             .pickerStyle(.inline)
-            Toggle("Nur auffällige", isOn: $filter.onlyFlagged)
+            FindingFilterPicker(selection: $filter.findings)
         }
     }
 }

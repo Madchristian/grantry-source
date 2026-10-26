@@ -211,7 +211,7 @@ extension PresentationSnapshot {
     /// Automatische Freigabe mit dieser ID; `nil`, wenn es sie nicht (mehr) gibt.
     public func agentApproval(id: String) -> AgentAutoApproval? { agents.index.approvals[id] }
 
-    /// Höchster Schweregrad der Befunde im Bereich „Agenten“ (`highestSeverity`, `flaggedArea`); `nil` ohne Befunde.
+    /// Höchster Schweregrad der Befunde im Bereich „Agenten“ (`highestSeverity`); `nil` ohne Befunde.
     var agentsHighestSeverity: RiskFinding.Severity? {
         agents.groups.flatMap(\.recordIDs).compactMap { highestSeverity(for: $0) }.max()
     }

@@ -62,13 +62,6 @@ struct DashboardView: View {
     @ViewBuilder
     private func tileViews(_ presentation: PresentationSnapshot) -> some View {
         let metrics = presentation.metrics
-        let flaggedSection: MainSection = switch presentation.flaggedArea {
-        case .permissions: .permissions
-        case .autostart: .autostart
-        case .apps: .apps
-        case .agents: .agents
-        case .network: .network
-        }
         let exposedCount = presentation.network.exposedCount
         MetricTile(
             title: String(localized: "Apps mit Zugriff"),
@@ -94,7 +87,7 @@ struct DashboardView: View {
             systemImage: "exclamationmark.shield",
             tone: metrics.flaggedCount > 0 ? Self.flaggedTone(presentation.highestSeverity) : .positive,
             hint: metrics.flaggedHint
-        ) { window.show(flaggedSection, onlyFlagged: metrics.hasFindings) }
+        ) { window.show(MainSection(presentation.flaggedArea), findings: metrics.flagged.tileFilter) }
         MetricTile(
             title: String(localized: "Sicherheit"),
             caption: presentation.security.tileCaption,
@@ -110,7 +103,7 @@ struct DashboardView: View {
             systemImage: MainSection.network.systemImage,
             tone: exposedCount > 0 ? .warning : nil,
             hint: String(localized: "Zeigt die von außen erreichbaren Netzwerkdienste.")
-        ) { window.show(.network, onlyFlagged: true) }
+        ) { window.show(.network, findings: .flagged) }
     }
 
     /// Unterzeile der Kachel „Von außen erreichbar“.

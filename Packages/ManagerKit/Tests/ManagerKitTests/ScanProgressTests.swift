@@ -44,13 +44,15 @@ import Testing
     }
 
     @Test func firstScanCountsStepsWithoutInventingRemainingTime() {
-        var scan = ScanProgressTracker(steps: sources, previous: nil)
+        var scan = ScanProgressTracker(fullScanOf: sources, previous: nil)
         #expect(scan.progress.fraction == 0)
         #expect(scan.progress.remainingSeconds == nil)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
-        #expect(abs(scan.progress.fraction - 1.0 / 3) < 0.0001)
+        #expect(abs(scan.progress.fraction - 0.25) < 0.0001)
         #expect(scan.progress.remainingSeconds == nil)
         _ = scan.complete(.tccSystem, elapsed: 8, succeeded: true)
+        // Without a measurement the processing keeps a fixed half of the bar instead of one source's share.
+        #expect(abs(scan.progress.fraction - 0.5) < 0.0001)
         scan.finish(elapsed: 10)
         #expect(scan.progress.fraction == 1)
         #expect(scan.completedDurations?.processing == 2)
@@ -59,11 +61,12 @@ import Testing
     @Test func weightsCompletedSourcesAndEstimatesParallelCriticalPath() {
         var scan = ScanProgressTracker(steps: sources, previous: history)
         _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
-        #expect(abs(scan.progress.fraction - 2.0 / 12) < 0.0001)
+        // Parallel sources overlap: the bar follows wall-clock time (8 s sources + 2 s processing), not their sum.
+        #expect(abs(scan.progress.fraction - 2.0 / 10) < 0.0001)
         // 8 s parallel source - 2 s elapsed + 2 s processing, not a sum of source durations.
         #expect(scan.progress.remainingSeconds == 8)
         _ = scan.complete(.tccSystem, elapsed: 8, succeeded: true)
-        #expect(abs(scan.progress.fraction - 10.0 / 12) < 0.0001)
+        #expect(abs(scan.progress.fraction - 8.0 / 10) < 0.0001)
         #expect(scan.progress.remainingSeconds == 2)
         scan.finish(elapsed: 10)
         #expect(scan.progress.fraction == 1)
@@ -140,12 +143,33 @@ import Testing
         #expect(scan.completedDurations == nil)
     }
 
+    /// #266: sources done after 0.27 s, then 3.3 s of merging and snapshot processing.
+    @Test func measuredProcessingKeepsItsShareUntilTheScanReallyEnds() {
+        let ids: Set<SourceID> = [.apps, .networkListeners, .launchd, .agents]
+        let previous = ScanDurations(steps: [.apps: 0.04, .networkListeners: 0.02, .launchd: 0.13, .agents: 0.27],
+                                     processing: 3.3)
+        var scan = ScanProgressTracker(fullScanOf: ids, previous: previous)
+        var fractions = [scan.progress.fraction]
+        for (id, elapsed) in [(SourceID.networkListeners, 0.02), (.apps, 0.04), (.launchd, 0.13), (.agents, 0.27)] {
+            _ = scan.complete(id, elapsed: elapsed, succeeded: true)
+            fractions.append(scan.progress.fraction)
+        }
+        #expect(fractions == fractions.sorted())
+        // ≈ 8 % after all sources – neither ≈ 100 % nor the 23 % of summed source durations.
+        #expect(abs(scan.progress.fraction - 0.27 / 3.57) < 0.0001)
+        #expect(abs(scan.progress.remainingSeconds! - 3.3) < 0.0001)
+        #expect(scan.progress.fraction < 1)
+        scan.finish(elapsed: 3.6)
+        #expect(scan.progress.fraction == 1)
+        #expect(abs(scan.completedDurations!.processing - 3.33) < 0.0001)
+    }
+
     @Test func incompleteOrInvalidHistoryFallsBackToStepCounting() {
         for previous in [ScanDurations(steps: [.launchd: 2], processing: 1),
                          ScanDurations(steps: [.launchd: .nan, .tccSystem: 8], processing: 1)] {
-            var scan = ScanProgressTracker(steps: sources, previous: previous)
+            var scan = ScanProgressTracker(fullScanOf: sources, previous: previous)
             _ = scan.complete(.launchd, elapsed: 2, succeeded: true)
-            #expect(abs(scan.progress.fraction - 1.0 / 3) < 0.0001)
+            #expect(abs(scan.progress.fraction - 0.25) < 0.0001)
             #expect(scan.progress.remainingSeconds == nil)
         }
     }
@@ -184,5 +208,35 @@ import Testing
         #expect(try Data(contentsOf: url).count < 2048)
         try Data("invalid".utf8).write(to: url)
         #expect(store.load() == nil)
+    }
+
+    /// Files written by earlier releases already carry `processing`; they keep weighting the processing step.
+    @Test func durationFileOfEarlierReleasesWeightsProcessing() throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appending(path: "ScanDurations.json")
+        try Data(#"{"sources":["launchd",0.13,"tcc.system",0.27],"processing":3.3}"#.utf8).write(to: url)
+        let previous = try #require(ScanDurationStore(url: url).load())
+        var scan = ScanProgressTracker(fullScanOf: [.launchd, .tccSystem], previous: previous)
+        _ = scan.complete(.launchd, elapsed: 0.13, succeeded: true)
+        _ = scan.complete(.tccSystem, elapsed: 0.27, succeeded: true)
+        #expect(abs(scan.progress.fraction - 0.27 / 3.57) < 0.0001)
+    }
+
+    /// A file without `processing` cannot be weighted reliably: it counts as a first scan with the fixed share.
+    @Test func durationFileWithoutProcessingFallsBackToTheFixedShare() throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let url = directory.appending(path: "ScanDurations.json")
+        try Data(#"{"sources":["launchd",0.13,"tcc.system",0.27]}"#.utf8).write(to: url)
+        let previous = ScanDurationStore(url: url).load()
+        #expect(previous == nil)
+        var scan = ScanProgressTracker(fullScanOf: [.launchd, .tccSystem], previous: previous)
+        _ = scan.complete(.launchd, elapsed: 0.13, succeeded: true)
+        _ = scan.complete(.tccSystem, elapsed: 0.27, succeeded: true)
+        #expect(abs(scan.progress.fraction - 0.5) < 0.0001)
+        #expect(scan.progress.remainingSeconds == nil)
     }
 }

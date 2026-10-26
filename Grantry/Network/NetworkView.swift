@@ -22,6 +22,8 @@ struct NetworkView: View {
         ListDetailSplit {
             VStack(spacing: 0) {
                 SectionCoverageHeader(coverage: coverage)
+                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .network,
+                                 filter: window.networkFindings)
                 hints
                 list
             }

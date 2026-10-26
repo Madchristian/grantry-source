@@ -1,11 +1,21 @@
 {
-  "version": "2026.10.211",
-  "intro": "Scans besser verfolgen.",
+  "version": "2026.10.26",
+  "intro": "Auffälliges schneller finden.",
   "highlights": [
     {
+      "symbol": "exclamationmark.triangle",
+      "title": "„Auffällig“ führt überallhin",
+      "body": "Die Kachel in der Übersicht zählt nur, was die Listen auch zeigen, und ein Hinweis über der Liste springt zu den übrigen Bereichen mit Befunden."
+    },
+    {
+      "symbol": "line.3.horizontal.decrease.circle",
+      "title": "Befund-Filter",
+      "body": "Wähle in den Listen „Nur auffällige“ oder „Auffällige und Hinweise“."
+    },
+    {
       "symbol": "chart.bar.fill",
-      "title": "Fortschritt über der Liste",
-      "body": "Beim Scannen in „Aufräumen“ zeigt ein Balken über der Liste, wie weit der Scan ist und wie lange er ungefähr noch dauert."
+      "title": "Gleichmäßiger Scan-Fortschritt",
+      "body": "Der Fortschrittsbalken des Vollscans bleibt nicht mehr hängen und läuft gleichmäßig bis zum Ende."
     }
   ]
 }

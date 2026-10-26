@@ -1,6 +1,11 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "Befunde" : {},
+    "Alle Einträge" : {},
+    "Auffällige und Hinweise" : {},
+    "Kein Eintrag hat einen Befund mit mittlerem oder hohem Risiko." : {},
+
     "Code-Ordner" : {},
     "Keine Code-Ordner ausgewählt." : {},
     "Entfernen" : {},
@@ -622,9 +627,6 @@
 
     },
     "Keine Agenten-Konfigurationen gefunden" : {
-
-    },
-    "Keine App hat einen Prüfhinweis." : {
 
     },
     "Keine App passt zu den gewählten Filtern." : {

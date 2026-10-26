@@ -13,6 +13,8 @@ struct AutostartView: View {
         ListDetailSplit {
             VStack(spacing: 0) {
                 SectionCoverageHeader(coverage: appModel.presentation?.coverage[.autostart])
+                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .autostart,
+                                 filter: window.filter(for: .autostart).findings)
                 list
             }
         } detail: {

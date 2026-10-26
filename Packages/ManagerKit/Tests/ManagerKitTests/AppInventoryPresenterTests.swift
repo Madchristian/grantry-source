@@ -56,7 +56,7 @@ import Testing
         #expect(names(AppListFilter(origin: .webApp)).isEmpty)
         #expect(names(AppListFilter(architecture: .intel)) == ["app 10"])
         #expect(names(AppListFilter(architecture: .universal)) == ["Google Chrome"])
-        #expect(names(AppListFilter(onlyFlagged: true), severities: [chrome.id: .low]) == ["Google Chrome"])
+        #expect(names(AppListFilter(findings: .withFindings), severities: [chrome.id: .low]) == ["Google Chrome"])
     }
 
     @Test func searchCoversNameBundleIDDeveloperAndCask() {
@@ -70,7 +70,7 @@ import Testing
         #expect(!AppListFilter(sort: .size).isActive)
         #expect(AppListFilter(architecture: .intel).isActive)
         #expect(AppListFilter(origin: .apple).isActive)
-        #expect(AppListFilter(onlyFlagged: true).isActive)
+        #expect(AppListFilter(findings: .flagged).isActive)
     }
 
     // MARK: Zeilen

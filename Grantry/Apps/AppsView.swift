@@ -15,6 +15,8 @@ struct AppsView: View {
         ListDetailSplit {
             VStack(spacing: 0) {
                 SectionCoverageHeader(coverage: coverage)
+                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .apps,
+                                 filter: window.appFilter.findings)
                 list
             }
         } detail: {
@@ -80,9 +82,10 @@ struct AppsView: View {
                                    description: Text("Der erste Scan ist noch nicht abgeschlossen."))
         } else if !window.query(for: .apps).isEmpty {
             ContentUnavailableView.search(text: window.query(for: .apps))
-        } else if window.appFilter == AppListFilter(onlyFlagged: true, sort: window.appFilter.sort) {
+        } else if window.appFilter.findings.isActive,
+                  window.appFilter == AppListFilter(findings: window.appFilter.findings, sort: window.appFilter.sort) {
             CoverageAwareUnavailableView(title: "Nichts Auffälliges", systemImage: "checkmark.shield",
-                                         description: "Keine App hat einen Prüfhinweis.", coverage: coverage)
+                                         description: window.appFilter.findings.emptyDescription, coverage: coverage)
         } else if window.appFilter.isActive {
             NoFilterMatchesView(description: "Keine App passt zu den gewählten Filtern.") {
                 window.appFilter = AppListFilter(sort: window.appFilter.sort)

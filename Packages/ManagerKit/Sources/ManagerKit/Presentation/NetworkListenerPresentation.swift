@@ -11,6 +11,15 @@ public struct NetworkListenerFilter: Hashable, Sendable {
 
     public init() {}
 
+    /// Filter, den der Befund-Filter der übrigen Listen hier bedeutet (Kachel „Auffällig“, Sprünge im Hinweis über den
+    /// Listen; #275): „Von außen erreichbar“ – das sind genau die Lauscher, zu denen `ExposedListenerRule` Befunde
+    /// liefert. `FlaggedBreakdown` zählt im Bereich „Netzwerk“ nur, was dieser Filter zeigt.
+    public static let flagged: NetworkListenerFilter = {
+        var filter = NetworkListenerFilter()
+        filter.onlyExposed = true
+        return filter
+    }()
+
     public var isActive: Bool { self != NetworkListenerFilter() }
 }
 

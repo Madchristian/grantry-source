@@ -19,9 +19,7 @@ public struct AgentToolCatalog: Hashable, Sendable {
 
     /// Anzeigenamen aller Tools als Aufzählung: „Claude Desktop, Claude Code, … und Gemini CLI“.
     public var toolNamesText: String {
-        let names = tools.map(\.displayName)
-        guard let last = names.last, names.count > 1 else { return names.first ?? "" }
-        return names.dropLast().joined(separator: ", ") + " und " + last
+        tools.map(\.displayName).enumerationText
     }
 }
 

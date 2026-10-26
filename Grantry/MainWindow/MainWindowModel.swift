@@ -51,20 +51,27 @@ final class MainWindowModel {
         removalRequest = RemovalRequest(app: app, mode: mode, isPreview: isPreview)
     }
 
-    /// Wechselt in `section`, optional mit Filter „nur auffällige“ (im Bereich „Netzwerk“: „von außen erreichbar“);
-    /// Suche, übrige Filter (auch die des Verlaufs) und Hervorhebung werden zurückgesetzt.
-    func show(_ section: MainSection, onlyFlagged: Bool = false) {
+    /// Wechselt in `section`, optional mit Befund-Filter (im Bereich „Netzwerk“: „von außen erreichbar“,
+    /// `NetworkListenerFilter.flagged`); Suche, übrige Filter (auch die des Verlaufs) und Hervorhebung werden zurückgesetzt.
+    func show(_ section: MainSection, findings: FindingFilter = .all) {
         searchText[section] = nil
-        filters[section] = ListFilter(onlyFlagged: onlyFlagged)
+        filters[section] = ListFilter(findings: findings)
         focusedRecordID = nil
         if section == .history { historyFilter = HistoryFilter() }
-        if section == .apps { appFilter = AppListFilter(onlyFlagged: onlyFlagged, sort: appFilter.sort) }
+        if section == .apps { appFilter = AppListFilter(findings: findings, sort: appFilter.sort) }
         if section == .network {
-            networkFilter = NetworkListenerFilter()
-            networkFilter.onlyExposed = onlyFlagged
-            if onlyFlagged { networkMode = .services }
+            networkFilter = findings.isActive ? .flagged : NetworkListenerFilter()
+            if findings.isActive { networkMode = .services }
         }
         self.section = section
+    }
+
+    /// Befund-Filter der Liste „Netzwerk“ für den Hinweis auf weitere Bereiche (`FlaggedNotice`): der, mit dem sie
+    /// geöffnet wurde, solange „Von außen erreichbar“ gilt; von Hand gesetzt „nur auffällige“.
+    var networkFindings: FindingFilter {
+        guard networkFilter.onlyExposed else { return .all }
+        let findings = filter(for: .network).findings
+        return findings.isActive ? findings : .flagged
     }
 
     /// Zeigt den Bereich des Wunsches und hebt dort den gewünschten Eintrag hervor.
@@ -158,23 +165,25 @@ enum PermissionsGrouping: Hashable, CaseIterable {
 struct ListFilter: Hashable {
     var state: GrantStateFilter = .all
     var scope: ScopeFilter = .all
-    var onlyFlagged = false
+    var findings: FindingFilter = .all
 
     /// Ob ein Filter von der Vorgabe abweicht.
     var isActive: Bool { self != ListFilter() }
+    /// Nur der Befund-Filter ist gesetzt (etwa über die Kachel „Auffällig“) – leere Liste heißt dann „nichts Auffälliges“.
+    var isOnlyFindings: Bool { findings.isActive && self == ListFilter(findings: findings) }
 }
 
 extension InventoryPresenter {
     /// Filtert mit Suchtext und Filter eines Bereichs.
     static func filter(_ groups: [AppGroup], query: String, filter: ListFilter) -> [AppGroup] {
-        Self.filter(groups, query: query, state: filter.state, scope: filter.scope, onlyFlagged: filter.onlyFlagged)
+        Self.filter(groups, query: query, state: filter.state, scope: filter.scope, findings: filter.findings)
     }
 
     static func filter(_ groups: [ServiceGroup], query: String, filter: ListFilter) -> [ServiceGroup] {
-        Self.filter(groups, query: query, state: filter.state, scope: filter.scope, onlyFlagged: filter.onlyFlagged)
+        Self.filter(groups, query: query, state: filter.state, scope: filter.scope, findings: filter.findings)
     }
 
     static func filter(_ sections: [AutostartSection], query: String, filter: ListFilter) -> [AutostartSection] {
-        Self.filter(sections, query: query, state: filter.state, scope: filter.scope, onlyFlagged: filter.onlyFlagged)
+        Self.filter(sections, query: query, state: filter.state, scope: filter.scope, findings: filter.findings)
     }
 }

@@ -2,7 +2,7 @@ import ManagerKit
 import SwiftUI
 
 /// Bereich „Agenten“ (Spec Agenten §7, #129): MCP-Server und automatische Freigaben je Tool links, Detail rechts; Suche
-/// und Filter „Nur auffällige“ in der Symbolleiste, Scan-Abdeckung der Agenten-Quelle über der Liste (#142). Liest nur aus
+/// und Befund-Filter in der Symbolleiste, Scan-Abdeckung der Agenten-Quelle über der Liste (#142). Liest nur aus
 /// `AppModel.presentation`; Aktionen laufen über `AppModel.actions`, ihr Ergebnis steht über dem Detail.
 struct AgentsView: View {
     let appModel: AppModel
@@ -13,6 +13,8 @@ struct AgentsView: View {
         ListDetailSplit {
             VStack(spacing: 0) {
                 SectionCoverageHeader(coverage: appModel.presentation?.coverage[.agents])
+                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .agents,
+                                 filter: window.filter(for: .agents).findings)
                 list
             }
         } detail: {
@@ -28,7 +30,7 @@ struct AgentsView: View {
         .onChange(of: selectedItem == nil) { _, isGone in if isGone { selection = nil } }
     }
 
-    /// Filter des Bereichs; ausgewertet wird nur „Nur auffällige“ (setzt auch die Kachel „Auffällig“).
+    /// Filter des Bereichs; ausgewertet wird nur der Befund-Filter (setzt auch die Kachel „Auffällig“).
     private var filterBinding: Binding<ListFilter> {
         Binding(get: { window.filter(for: .agents) }, set: { window.filters[.agents] = $0 })
     }
@@ -37,10 +39,10 @@ struct AgentsView: View {
 
     private var list: some View {
         let presentation = appModel.presentation
-        let onlyFlagged = window.filter(for: .agents).onlyFlagged
+        let findings = window.filter(for: .agents).findings
         let sections = AgentListSection.sections(
             presentation?.agents.groups ?? [], query: window.query(for: .agents),
-            isIncluded: { recordID in !onlyFlagged || presentation?.highestSeverity(for: recordID) != nil }
+            isIncluded: { findings.includes(presentation?.highestSeverity(for: $0)) }
         )
         let badges = presentation?.badges
         return ScrollViewReader { proxy in
@@ -157,13 +159,13 @@ private struct AgentListSection: Identifiable {
     }
 }
 
-/// Filtermenü des Bereichs: nur „Nur auffällige“ – Zustand und Bereich (Benutzer/System) gibt es hier nicht.
+/// Filtermenü des Bereichs: nur Befunde – Zustand und Bereich (Benutzer/System) gibt es hier nicht.
 private struct AgentFilterMenu: View {
     @Binding var filter: ListFilter
 
     var body: some View {
         FilterMenu(isActive: filter.isActive, help: "Liste filtern", reset: { filter = ListFilter() }) {
-            Toggle("Nur auffällige", isOn: $filter.onlyFlagged)
+            FindingFilterPicker(selection: $filter.findings)
         }
     }
 }

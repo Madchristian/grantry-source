@@ -62,22 +62,22 @@ public enum AppArchitectureFilter: String, Hashable, Sendable, CaseIterable {
 public struct AppListFilter: Hashable, Sendable {
     public var origin: AppOriginFilter
     public var architecture: AppArchitectureFilter
-    /// Nur Apps mit Befund (beliebiger Schweregrad).
-    public var onlyFlagged: Bool
+    /// Befund-Filter nach höchstem Befund je App (gleiche Schwelle wie die Kachel „Auffällig“, #275).
+    public var findings: FindingFilter
     public var sort: AppSortOrder
 
     public init(
-        origin: AppOriginFilter = .all, architecture: AppArchitectureFilter = .all, onlyFlagged: Bool = false,
+        origin: AppOriginFilter = .all, architecture: AppArchitectureFilter = .all, findings: FindingFilter = .all,
         sort: AppSortOrder = .name
     ) {
         self.origin = origin
         self.architecture = architecture
-        self.onlyFlagged = onlyFlagged
+        self.findings = findings
         self.sort = sort
     }
 
     /// Ob ein Filter von der Vorgabe abweicht; die Sortierung zählt nicht.
-    public var isActive: Bool { origin != .all || architecture != .all || onlyFlagged }
+    public var isActive: Bool { origin != .all || architecture != .all || findings.isActive }
 }
 
 /// Eine Zeile der App-Liste; alle Texte einmal beim Erstellen berechnet (kein Formatieren je Darstellung).
@@ -129,7 +129,7 @@ public enum AppInventoryPresenter {
             .filter { filter.origin.matches($0.origin) && filter.architecture.matches($0.architecture) && matches($0, query) }
             .compactMap { app -> InstalledAppRow? in
                 let severity = severity(app.id)
-                guard !filter.onlyFlagged || severity != nil else { return nil }
+                guard filter.findings.includes(severity) else { return nil }
                 return InstalledAppRow(app: app, details: details[app.id] ?? AppUsageDetails(), severity: severity,
                                        now: now, calendar: calendar)
             }

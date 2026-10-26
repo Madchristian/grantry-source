@@ -169,20 +169,20 @@ struct InventoryFilter: Sendable {
     let query: String
     let state: GrantStateFilter
     let scope: ScopeFilter
-    let onlyFlagged: Bool
+    let findings: FindingFilter
 
-    init(query: String, state: GrantStateFilter, scope: ScopeFilter, onlyFlagged: Bool) {
+    init(query: String, state: GrantStateFilter, scope: ScopeFilter, findings: FindingFilter) {
         self.query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         self.state = state
         self.scope = scope
-        self.onlyFlagged = onlyFlagged
+        self.findings = findings
     }
 
     /// Suche über App-Name, Bundle-ID bzw. Pfad des Clients und Dienstname.
     func matches(_ grant: PermissionGrant, severities: SeverityIndex) -> Bool {
         state.matches(isAllowed: grant.authValue.isGranted)
             && scope.matches(grant.scope)
-            && flagMatches(grant.id, severities)
+            && findings.includes(severities.severity(of: grant.id))
             && queryMatches([grant.client.displayName, grant.client.bundleID, grant.clientID, grant.serviceDisplayName])
     }
 
@@ -190,12 +190,8 @@ struct InventoryFilter: Sendable {
     func matches(_ item: AutostartItem, severities: SeverityIndex) -> Bool {
         state.matches(isAllowed: item.isEnabled)
             && scope.matches(item.domain)
-            && flagMatches(item.id, severities)
+            && findings.includes(severities.severity(of: item.id))
             && queryMatches([item.label, item.owner?.displayName, item.owner?.bundleID])
-    }
-
-    private func flagMatches(_ recordID: String, _ severities: SeverityIndex) -> Bool {
-        !onlyFlagged || severities.severity(of: recordID) != nil
     }
 
     /// Ohne Groß-/Kleinschreibung und diakritische Zeichen; eine leere Suche passt immer.
@@ -248,11 +244,12 @@ public enum InventoryPresenter {
     }
 
     /// Behält je Gruppe nur passende Einträge; Gruppen ohne Einträge entfallen, die Sortierung wird neu bestimmt.
+    /// `findings` filtert nach dem höchsten Befund je Eintrag (gleiche Schwelle wie die Kachel „Auffällig“).
     public static func filter(
         _ groups: [AppGroup], query: String = "", state: GrantStateFilter = .all, scope: ScopeFilter = .all,
-        onlyFlagged: Bool = false
+        findings: FindingFilter = .all
     ) -> [AppGroup] {
-        let filter = InventoryFilter(query: query, state: state, scope: scope, onlyFlagged: onlyFlagged)
+        let filter = InventoryFilter(query: query, state: state, scope: scope, findings: findings)
         let filtered = groups.compactMap { group -> AppGroup? in
             let grants = group.grants.filter { filter.matches($0, severities: group.severities) }
             let items = group.autostartItems.filter { filter.matches($0, severities: group.severities) }
@@ -262,12 +259,12 @@ public enum InventoryPresenter {
         return sorted(filtered)
     }
 
-    /// Wie `filter(_:query:state:scope:onlyFlagged:)` für Gruppen nach Berechtigung.
+    /// Wie `filter(_:query:state:scope:findings:)` für Gruppen nach Berechtigung.
     public static func filter(
         _ groups: [ServiceGroup], query: String = "", state: GrantStateFilter = .all, scope: ScopeFilter = .all,
-        onlyFlagged: Bool = false
+        findings: FindingFilter = .all
     ) -> [ServiceGroup] {
-        let filter = InventoryFilter(query: query, state: state, scope: scope, onlyFlagged: onlyFlagged)
+        let filter = InventoryFilter(query: query, state: state, scope: scope, findings: findings)
         let filtered = groups.compactMap { group -> ServiceGroup? in
             let grants = group.grants.filter { filter.matches($0, severities: group.severities) }
             guard !grants.isEmpty else { return nil }
@@ -276,12 +273,12 @@ public enum InventoryPresenter {
         return sorted(filtered)
     }
 
-    /// Wie `filter(_:query:state:scope:onlyFlagged:)` für Autostart-Abschnitte; deren Reihenfolge bleibt erhalten.
+    /// Wie `filter(_:query:state:scope:findings:)` für Autostart-Abschnitte; deren Reihenfolge bleibt erhalten.
     public static func filter(
         _ sections: [AutostartSection], query: String = "", state: GrantStateFilter = .all, scope: ScopeFilter = .all,
-        onlyFlagged: Bool = false
+        findings: FindingFilter = .all
     ) -> [AutostartSection] {
-        let filter = InventoryFilter(query: query, state: state, scope: scope, onlyFlagged: onlyFlagged)
+        let filter = InventoryFilter(query: query, state: state, scope: scope, findings: findings)
         return sections.compactMap { section in
             let items = section.items.filter { filter.matches($0, severities: section.severities) }
             guard !items.isEmpty else { return nil }

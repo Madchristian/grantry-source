@@ -47,7 +47,18 @@ public struct ScanStepDurations<Step: Hashable & Sendable>: Sendable, Equatable 
         self.processing = processing
     }
 
-    var total: TimeInterval { steps.values.reduce(processing, +) }
+    /// Erwartete Zeit bis zum Abschluss von `completed`: nacheinander die Summe, parallel der längste Schritt, weil alle
+    /// zugleich beginnen und sich überlappen (#266).
+    func duration(of completed: some Sequence<Step>, schedule: ScanStepSchedule) -> TimeInterval {
+        let durations = completed.map { steps[$0] ?? 0 }
+        return switch schedule {
+        case .parallel: durations.max() ?? 0
+        case .sequential: durations.reduce(0, +)
+        }
+    }
+
+    /// Erwartete Dauer des ganzen Laufs bis zum Ende der Nachverarbeitung.
+    func total(_ schedule: ScanStepSchedule) -> TimeInterval { duration(of: steps.keys, schedule: schedule) + processing }
 
     var isValid: Bool {
         steps.count <= 512 && processing.isFinite && processing > 0 && processing < 86_400
@@ -67,8 +78,19 @@ typealias ScanDurations = ScanStepDurations<SourceID>
 /// Fortschritt des Vollscans je Quelle.
 typealias ScanProgressTracker = ScanStepTracker<SourceID>
 
+extension ScanStepTracker where Step == SourceID {
+    /// Vollscan (#266): Die Quellen laufen parallel und sind meist nach Bruchteilen einer Sekunde fertig, die
+    /// Nachverarbeitung (Zusammenführen, Signaturen, Ablage, Verlauf) dauert ein Vielfaches. Ohne Messung bekommt sie
+    /// deshalb vorsichtig die Hälfte des Balkens statt nur den Anteil einer Quelle.
+    init(fullScanOf sources: Set<SourceID>, previous: ScanDurations?) {
+        self.init(steps: sources, previous: previous, schedule: .parallel, unmeasuredProcessingShare: 0.5)
+    }
+}
+
 /// Rein ereignisgetrieben: nur echte Schrittabschlüsse erhöhen den Fortschritt. Kein Zeitgeber, keine Systemabfrage.
 /// Gewichtet wird mit den Dauern des letzten erfolgreichen Laufs mit denselben Schritten, sonst zählen die Schritte.
+/// Die Nachverarbeitung nach dem letzten Schritt ist ein eigener Abschnitt ohne Zwischenstand: Ihren Anteil erreicht der
+/// Balken erst mit `finish`.
 public struct ScanStepTracker<Step: Hashable & Sendable>: Sendable {
     /// Darunter dauerte der letzte Lauf zu kurz für sinnvollen Fortschritt: unbestimmte Anzeige.
     public static var minimumDeterminateSeconds: TimeInterval { 1 }
@@ -76,6 +98,7 @@ public struct ScanStepTracker<Step: Hashable & Sendable>: Sendable {
     private let steps: Set<Step>
     private let previous: ScanStepDurations<Step>?
     private let schedule: ScanStepSchedule
+    private let unmeasuredProcessingShare: Double?
     private let isIndeterminate: Bool
     private var durations: [Step: TimeInterval] = [:]
     private var lastCompletion: TimeInterval = 0
@@ -85,12 +108,16 @@ public struct ScanStepTracker<Step: Hashable & Sendable>: Sendable {
     public private(set) var progress: ScanProgress
     public private(set) var completedDurations: ScanStepDurations<Step>?
 
-    public init(steps: Set<Step>, previous: ScanStepDurations<Step>?, schedule: ScanStepSchedule = .parallel) {
+    /// `unmeasuredProcessingShare`: Anteil der Nachverarbeitung am Balken, solange keine Messung vorliegt; ohne Angabe
+    /// zählt sie wie ein weiterer Schritt.
+    public init(steps: Set<Step>, previous: ScanStepDurations<Step>?, schedule: ScanStepSchedule = .parallel,
+                unmeasuredProcessingShare: Double? = nil) {
         self.steps = steps
         self.schedule = schedule
+        self.unmeasuredProcessingShare = unmeasuredProcessingShare.map { min(1, max(0, $0)) }
         let previous = previous.flatMap { $0.isValid && Set($0.steps.keys) == steps ? $0 : nil }
         self.previous = previous
-        isIndeterminate = previous.map { $0.total < Self.minimumDeterminateSeconds } ?? false
+        isIndeterminate = previous.map { $0.total(schedule) < Self.minimumDeterminateSeconds } ?? false
         progress = ScanProgress(isIndeterminate: isIndeterminate)
     }
 
@@ -106,11 +133,12 @@ public struct ScanStepTracker<Step: Hashable & Sendable>: Sendable {
         durations[step] = max(0.000_001, duration)
         lastCompletion = max(lastCompletion, elapsed)
         failed = failed || !succeeded
-        let fraction: Double
-        if let previous {
-            fraction = durations.keys.reduce(0) { $0 + (previous.steps[$1] ?? 0) } / previous.total
+        let fraction = if let previous {
+            previous.duration(of: durations.keys, schedule: schedule) / previous.total(schedule)
+        } else if let unmeasuredProcessingShare {
+            Double(durations.count) / Double(steps.count) * (1 - unmeasuredProcessingShare)
         } else {
-            fraction = Double(durations.count) / Double(steps.count + 1)
+            Double(durations.count) / Double(steps.count + 1)
         }
         progress = ScanProgress(fraction: max(progress.fraction, min(0.99, fraction)),
                                 remainingSeconds: remaining(at: elapsed), isIndeterminate: isIndeterminate, now: now)

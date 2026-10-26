@@ -20,7 +20,7 @@ struct AppFilterMenu: View {
                 ForEach(AppArchitectureFilter.allCases, id: \.self) { Text(verbatim: $0.title).tag($0) }
             }
             .pickerStyle(.inline)
-            Toggle("Nur auffällige", isOn: $filter.onlyFlagged)
+            FindingFilterPicker(selection: $filter.findings)
         }
     }
 }

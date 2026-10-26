@@ -165,7 +165,7 @@ import Testing
         #expect(userOnly.first?.autostartItems.isEmpty == true)
     }
 
-    @Test func onlyFlaggedKeepsFlaggedRecordsAndResorts() {
+    @Test func findingFilterKeepsRecordsWithFindingsAndResorts() {
         let zoomCamera = TestData.grant("kTCCServiceCamera", client: zoom)
         let zoomMic = TestData.grant("kTCCServiceMicrophone", client: zoom)
         let alfredCamera = TestData.grant("kTCCServiceCamera", client: alfred)
@@ -173,7 +173,7 @@ import Testing
             snapshot: TestData.snapshot(grants: [zoomCamera, zoomMic, alfredCamera]),
             findings: [finding(zoomMic.id, .low)]
         )
-        let flagged = InventoryPresenter.filter(groups, onlyFlagged: true)
+        let flagged = InventoryPresenter.filter(groups, findings: .withFindings)
         #expect(flagged.map(\.id) == ["us.zoom.xos"])
         #expect(flagged[0].grants == [zoomMic])
         #expect(flagged[0].highestSeverity == .low)

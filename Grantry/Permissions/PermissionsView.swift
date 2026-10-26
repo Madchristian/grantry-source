@@ -14,6 +14,8 @@ struct PermissionsView: View {
         ListDetailSplit {
             VStack(spacing: 0) {
                 SectionCoverageHeader(coverage: coverage)
+                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .permissions,
+                                 filter: window.filter(for: .permissions).findings)
                 Picker("Gruppierung", selection: $window.permissionsGrouping) {
                     ForEach(PermissionsGrouping.allCases, id: \.self) { grouping in
                         Text(grouping.title).tag(grouping)
