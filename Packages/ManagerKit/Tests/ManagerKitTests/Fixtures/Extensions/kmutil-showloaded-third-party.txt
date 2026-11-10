@@ -1,0 +1,12 @@
+Index Refs Address            Size       Wired      Name (Version) UUID <Linked Against>
+    3  231 0                  0          0          com.apple.kpi.bsd (27.2.0) BA25FDD8-FC20-3CC5-9606-996FED0E1891 <>
+    4   12 0                  0          0          com.apple.kpi.dsep (27.2.0) BA25FDD8-FC20-3CC5-9606-996FED0E1891 <>
+    5  261 0                  0          0          com.apple.kpi.iokit (27.2.0) BA25FDD8-FC20-3CC5-9606-996FED0E1891 <>
+    6  263 0                  0          0          com.apple.kpi.libkern (27.2.0) BA25FDD8-FC20-3CC5-9606-996FED0E1891 <>
+    7  246 0                  0          0          com.apple.kpi.mach (27.2.0) BA25FDD8-FC20-3CC5-9606-996FED0E1891 <>
+  101    4 0xfffffe0007ac2cd0 0x8c138    0x8c138    com.apple.iokit.IODisplayPortFamily (1.0.0) 664F26B5-A525-3CC4-924C-DEB0675F1321 <71 65 37 36 35 9 8 7 6 5 3>
+  102   11 0xfffffe0007bae9d0 0x2b0d81   0x2b0d81   com.apple.iokit.IOThunderboltFamily (9.3.3) 6B5456A8-EE7A-3940-8CA7-FD42B8629066 <71 68 65 8 7 6 5 3>
+  103    0 0xfffffe0007462e40 0x6c8ac    0x6c8ac    com.apple.driver.AppleDisplayCrossbar (1.0.0) 5C5E9545-A273-3E5E-B5A7-1CD77C08CE64 <102 101 100 71 65 37 30 6 5>
+  280    0 0xfffffe0007a1c000 0x8000     0x8000     com.example.thirdparty.driver (2.3.1) 1A2B3C4D-1111-2222-3333-444455556666 <6 5 3 1>
+  281    0 0xfffffe0007a24000 0x4000     0x4000     com.apple.fake.unsigned (1.0) 1A2B3C4D-1111-2222-3333-444455556667 <6 5>
+kaputte Zeile

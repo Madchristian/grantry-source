@@ -12,9 +12,13 @@ public struct SecurityCheckPresentation: Hashable, Sendable, Identifiable {
     public let id: String
     public let kind: SecurityCheckKind
     public let title: String
+    public let state: SecurityState
     public let statusText: String
     public let tone: PresentationTone
+    /// Symbol der Prüfung (`SecurityCheckKind.systemImage`); den Zustand tragen `statusText` und `tone`.
     public let systemImage: String
+    /// Kurzbefund für Lagezeile und Chips („SIP aus“, „2 Updates offen“, „XProtect nicht prüfbar“).
+    public let brief: String
     public let summary: String
     /// Was zu tun ist, wenn Grantry es nicht selbst kann (SIP); sonst `nil`.
     public let explanation: String?
@@ -31,13 +35,61 @@ public struct SecurityCheckPresentation: Hashable, Sendable, Identifiable {
         let content = Self.content(for: check, days: { CalendarDays.since($0, now: now, calendar: calendar) })
         (summary, explanation, details, offers) = (content.summary, content.explanation, content.details, content.offers)
         (statusText, tone) = Self.status(of: check)
-        systemImage = check.state == .unknown ? "questionmark.circle.fill" : tone.systemImage
+        state = check.state
+        systemImage = check.kind.systemImage
+        brief = Self.brief(for: check)
     }
 
     /// MDM angemeldet bleibt `.good` (Spec), wird aber neutral als „Angemeldet“ gezeigt (Plan-Abweichung 10).
     private static func status(of check: SecurityCheck) -> (String, PresentationTone) {
         if check.state != .unknown, case .mdmEnrollment(true, _)? = check.facts { return ("Angemeldet", .neutral) }
         return (check.state.statusTitle, check.state.tone)
+    }
+
+    /// Zustand in zwei, drei Wörtern; bei `unknown` nur, dass die Prüfung nicht möglich war.
+    private static func brief(for check: SecurityCheck) -> String {
+        guard check.state != .unknown, let facts = check.facts else { return "\(check.kind.shortName) nicht prüfbar" }
+        switch facts {
+        case .fileVault(let status):
+            return switch status {
+            case .on: "FileVault an"
+            case .off: "FileVault aus"
+            case .encrypting: "FileVault verschlüsselt"
+            case .decrypting: "FileVault entschlüsselt"
+            case .pendingRestart: "FileVault nach Neustart"
+            }
+        case .firewall(let enabled, let stealthMode):
+            return !enabled ? "Firewall aus" : stealthMode ? "Firewall an" : "Tarnmodus aus"
+        case .sip(let status):
+            return switch status {
+            case .enabled: "SIP aktiv"
+            case .customConfiguration: "SIP teilweise"
+            case .disabled: "SIP aus"
+            }
+        case .gatekeeper(let enabled):
+            return enabled ? "Gatekeeper an" : "Gatekeeper aus"
+        case .xprotect:
+            return check.state == .good ? "XProtect aktuell" : "XProtect veraltet"
+        case .automaticUpdates(let disabled):
+            if disabled.isEmpty { return "Updates automatisch" }
+            return check.state == .critical ? "Automatische Updates aus" : "Updates teils manuell"
+        case .pendingUpdates(let updates, _):
+            return switch updates.count {
+            case 0: check.state == .good ? "Keine Updates offen" : "Updatesuche überfällig"
+            case 1: "1 Update offen"
+            default: "\(updates.count) Updates offen"
+            }
+        case .mdmEnrollment(let enrolled, _):
+            return enrolled ? "MDM angemeldet" : "Kein MDM"
+        case .automaticLogin(let enabled):
+            return enabled ? "Automatische Anmeldung an" : "Anmeldung mit Passwort"
+        case .sharingServices(let active):
+            return switch active.count {
+            case 0: "Freigaben aus"
+            case 1: "1 Freigabe aktiv"
+            default: "\(active.count) Freigaben aktiv"
+            }
+        }
     }
 
     private struct Content {
@@ -111,6 +163,23 @@ public struct SecurityCheckPresentation: Hashable, Sendable, Identifiable {
             return Content(summary: enrolled
                 ? "Dieser Mac ist bei einer Geräteverwaltung (MDM) angemeldet\(viaDEP ? " (automatische Geräteregistrierung)" : ""). Sie kann Einstellungen und Apps vorgeben."
                 : "Dieser Mac ist bei keiner Geräteverwaltung (MDM) angemeldet.")
+        case .automaticLogin(let enabled):
+            return enabled
+                ? Content(
+                    summary: "Der Mac meldet beim Start ein Konto ohne Passwort an – wer ihn einschaltet, ist im Konto.",
+                    offers: link("Benutzer & Gruppen öffnen", SecuritySettingsLinks.usersAndGroups))
+                : Content(summary: "Die automatische Anmeldung ist aus – beim Start fragt der Mac nach dem Passwort.")
+        case .sharingServices(let active):
+            let services = SharingService.allCases.filter(active.contains)
+            guard !services.isEmpty else {
+                return Content(summary: "Bildschirmfreigabe, Dateifreigabe und entfernte Anmeldung sind aus.")
+            }
+            let names = services.map(\.displayName).joined(separator: ", ")
+            return Content(
+                summary: "Aktiv: \(names) – andere Geräte im Netzwerk können sich verbinden.",
+                details: services.map(\.displayNameWithPorts),
+                offers: link("Freigaben öffnen", SecuritySettingsLinks.sharing)
+            )
         }
     }
 
@@ -146,7 +215,7 @@ public struct SecurityOverview: Hashable, Sendable {
     private let criticalTitles: [String]
 
     public static func make(checks: [SecurityCheck], now: Date, calendar: Calendar = .current) -> SecurityOverview {
-        let ordered = checks.sorted { displayOrder($0.kind) < displayOrder($1.kind) }
+        let ordered = checks.sortedByKind()
         let critical = ordered.filter { $0.state == .critical }
         return SecurityOverview(
             checks: ordered.map { SecurityCheckPresentation($0, now: now, calendar: calendar) },
@@ -155,10 +224,6 @@ public struct SecurityOverview: Hashable, Sendable {
             criticalCount: critical.count,
             criticalTitles: critical.map(\.kind.displayName)
         )
-    }
-
-    private static func displayOrder(_ kind: SecurityCheckKind) -> Int {
-        SecurityCheckKind.allCases.firstIndex(of: kind) ?? .max
     }
 
     /// Farbe der Kachel; `nil` ohne Prüfungen (Standardfarbe).

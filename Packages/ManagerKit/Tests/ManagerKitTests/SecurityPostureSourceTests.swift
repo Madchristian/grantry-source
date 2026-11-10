@@ -57,13 +57,15 @@ private final class PreferencesReader: Sendable {
     }
 
     private func source(_ runner: MockCommandRunner, plist: @escaping @Sendable () throws -> Data) -> SecurityPostureSource {
-        SecurityPostureSource.standard(runner: runner, readPreferences: plist, now: { [now] in now })
+        SecurityPostureSource.standard(runner: runner, readPreferences: plist, readLoginWindowPreferences: { nil },
+                                       now: { [now] in now })
     }
 
     @Test func collectsAllChecksInKindOrder() async throws {
         let plist = try securityFixtureData("SoftwareUpdate.plist")
         let contribution = try await source(stubbedRunner(), plist: { plist }).collect()
-        #expect(contribution.securityChecks.map(\.kind) == SecurityCheckKind.allCases)
+        let probed = SecurityCheckKind.allCases.filter { !$0.isDerivedFromInventory }
+        #expect(contribution.securityChecks.map(\.kind) == probed)
         #expect(contribution.grants.isEmpty && contribution.autostartItems.isEmpty)
         let firewall = try #require(contribution.securityChecks.first { $0.kind == .firewall })
         #expect(firewall.state == .warning && firewall.facts == TestData.stealthOff)
@@ -127,20 +129,22 @@ private final class PreferencesReader: Sendable {
             "/usr/bin/csrutil status": timeout, "/usr/bin/profiles status -type enrollment": missing,
         ])
         let plist = try securityFixtureData("SoftwareUpdate.plist")
-        let contribution = try await SecurityPostureSource.standard(runner: runner, readPreferences: { plist }, now: { [now] in now })
-            .collect()
+        let contribution = try await SecurityPostureSource.standard(
+            runner: runner, readPreferences: { plist }, readLoginWindowPreferences: { nil }, now: { [now] in now }
+        ).collect()
         let byKind = Dictionary(uniqueKeysWithValues: contribution.securityChecks.map { ($0.kind, $0) })
         #expect(byKind[.sip]?.state == .unknown && byKind[.sip]?.detail == timeout.readableDescription)
         #expect(byKind[.mdmEnrollment]?.state == .unknown && byKind[.mdmEnrollment]?.detail == missing.readableDescription)
         let others = contribution.securityChecks.filter { ![.sip, .mdmEnrollment].contains($0.kind) }
-        #expect(others.count == 6 && others.allSatisfy { $0.state != .unknown })
+        #expect(others.count == 7 && others.allSatisfy { $0.state != .unknown })
     }
 
     /// Jeder Befehl bekommt das Zeitlimit von 15 Sekunden.
     @Test func commandsRunWithFifteenSecondTimeout() async throws {
         let runner = RunnerSpy(try stubbedRunner())
-        _ = try await SecurityPostureSource.standard(runner: runner, readPreferences: { Data() }, now: { [now] in now })
-            .collect()
+        _ = try await SecurityPostureSource.standard(
+            runner: runner, readPreferences: { Data() }, readLoginWindowPreferences: { nil }, now: { [now] in now }
+        ).collect()
         #expect(runner.timeouts == Array(repeating: .seconds(15), count: 6))
     }
 
@@ -148,6 +152,7 @@ private final class PreferencesReader: Sendable {
         #expect(SecurityPostureSource.watchedFiles == [
             "/Library/Preferences/com.apple.SoftwareUpdate.plist",
             "/Library/Preferences/com.apple.networkextension.plist",
+            "/Library/Preferences/com.apple.loginwindow.plist",
         ])
         #expect(SecurityPostureSource.watchedDirectories == [
             "/var/protected/xprotect/XProtect.bundle",

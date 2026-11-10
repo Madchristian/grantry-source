@@ -1,101 +1,247 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Tabelle der Netzwerkaktivität: Prozesse mit aufklappbaren Verbindungen, Spalten sortierbar (außer Signatur).
-/// Kontextmenü nur lesend: „Im Finder zeigen“, „Ziel kopieren“, „Zum Netzwerkdienst“.
+enum NetworkActivityTableLayout {
+    static let spacing = InstrumentSpacing.inline
+    static let rateWidth: CGFloat = 96
+    static let totalWidth: CGFloat = 84
+    static let connectionsWidth: CGFloat = 100
+    static let signingWidth: CGFloat = 132
+    /// Einzug der Verbindungen unter ihrem Prozess.
+    static let childIndent = InstrumentSize.disclosure + InstrumentSpacing.group
+}
+
+/// Tabelle der Netzwerkaktivität als Panel (§3.7, #366): Prozesse mit aufklappbaren Verbindungen, Raten mit Hitze in den
+/// Farben von Empfangen und Gesendet, Spalten per Klick auf den Kopf sortierbar (außer Signatur). Kontextmenü nur lesend:
+/// „Im Finder zeigen“, „Ziel kopieren“, „Zum Netzwerkdienst“. Eigene Zeilen statt `Table`: Nur so lassen sich Zellen
+/// einfärben.
 struct NetworkActivityTable: View {
     let rows: [NetworkActivityRow]
     @Binding var sortOrder: [KeyPathComparator<NetworkActivityRow>]
     /// Lauscher des aktuellen Snapshots („Zum Netzwerkdienst“).
     let listeners: [NetworkListener]
     let showListener: (NetworkListener) -> Void
-    @State private var selection: Set<NetworkActivityRow.ID> = []
+    @State private var selection: NetworkActivityRow.ID?
+    @State private var expanded: Set<NetworkActivityRow.ID> = []
 
     var body: some View {
-        Table(rows, children: \.children, selection: $selection, sortOrder: $sortOrder) {
-            TableColumn("Name", value: \.title, comparator: .localizedStandard) { row in
-                NetworkActivityNameCell(row: row)
-            }
-            .width(min: 140, ideal: 170)
-            TableColumn(Text(verbatim: "↓/s").accessibilityLabel("Empfangen pro Sekunde"), value: \.downloadRate) { row in
-                RateText(value: row.downloadRate)
-            }
-            .width(min: 56, ideal: 70)
-            TableColumn(Text(verbatim: "↑/s").accessibilityLabel("Gesendet pro Sekunde"), value: \.uploadRate) { row in
-                RateText(value: row.uploadRate)
-            }
-            .width(min: 56, ideal: 70)
-            TableColumn("Gesamt", value: \.totalBytes) { row in
-                Text(verbatim: TrafficFormat.bytes(row.totalBytes))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            .width(min: 56, ideal: 64)
-            TableColumn("Verbindungen", value: \.connectionCount) { row in
-                Text(verbatim: row.compactDetail)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .foregroundStyle(.secondary)
-                    .help(Text(verbatim: row.detail))
-            }
-            .width(min: 64, ideal: 80)
-            TableColumn("Signatur") { row in
-                if let signing = row.signing {
-                    SigningLabel(signing: signing, style: .compact).lineLimit(1)
-                }
-            }
-            .width(min: 96, ideal: 140)
-        }
-        .contextMenu(forSelectionType: NetworkActivityRow.ID.self) { ids in
-            if ids.count == 1, let id = ids.first, let row = NetworkActivityPresenter.row(withID: id, in: rows) {
-                NetworkActivityContextMenu(
-                    row: row, listener: NetworkActivityPresenter.listener(for: row, in: listeners), showListener: showListener
-                )
-            }
+        let summary = NetworkActivityColumnSummary(rows: rows)
+        TaskManagerTable {
+            NetworkActivityTableHeader(count: rows.count, summary: summary, sortOrder: $sortOrder)
+        } rows: {
+            NetworkActivityTableRows(rows: rows, summary: summary, expanded: $expanded, selection: $selection,
+                                     listeners: listeners, showListener: showListener)
         }
     }
 }
 
-/// Name einer Zeile: App-Symbol bzw. Verbindungssymbol, Titel, „neu“-Marke; ausgegraut, wenn beendet bzw. geschlossen.
-struct NetworkActivityNameCell: View {
-    let row: NetworkActivityRow
+struct NetworkActivityTableHeader: View {
+    let count: Int
+    let summary: NetworkActivityColumnSummary
+    @Binding var sortOrder: [KeyPathComparator<NetworkActivityRow>]
 
     var body: some View {
-        HStack(spacing: 6) {
-            switch row.kind {
-            case .process(_, let program):
-                ProgramIcon(program: program, title: row.title, size: 16)
-            case .connection:
-                Image(systemName: "arrow.left.arrow.right")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
+        HStack(alignment: .bottom, spacing: NetworkActivityTableLayout.spacing) {
+            header(.name, value: count == 1 ? String(localized: "1 Programm") : String(localized: "\(count) Programme"),
+                   alignment: .leading)
+                .padding(.leading, NetworkActivityTableLayout.childIndent)
+                .frame(maxWidth: .infinity)
+            header(.download, value: TrafficFormat.rate(summary.rate.download), hue: .received)
+                .frame(width: NetworkActivityTableLayout.rateWidth)
+            header(.upload, value: TrafficFormat.rate(summary.rate.upload), hue: .sent)
+                .frame(width: NetworkActivityTableLayout.rateWidth)
+            header(.total, value: TrafficFormat.bytes(summary.bytes)).frame(width: NetworkActivityTableLayout.totalWidth)
+            header(.connections, value: "\(summary.connections)")
+                .frame(width: NetworkActivityTableLayout.connectionsWidth)
+            HeatColumnHeader(title: String(localized: "Signatur"), value: "", heat: nil, sortAscending: nil,
+                             alignment: .leading)
+                .padding(.horizontal, InstrumentSpacing.group)
+                .frame(width: NetworkActivityTableLayout.signingWidth)
+        }
+        .padding(.horizontal, InstrumentSpacing.bar)
+        .padding(.vertical, InstrumentSpacing.cell)
+    }
+
+    private func header(_ column: NetworkActivityColumn, value: String, alignment: HorizontalAlignment = .trailing,
+                        hue: InstrumentHue = .received) -> some View {
+        let isSorted = NetworkActivityColumn(sortedBy: sortOrder) == column
+        let ascending = isSorted ? sortOrder.first?.order == .forward : nil
+        return Button {
+            sortOrder = NetworkActivityColumn.sortOrder(selecting: column, current: sortOrder)
+        } label: {
+            HeatColumnHeader(title: column.title, value: value, heat: nil, sortAscending: ascending,
+                             alignment: alignment, hue: hue)
+                .padding(.horizontal, InstrumentSpacing.group)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help("Nach \(column.title) sortieren")
+        // ax-value: Knopf, behält seine Rolle und damit den Wert
+        .accessibilityValue(Text(verbatim: ascending.map {
+            "\(value), \($0 ? String(localized: "aufsteigend sortiert") : String(localized: "absteigend sortiert"))"
+        } ?? value))
+    }
+}
+
+extension NetworkActivityColumn {
+    var title: String {
+        switch self {
+        case .name: String(localized: "Name")
+        case .download: String(localized: "Empfangen")
+        case .upload: String(localized: "Gesendet")
+        case .total: String(localized: "Gesamt")
+        case .connections: String(localized: "Verbindungen")
+        }
+    }
+}
+
+/// Die Zeilen ohne Scrollbereich (auch für Bilder: `ImageRenderer` zeichnet keinen `ScrollView`-Inhalt). Umsortiert wird
+/// ohne Animation (Leistungsregeln aus #369).
+struct NetworkActivityTableRows: View {
+    let rows: [NetworkActivityRow]
+    let summary: NetworkActivityColumnSummary
+    @Binding var expanded: Set<NetworkActivityRow.ID>
+    @Binding var selection: NetworkActivityRow.ID?
+    let listeners: [NetworkListener]
+    let showListener: (NetworkListener) -> Void
+
+    var body: some View {
+        LazyVStack(spacing: InstrumentSpacing.stack) {
+            ForEach(visibleRows) { row in
+                NetworkActivityRowView(row: row, summary: summary, isSelected: selection == row.id,
+                                       isExpanded: expanded.contains(row.id)) {
+                    toggle(row)
+                }
+                .selectableRow { selection = row.id }
+                .contextMenu {
+                    NetworkActivityContextMenu(row: row,
+                                               listener: NetworkActivityPresenter.listener(for: row, in: listeners),
+                                               showListener: showListener)
+                }
             }
+        }
+        .padding(.horizontal, InstrumentSpacing.group)
+        .padding(.vertical, InstrumentSpacing.item)
+    }
+
+    /// Prozesse, unter aufgeklappten ihre Verbindungen.
+    private var visibleRows: [NetworkActivityRow] {
+        rows.flatMap { row in [row] + (expanded.contains(row.id) ? row.children ?? [] : []) }
+    }
+
+    private func toggle(_ row: NetworkActivityRow) {
+        if expanded.remove(row.id) == nil { expanded.insert(row.id) }
+    }
+}
+
+struct NetworkActivityRowView: View {
+    let row: NetworkActivityRow
+    let summary: NetworkActivityColumnSummary
+    let isSelected: Bool
+    let isExpanded: Bool
+    let onToggle: () -> Void
+
+    private var isConnection: Bool {
+        if case .connection = row.kind { true } else { false }
+    }
+
+    var body: some View {
+        HStack(spacing: NetworkActivityTableLayout.spacing) {
+            NetworkActivityNameCell(row: row, isExpanded: isExpanded, onToggle: onToggle)
+                .padding(.leading, isConnection ? NetworkActivityTableLayout.childIndent : 0)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            HeatCell(TrafficFormat.rate(row.downloadRate), heat: summary.heat(row.downloadRate, of: \.download),
+                     hue: .received)
+                .frame(width: NetworkActivityTableLayout.rateWidth)
+            HeatCell(TrafficFormat.rate(row.uploadRate), heat: summary.heat(row.uploadRate, of: \.upload), hue: .sent)
+                .frame(width: NetworkActivityTableLayout.rateWidth)
+            value(TrafficFormat.bytes(row.totalBytes), width: NetworkActivityTableLayout.totalWidth)
+            value(row.compactDetail, width: NetworkActivityTableLayout.connectionsWidth)
+                .help(Text(verbatim: row.detail))
+            ZStack(alignment: .leading) {
+                if let signing = row.signing {
+                    SigningLabel(signing: signing, style: .compact).font(InstrumentFont.body).lineLimit(1)
+                }
+            }
+            .padding(.horizontal, InstrumentSpacing.group)
+            .frame(width: NetworkActivityTableLayout.signingWidth, alignment: .leading)
+        }
+        .padding(.horizontal, InstrumentSpacing.group)
+        .instrumentRowBackground(isSelected: isSelected)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: row.accessibilityLabel))
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .disclosureAction(isExpandable: row.children != nil, isExpanded: isExpanded, toggle: onToggle)
+    }
+
+    private func value(_ text: String, width: CGFloat) -> some View {
+        Text(verbatim: text)
+            .font(InstrumentFont.numeric)
+            .foregroundStyle(.instrumentSecondary)
+            .lineLimit(1)
+            .padding(.horizontal, InstrumentSpacing.group)
+            .frame(width: width, alignment: .trailing)
+    }
+}
+
+/// Name einer Zeile: Pfeil zum Aufklappen, App-Symbol bzw. Verbindungssymbol, Titel, „neu“ bzw. „beendet“; beendete
+/// Prozesse und geschlossene Verbindungen mit abgeblendetem Symbol und Text in Sekundärfarbe.
+struct NetworkActivityNameCell: View {
+    let row: NetworkActivityRow
+    let isExpanded: Bool
+    let onToggle: () -> Void
+
+    var body: some View {
+        HStack(spacing: InstrumentSpacing.group) {
+            disclosure
+            Group {
+                switch row.kind {
+                case .process(_, let program):
+                    ProgramIcon(program: program, title: row.title, size: InstrumentSize.rowIcon)
+                case .connection:
+                    Image(systemName: "arrow.left.arrow.right")
+                        .font(InstrumentFont.rowIcon)
+                        .foregroundStyle(.instrumentSecondary)
+                        .frame(width: InstrumentSize.rowIcon, height: InstrumentSize.rowIcon)
+                        .accessibilityHidden(true)
+                }
+            }
+            .opacity(row.isGone ? InstrumentOpacity.gone : 1)
             Text(verbatim: row.title)
+                .font(InstrumentFont.body)
+                .foregroundStyle(row.isGone ? .instrumentSecondary : .primary)
                 .lineLimit(1)
                 .truncationMode(.middle)
             if row.isNew {
-                Text("neu")
-                    .font(.caption2.weight(.semibold))
-                    .padding(.horizontal, 4)
-                    .background(PresentationTone.positive.color.opacity(0.2), in: Capsule())
+                StatusChip(String(localized: "neu"), tone: .info, isSmall: true)
+            }
+            if row.isGone {
+                StatusChip(row.kind.isProcess ? String(localized: "beendet") : String(localized: "geschlossen"),
+                           tone: .neutral, isSmall: true)
             }
         }
-        .opacity(row.isGone ? 0.45 : 1)
+        .padding(.vertical, InstrumentSpacing.inline)
         .help(row.executablePath ?? row.target ?? row.title)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: row.accessibilityLabel))
     }
-}
 
-/// Rate in skalierter Einheit; ruhende Zeilen in Sekundärfarbe.
-private struct RateText: View {
-    let value: Double
-
-    var body: some View {
-        Text(verbatim: TrafficFormat.rate(value))
-            .monospacedDigit()
-            .foregroundStyle(value > 0 ? .primary : .secondary)
+    @ViewBuilder
+    private var disclosure: some View {
+        if row.children != nil {
+            Button(action: onToggle) {
+                Image(systemName: "chevron.right")
+                    .font(InstrumentFont.label.weight(.semibold))
+                    .rotationEffect(.degrees(isExpanded ? 90 : 0))
+                    .frame(width: InstrumentSize.disclosure, height: InstrumentSize.disclosure)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(.instrumentSecondary)
+            .accessibilityLabel(isExpanded ? "Zuklappen" : "Aufklappen")
+        } else if row.kind.isProcess {
+            Color.clear.frame(width: InstrumentSize.disclosure, height: InstrumentSize.disclosure)
+        }
     }
 }
 
@@ -118,5 +264,11 @@ struct NetworkActivityContextMenu: View {
         if let listener {
             Button("Zum Netzwerkdienst") { showListener(listener) }
         }
+    }
+}
+
+private extension NetworkActivityRow.Kind {
+    var isProcess: Bool {
+        if case .process = self { true } else { false }
     }
 }

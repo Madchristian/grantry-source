@@ -1,6 +1,6 @@
 import Foundation
 
-/// Schwelle des Befund-Filters der Listen (Berechtigungen, Autostart, Apps, Agenten; #275) – dieselbe wie bei der
+/// Schwelle des Befund-Filters der Listen (Berechtigungen, Autostart, Erweiterungen, Apps, Agenten; #275) – dieselbe wie bei der
 /// Kachel „Auffällig“ (`FlaggedBreakdown`), damit die Liste genau die gezählten Einträge zeigt.
 public enum FindingFilter: Hashable, Sendable, CaseIterable {
     /// Alle Einträge, mit und ohne Befund.
@@ -31,13 +31,14 @@ public enum FindingFilter: Hashable, Sendable, CaseIterable {
 /// Bereich mit Befunden: Ziel der Kachel „Auffällig“ (`FlaggedBreakdown.tileArea`) und der Sprünge im Hinweis über den
 /// Listen (`FlaggedNotice`). Reihenfolge der Fälle = Vorrang beim Öffnen.
 public enum FlaggedArea: Hashable, Sendable, CaseIterable {
-    case permissions, autostart, apps, agents, network
+    case permissions, autostart, extensions, apps, agents, network
 
     /// Inventarbereich gleichen Namens (Sidebar, Abdeckung).
     public var inventoryArea: InventoryArea {
         switch self {
         case .permissions: .permissions
         case .autostart: .autostart
+        case .extensions: .extensions
         case .apps: .apps
         case .agents: .agents
         case .network: .network
@@ -117,8 +118,8 @@ public struct FlaggedBreakdown: Hashable, Sendable {
         return hintCount > 0 ? .withFindings : .all
     }
 
-    /// Bereich, den die Kachel öffnet: der erste mit Einträgen zu `tileFilter` (Berechtigungen vor Autostart vor Apps vor
-    /// Agenten vor Netzwerk) – ein Hinweis bei den Berechtigungen lenkt so nicht von einem auffälligen Autostart-Eintrag
+    /// Bereich, den die Kachel öffnet: der erste mit Einträgen zu `tileFilter` (Berechtigungen vor Autostart vor
+    /// Erweiterungen vor Apps vor Agenten vor Netzwerk) – ein Hinweis bei den Berechtigungen lenkt so nicht von einem auffälligen Autostart-Eintrag
     /// ab. Ohne Befunde die Berechtigungen.
     public var tileArea: FlaggedArea { areas(for: tileFilter).first ?? .permissions }
 

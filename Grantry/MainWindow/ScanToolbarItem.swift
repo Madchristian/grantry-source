@@ -32,11 +32,22 @@ struct ScanToolbarItem: ToolbarContent {
             }
             .disabled(!isEnabled)
             .accessibilityLabel("Jetzt scannen")
+            // ax-value: Knopf, behält seine Rolle und damit den Wert
             .accessibilityValue(!isEnabled ? "Scan läuft" : signatureStatus ?? "Bereit")
             .accessibilityIdentifier("scanToolbarControl")
             .help(!isEnabled ? "Scan läuft" : signatureStatus != nil
                 ? "Inventarscan beendet; Signaturprüfung läuft oder ist unvollständig. Erneut scannen ist möglich." : "Jetzt scannen")
         }
+    }
+}
+
+extension View {
+    /// Titel, Untertitel und Symbolleiste des Hauptfensters – gemeinsam für `RootView` und die Fensterprüfung
+    /// (`window_layout_check.swift`), damit sie das Fenster samt Symbolleiste wie in der App nachbildet.
+    func mainWindowChrome(title: String, subtitle: String, scan: ScanToolbarItem) -> some View {
+        navigationTitle(title)
+            .navigationSubtitle(subtitle)
+            .toolbar { scan }
     }
 }
 

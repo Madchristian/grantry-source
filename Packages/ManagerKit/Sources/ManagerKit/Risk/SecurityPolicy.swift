@@ -46,6 +46,12 @@ public struct SecurityPolicy: Sendable, Equatable {
             pendingUpdatesState(updates, lastCheck: lastCheck, now: now)
         case .mdmEnrollment:
             .good
+        // Wer den Mac einschaltet, ist ohne Passwort im Konto; das Passwort liegt zudem umkehrbar in `/etc/kcpassword`.
+        case .automaticLogin(let enabled):
+            enabled ? .critical : .good
+        // Oft bewusst eingeschaltet, aber jede Freigabe nimmt Verbindungen aus dem Netzwerk an.
+        case .sharingServices(let active):
+            active.isEmpty ? .good : .warning
         }
     }
 

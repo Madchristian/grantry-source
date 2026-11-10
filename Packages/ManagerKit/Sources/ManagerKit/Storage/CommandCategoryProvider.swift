@@ -19,6 +19,9 @@ struct CommandCategoryProvider: StorageCategoryProvider {
     let locator: ToolLocator
     let measurer: any FileSizeMeasuring
 
+    /// Der Ordner, den der Befehl verkleinert; ohne ihn keiner.
+    var locations: [StorageCategoryLocation] { measuredPath.map { [StorageCategoryLocation(path: $0)] } ?? [] }
+
     func scan() async -> StorageCategoryReport {
         guard let executable = locator.locate(tool, candidates: candidates), requirementsMet(next: executable) else {
             return StorageCategoryReport(category: category, status: .notInstalled, items: [])

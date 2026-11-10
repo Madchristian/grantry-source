@@ -18,22 +18,46 @@ import Foundation
 /// - Neue Verbindungen sind `highlightDuration` lang „neu“; verschwundene Prozesse und Verbindungen bleiben so lange
 ///   ausgegraut (Rate 0) stehen und entfallen dann.
 /// - Lauschende Sockets (`Listen`) gehören zu „Dienste“ und werden übergangen.
+/// - Plausibilitätsdeckel: Mit Byte-Zählern der Schnittstellen (`record(_:)`) liegt die geglättete Gesamtrate nie über
+///   dem, was alle Schnittstellen im Glättungsfenster übertragen haben; sonst werden alle Raten dieser Messung
+///   anteilig gekürzt (`rateScale()`).
 public struct TrafficTracker: Sendable {
     public static let smoothingWindow = 3
     public static let highlightDuration: Duration = .seconds(10)
     /// 60 Messungen à 2 s = 2 min für die Sparkline.
     public static let historyLength = 60
+    /// Anteil des Takts, den ein Schritt für den Deckel mindestens dauert (nettop misst nie schneller, schwankt aber um
+    /// wenige Millisekunden).
+    static let minimumStepShare = 0.9
+    /// Höchstens so viele Lesungen der Schnittstellen bleiben gemerkt.
+    static let maximumInterfaceReadings = 16
 
     private let wallClock: @Sendable () -> UInt64
+    private let sampleInterval: Duration
     private var processes: [ProcessKey: ProcessState] = [:]
     private var lastInstant: ContinuousClock.Instant?
     /// Wanduhrzeit der ersten Messung (µs seit 1970) – Prozesse, die danach starten, zählen vollständig.
     private var observationStart: UInt64?
     private var history: [TrafficRate] = []
+    /// Zeitpunkte der letzten Messungen, höchstens `smoothingWindow + 1`: Anfang und Ende des Glättungsfensters.
+    private var recentInstants: [ContinuousClock.Instant] = []
+    /// Lesungen der Schnittstellenzähler, älteste zuerst.
+    private var interfaceReadings: [InterfaceByteReading] = []
 
-    /// - Parameter wallClock: aktuelle Zeit in µs seit 1970, in derselben Einheit wie `ProcessTraffic.startTime`.
-    public init(wallClock: @escaping @Sendable () -> UInt64 = TrafficTracker.microsecondsSince1970) {
+    /// - Parameters:
+    ///   - wallClock: aktuelle Zeit in µs seit 1970, in derselben Einheit wie `ProcessTraffic.startTime`.
+    ///   - sampleInterval: Takt der Messungen (nettop `-s`); für den Deckel dauert ein Schritt mindestens
+    ///     `minimumStepShare` davon, auch wenn die Zeitpunkte enger liegen.
+    public init(wallClock: @escaping @Sendable () -> UInt64 = TrafficTracker.microsecondsSince1970,
+                sampleInterval: Duration = .seconds(2)) {
         self.wallClock = wallClock
+        self.sampleInterval = sampleInterval
+    }
+
+    /// Merkt sich die Byte-Zähler der Schnittstellen für den Plausibilitätsdeckel – gelesen vor dem Start von nettop und
+    /// zu jeder Messung, bevor sie ausgewertet wird.
+    public mutating func record(_ reading: InterfaceByteReading) {
+        interfaceReadings = Array((interfaceReadings + [reading]).suffix(Self.maximumInterfaceReadings))
     }
 
     /// Jetzt in µs seit 1970 (Einheit von `p_starttime`).
@@ -44,6 +68,7 @@ public struct TrafficTracker: Sendable {
     public mutating func update(with sample: NettopSample, at instant: ContinuousClock.Instant) -> TrafficReport {
         let step = Step(instant: instant, previous: lastInstant)
         lastInstant = instant
+        recentInstants = Array((recentInstants + [instant]).suffix(Self.smoothingWindow + 1))
         let openedAt = observedSince(baseline: instant)
         var seen: Set<ProcessKey> = []
         for process in sample.processes {
@@ -61,17 +86,34 @@ public struct TrafficTracker: Sendable {
             processes[key]?.markGone(at: instant)
         }
         processes = processes.filter { !Self.hasExpired($0.value.goneSince, at: instant) }
+        let scale = step.isBaseline ? 1 : rateScale()
         if !step.isBaseline {
             for key in processes.keys {
-                processes[key]?.recordHistory()
+                processes[key]?.recordHistory(scale: scale)
             }
         }
 
-        let activities = processes.map { $0.value.activity(key: $0.key, at: instant) }.sorted { $0.key < $1.key }
+        let activities = processes.map { $0.value.activity(key: $0.key, at: instant, scale: scale) }
+            .sorted { $0.key < $1.key }
         let total = activities.reduce(TrafficRate.zero) { $0 + $1.rate }
         if !step.isBaseline { history = Array((history + [total]).suffix(Self.historyLength)) }
         return TrafficReport(processes: activities, total: total, history: history,
                              skippedLineCount: sample.skippedLineCount)
+    }
+
+    /// Faktor für alle Raten der aktuellen Messung (Plausibilitätsdeckel): Die geglättete Gesamtrate darf nicht über dem
+    /// liegen, was alle Schnittstellen von der letzten Lesung vor Beginn des Glättungsfensters bis zur jüngsten Lesung
+    /// übertragen haben, verteilt auf das Fenster. Das Fenster dauert je Schritt mindestens `minimumStepShare` des Takts –
+    /// auch falsche, zu enge Zeitpunkte ergeben so keine Rate über dem Verkehr der Schnittstellen. Ohne Lesung vor dem
+    /// Fenster oder ohne Lesung nach seinem Ende gibt es keinen Deckel (1).
+    private func rateScale() -> Double {
+        guard let start = recentInstants.first, let end = recentInstants.last, end > start,
+              let latest = interfaceReadings.last, latest.instant >= end,
+              let before = interfaceReadings.last(where: { $0.instant <= start }) else { return 1 }
+        let shortest = sampleInterval * (Self.minimumStepShare * Double(recentInstants.count - 1))
+        let ceiling = Double(latest.bytesTransferred(since: before)) / max(end - start, shortest).seconds
+        let total = processes.values.reduce(0) { $0 + ($1.counter?.rate.total ?? 0) }
+        return total > ceiling ? ceiling / total : 1
     }
 
     /// Schlüssel einer Prozesszeile; ohne Startzeit der bekannte (noch nicht entfallene) Prozess mit derselben PID –
@@ -82,8 +124,8 @@ public struct TrafficTracker: Sendable {
             ?? ProcessKey(pid: process.pid, startTime: 0)
     }
 
-    /// Wanduhrzeit der ersten Messung; beim ersten Aufruf festgelegt – zurückgerechnet auf den Beginn ihres Blocks, der
-    /// bis zu einem Intervall vor seiner Auswertung liegt.
+    /// Wanduhrzeit der ersten Messung; beim ersten Aufruf festgelegt – zurückgerechnet auf ihren Zeitpunkt in nettops
+    /// Takt, der wegen der gepufferten Ausgabe Intervalle vor ihrer Auswertung liegen kann.
     private mutating func observedSince(baseline instant: ContinuousClock.Instant) -> UInt64 {
         if let observationStart { return observationStart }
         let age = max(.zero, ContinuousClock.now - instant)
@@ -221,9 +263,11 @@ private struct ConnectionState: Sendable {
         counter?.pause()
     }
 
-    func activity(key: ConnectionKey, at instant: ContinuousClock.Instant) -> ConnectionActivity {
+    /// - Parameter scale: Faktor des Plausibilitätsdeckels (`TrafficTracker.rateScale()`).
+    func activity(key: ConnectionKey, at instant: ContinuousClock.Instant, scale: Double) -> ConnectionActivity {
         ConnectionActivity(
-            key: key, connection: connection, rate: counter?.rate ?? .zero, transferred: counter?.transferred ?? .zero,
+            key: key, connection: connection, rate: (counter?.rate ?? .zero).scaled(by: scale),
+            transferred: counter?.transferred ?? .zero,
             isNew: goneSince == nil && !isFromBaseline && instant - firstSeen < TrafficTracker.highlightDuration,
             isGone: goneSince != nil
         )
@@ -239,8 +283,10 @@ private struct ProcessState: Sendable {
     var goneSince: ContinuousClock.Instant?
     /// Rate je Messung seit seinem Auftauchen, älteste zuerst (höchstens `TrafficTracker.historyLength`).
     private(set) var history: [TrafficRate] = []
-    /// Lokale Ports seiner lauschenden TCP-Sockets laut letzter Meldung (beendet: die letzten bekannten).
-    var listeningTCPPorts: Set<UInt16> = []
+    /// Seine lauschenden Sockets laut letzter Meldung (beendet: die letzten bekannten).
+    var listeningSockets: [ConnectionTraffic] = []
+    /// Benutzer laut letzter lesbarer Meldung.
+    var uid: UInt32?
 
     init(_ process: ProcessTraffic, step: TrafficTracker.Step, countsFully: Bool) {
         shortName = process.shortName
@@ -248,7 +294,8 @@ private struct ProcessState: Sendable {
         counter = TrafficCounter.advancing(nil, received: process.bytesIn, sent: process.bytesOut, step: step,
                                            countsFully: countsFully)
         updateConnections(with: process.connections, step: step)
-        listeningTCPPorts = Self.listeningTCPPorts(of: process)
+        listeningSockets = process.connections.filter(\.isListening)
+        uid = process.uid
     }
 
     mutating func update(with process: ProcessTraffic, step: TrafficTracker.Step) {
@@ -257,11 +304,8 @@ private struct ProcessState: Sendable {
                                            countsFully: countsFully)
         goneSince = nil
         updateConnections(with: process.connections, step: step)
-        listeningTCPPorts = Self.listeningTCPPorts(of: process)
-    }
-
-    private static func listeningTCPPorts(of process: ProcessTraffic) -> Set<UInt16> {
-        Set(process.connections.filter { $0.isListening && $0.transport == .tcp }.compactMap(\.local.port))
+        listeningSockets = process.connections.filter(\.isListening)
+        uid = process.uid ?? uid
     }
 
     mutating func markGone(at instant: ContinuousClock.Instant) {
@@ -272,16 +316,20 @@ private struct ProcessState: Sendable {
         }
     }
 
-    /// Hängt die aktuelle Rate an den Verlauf; ausgegraut ist sie 0.
-    mutating func recordHistory() {
-        history = Array((history + [counter?.rate ?? .zero]).suffix(TrafficTracker.historyLength))
+    /// Hängt die aktuelle Rate, gekürzt um den Plausibilitätsdeckel, an den Verlauf; ausgegraut ist sie 0.
+    mutating func recordHistory(scale: Double) {
+        history = Array((history + [(counter?.rate ?? .zero).scaled(by: scale)]).suffix(TrafficTracker.historyLength))
     }
 
-    func activity(key: ProcessKey, at instant: ContinuousClock.Instant) -> ProcessActivity {
+    /// - Parameter scale: Faktor des Plausibilitätsdeckels (`TrafficTracker.rateScale()`) für seine und die Raten seiner
+    ///   Verbindungen.
+    func activity(key: ProcessKey, at instant: ContinuousClock.Instant, scale: Double) -> ProcessActivity {
         ProcessActivity(
-            key: key, shortName: shortName, rate: counter?.rate ?? .zero, transferred: counter?.transferred ?? .zero,
-            connections: connections.map { $0.value.activity(key: $0.key, at: instant) }.sorted { $0.key < $1.key },
-            isGone: goneSince != nil, history: history, listeningTCPPorts: listeningTCPPorts
+            key: key, shortName: shortName, rate: (counter?.rate ?? .zero).scaled(by: scale),
+            transferred: counter?.transferred ?? .zero,
+            connections: connections.map { $0.value.activity(key: $0.key, at: instant, scale: scale) }
+                .sorted { $0.key < $1.key },
+            isGone: goneSince != nil, history: history, listeningSockets: listeningSockets, uid: uid
         )
     }
 

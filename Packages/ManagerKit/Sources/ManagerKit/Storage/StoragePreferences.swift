@@ -23,6 +23,11 @@ public struct StoragePreferences {
         nonmutating set { store.set(newValue, forKey: Self.codeRootsKey) }
     }
 
+    /// Orte der Kategorien und Vorschläge mit diesen Einstellungen (Speicher und Belegung).
+    public var catalogConfiguration: StorageCatalog.Configuration {
+        StorageCatalog.Configuration(home: home, codeRoots: codeRoots, minimumAgeDays: minimumAgeDays)
+    }
+
     /// Mindestens ein Tag.
     public var minimumAgeDays: Int {
         get { max(1, store.object(forKey: Self.minimumAgeDaysKey) as? Int ?? Self.defaultMinimumAgeDays) }

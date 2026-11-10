@@ -66,17 +66,25 @@ import TestSupport
 
     /// Eine neue Queue-Brücke darf Cancellation nicht früh beantworten: Sonst könnte RunningSources trotz
     /// blockiertem Socket-Scan neue Arbeit einreihen. Läuft auch mit genau einem kooperativen Pool-Thread.
-    @Test(arguments: [false, true]) func socketScanStaysOccupiedUntilActualEnd(cancel: Bool) async throws {
+    ///
+    /// Die Frist misst eine `TestClock`: Nur der blockierte Scan läuft in sie hinein, das spätere Nachfragen nie – mit
+    /// echter Uhr lief es unter Last selbst in die 50-ms-Frist (Issue 214). Hänger fängt das Zeitlimit ab.
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func socketScanStaysOccupiedUntilActualEnd(cancel: Bool) async throws {
         let sockets = GatedSockets()
         defer { sockets.gate.release() }
+        let clock = TestClock()
+        let timeout = Duration.milliseconds(50)
         let coordinator = ScanCoordinator(sources: [NetworkListenerSource(provider: nil, local: sockets)],
-                                          sourceTimeout: cancel ? .seconds(30) : .milliseconds(50))
+                                          sourceTimeout: timeout, clock: clock)
         let scan = Task { try await coordinator.scan() }
         for await _ in sockets.started.stream { break }
         if cancel {
             scan.cancel()
             await #expect(throws: CancellationError.self) { try await scan.value }
         } else {
+            await clock.waitForSleeper(until: .at(timeout))
+            clock.advance(by: timeout)
             #expect(try await scan.value.failedSources == [.networkListeners])
         }
         for _ in 0..<5 {
@@ -88,8 +96,7 @@ import TestSupport
 
         // Erst das tatsächliche Ende gibt die Quelle wieder frei.
         var next = try await coordinator.scan()
-        let deadline = ContinuousClock.now + .seconds(5)
-        while next.sourceErrors.first?.message == ScanCoordinator.stillRunningMessage, ContinuousClock.now < deadline {
+        while next.sourceErrors.first?.message == ScanCoordinator.stillRunningMessage {
             try await Task.sleep(for: .milliseconds(10))
             next = try await coordinator.scan()
         }

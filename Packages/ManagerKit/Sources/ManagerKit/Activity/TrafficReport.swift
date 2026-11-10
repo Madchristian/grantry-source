@@ -18,6 +18,11 @@ public struct TrafficRate: Hashable, Sendable {
         TrafficRate(download: lhs.download + rhs.download, upload: lhs.upload + rhs.upload)
     }
 
+    /// Beide Richtungen mit `factor` multipliziert.
+    func scaled(by factor: Double) -> TrafficRate {
+        factor == 1 ? self : TrafficRate(download: download * factor, upload: upload * factor)
+    }
+
     /// Mittelwert; leer ergibt `.zero`.
     static func average(_ rates: [TrafficRate]) -> TrafficRate {
         guard !rates.isEmpty else { return .zero }
@@ -118,12 +123,15 @@ public struct ProcessActivity: Hashable, Sendable, Identifiable {
     /// `rate` der Messungen seit seinem Auftauchen (ohne die Basis), älteste zuerst, höchstens
     /// `TrafficTracker.historyLength` – Verlauf im Detail eines Netzwerkdienstes.
     public let history: [TrafficRate]
-    /// Lokale Ports seiner lauschenden TCP-Sockets – Verbindungen auf diesen Ports sind eingehend.
-    public let listeningTCPPorts: Set<UInt16>
+    /// Seine lauschenden Sockets laut letzter Meldung (beendet: die letzten bekannten), in nettops Reihenfolge – Ansicht
+    /// „Verbindungen“; sie zählen weder zu `connections` noch zur Rate.
+    public let listeningSockets: [ConnectionTraffic]
+    /// Benutzer laut Prozesstabelle; `nil`, wenn nicht lesbar.
+    public let uid: UInt32?
 
     public init(key: ProcessKey, shortName: String, rate: TrafficRate, transferred: ByteTotals,
                 connections: [ConnectionActivity], isGone: Bool, history: [TrafficRate] = [],
-                listeningTCPPorts: Set<UInt16> = []) {
+                listeningSockets: [ConnectionTraffic] = [], uid: UInt32? = nil) {
         self.key = key
         self.shortName = shortName
         self.rate = rate
@@ -131,10 +139,16 @@ public struct ProcessActivity: Hashable, Sendable, Identifiable {
         self.connections = connections
         self.isGone = isGone
         self.history = history
-        self.listeningTCPPorts = listeningTCPPorts
+        self.listeningSockets = listeningSockets
+        self.uid = uid
     }
 
     public var id: ProcessKey { key }
+
+    /// Lokale Ports seiner lauschenden TCP-Sockets – Verbindungen auf diesen Ports sind eingehend.
+    public var listeningTCPPorts: Set<UInt16> {
+        Set(listeningSockets.filter { $0.transport == .tcp }.compactMap(\.local.port))
+    }
 }
 
 /// Stand nach einer Messung (`TrafficTracker.update(with:at:)`).

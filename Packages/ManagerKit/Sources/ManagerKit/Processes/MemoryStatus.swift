@@ -1,8 +1,8 @@
 import Darwin
 import Foundation
 
-/// Arbeitsspeicher, Swap und Speicherdruck für das Segment „Prozesse“ (#221). Werte, die nicht lesbar sind, bleiben
-/// `nil`.
+/// Arbeitsspeicher, Swap und Speicherdruck für das Segment „Prozesse“ (#221) und den Task-Manager (Spec 2026-11-06
+/// §2). Werte, die nicht lesbar sind, bleiben `nil`.
 public struct MemoryStatus: Hashable, Sendable {
     public enum Pressure: Hashable, Sendable {
         case normal, warning, critical
@@ -15,24 +15,28 @@ public struct MemoryStatus: Hashable, Sendable {
     public let swapTotalBytes: UInt64?
     public let pressure: Pressure?
     public let processCount: Int
+    /// Aufteilung für die Speicheranzeige des Task-Managers; `nil`, wenn nicht lesbar.
+    public let components: MemoryComponents?
 
     public init(physicalBytes: UInt64, usedBytes: UInt64?, swapUsedBytes: UInt64?, swapTotalBytes: UInt64?,
-                pressure: Pressure?, processCount: Int) {
+                pressure: Pressure?, processCount: Int, components: MemoryComponents? = nil) {
         self.physicalBytes = physicalBytes
         self.usedBytes = usedBytes
         self.swapUsedBytes = swapUsedBytes
         self.swapTotalBytes = swapTotalBytes
         self.pressure = pressure
         self.processCount = processCount
+        self.components = components
     }
 
     /// Jetzt gelesen; `processCount` aus der Prozesstabelle.
     public static func current(processCount: Int) -> MemoryStatus {
         let swap = swapUsage()
+        let components = vmStatistics().map { MemoryComponents(statistics: $0, pageSize: UInt64(getpagesize())) }
         return MemoryStatus(
-            physicalBytes: ProcessInfo.processInfo.physicalMemory, usedBytes: usedMemory(),
+            physicalBytes: ProcessInfo.processInfo.physicalMemory, usedBytes: components?.usedBytes,
             swapUsedBytes: swap?.xsu_used, swapTotalBytes: swap?.xsu_total,
-            pressure: pressureLevel().flatMap(pressure(level:)), processCount: processCount
+            pressure: pressureLevel().flatMap(pressure(level:)), processCount: processCount, components: components
         )
     }
 
@@ -58,7 +62,7 @@ public struct MemoryStatus: Hashable, Sendable {
         return sysctlbyname("kern.memorystatus_vm_pressure_level", &level, &size, nil, 0) == 0 ? level : nil
     }
 
-    private static func usedMemory() -> UInt64? {
+    private static func vmStatistics() -> vm_statistics64? {
         var stats = vm_statistics64()
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64>.size / MemoryLayout<integer_t>.size)
         let result = withUnsafeMutablePointer(to: &stats) { pointer in
@@ -66,9 +70,52 @@ public struct MemoryStatus: Hashable, Sendable {
                 host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
             }
         }
-        guard result == KERN_SUCCESS else { return nil }
-        let pageSize = UInt64(getpagesize())
-        let appPages = UInt64(stats.internal_page_count) - min(UInt64(stats.purgeable_count), UInt64(stats.internal_page_count))
-        return (appPages + UInt64(stats.wire_count) + UInt64(stats.compressor_page_count)) * pageSize
+        return result == KERN_SUCCESS ? stats : nil
+    }
+}
+
+/// Bestandteile des Arbeitsspeichers wie in der Aktivitätsanzeige (`host_statistics64`).
+public struct MemoryComponents: Hashable, Sendable {
+    public enum Kind: Hashable, Sendable, CaseIterable {
+        /// App-Speicher: anonyme Seiten ohne die löschbaren.
+        case app
+        /// Fest zugeordnet (`wire_count`).
+        case wired
+        /// Vom Kompressor belegt.
+        case compressed
+        /// Zwischengespeicherte Dateien: dateigestützte und löschbare Seiten.
+        case cached
+    }
+
+    public let appBytes: UInt64
+    public let wiredBytes: UInt64
+    public let compressedBytes: UInt64
+    public let cachedBytes: UInt64
+
+    public init(appBytes: UInt64, wiredBytes: UInt64, compressedBytes: UInt64, cachedBytes: UInt64) {
+        self.appBytes = appBytes
+        self.wiredBytes = wiredBytes
+        self.compressedBytes = compressedBytes
+        self.cachedBytes = cachedBytes
+    }
+
+    init(statistics stats: vm_statistics64, pageSize: UInt64) {
+        let anonymous = UInt64(stats.internal_page_count), purgeable = UInt64(stats.purgeable_count)
+        self.init(appBytes: (anonymous - min(purgeable, anonymous)) * pageSize,
+                  wiredBytes: UInt64(stats.wire_count) * pageSize,
+                  compressedBytes: UInt64(stats.compressor_page_count) * pageSize,
+                  cachedBytes: (UInt64(stats.external_page_count) + purgeable) * pageSize)
+    }
+
+    /// „Benutzter Speicher“: App, zugeordnet und komprimiert (ohne Cache).
+    public var usedBytes: UInt64 { appBytes + wiredBytes + compressedBytes }
+
+    public subscript(kind: Kind) -> UInt64 {
+        switch kind {
+        case .app: appBytes
+        case .wired: wiredBytes
+        case .compressed: compressedBytes
+        case .cached: cachedBytes
+        }
     }
 }

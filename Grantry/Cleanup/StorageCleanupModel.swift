@@ -127,8 +127,7 @@ final class StorageCleanupModel {
 
     private func scan(only ids: Set<String>?) {
         task?.cancel()
-        let configuration = StorageCatalog.Configuration(home: NSHomeDirectory(), codeRoots: preferences.codeRoots,
-                                                         minimumAgeDays: preferences.minimumAgeDays)
+        let configuration = preferences.catalogConfiguration
         let catalog = StorageCatalog.providers(configuration)
         let order = catalog.map(\.category.id)
         let providers = catalog.filter { ids?.contains($0.category.id) ?? true }

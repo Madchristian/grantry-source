@@ -22,4 +22,12 @@ public enum DisplayText {
         }
         return String(scalars)
     }
+
+    /// Wie `singleLine(_:)`, höchstens `maximumLength` Zeichen: Längeres endet mit „…“. Für Namen Dritter
+    /// (Erweiterungen, Hersteller), deren Länge der Absender bestimmt.
+    public static func singleLine(_ text: String, maximumLength: Int) -> String {
+        let line = singleLine(text)
+        guard line.count > maximumLength else { return line }
+        return line.prefix(max(maximumLength - 1, 0)) + "…"
+    }
 }

@@ -26,7 +26,11 @@ import Testing
         ProcessActivity(key: ProcessKey(pid: pid, startTime: 1), shortName: "postgres",
                         rate: TrafficRate(download: download, upload: 0),
                         transferred: ByteTotals(received: received, sent: sent), connections: connections,
-                        isGone: isGone, history: history, listeningTCPPorts: listening)
+                        isGone: isGone, history: history, listeningSockets: listening.sorted().map { port in
+                            ConnectionTraffic(transport: .tcp, ipVersion: .v4, local: ConnectionEndpoint(address: nil, port: port),
+                                              remote: ConnectionEndpoint(address: nil, port: nil), state: "Listen",
+                                              bytesIn: nil, bytesOut: nil)
+                        })
     }
 
     @Test func collectsAllProcessesOfTheProgramOnly() {

@@ -19,6 +19,8 @@ public struct PresentationSnapshot: Hashable, Sendable {
     /// Bereich „Netzwerk“: Lauscher, Firewall und „Gestartet von“ (Quellenhinweise: `coverage`).
     public let network: NetworkOverview
     public let agents: AgentPresentationState
+    /// Erweiterungen im App-Detail, beim Entfernen und als Reste in „Aufräumen“ (TM-13.6).
+    public let extensions: ExtensionReferences
     private let appLinksByID: [String: AppLinks]
     private let findingsByRecordID: [String: [RiskFinding]]
     private let cleanupHintsByRecordID: [String: CleanupHint]
@@ -53,19 +55,24 @@ public struct PresentationSnapshot: Hashable, Sendable {
         for app: InstalledApp, details: AppUsageDetails?, now: Date, calendar: Calendar = .current,
         home: String = NSHomeDirectory()
     ) -> InstalledAppDetail {
-        InstalledAppDetail(app: app, details: details, findings: findings(for: app.id), links: links(for: app), now: now,
-                           calendar: calendar, home: home)
+        InstalledAppDetail(app: app, details: details, findings: findings(for: app.id), links: links(for: app),
+                           extensions: extensions.owned(byAppAt: app.path), now: now, calendar: calendar, home: home)
     }
 
-    /// Höchster Schweregrad aller Findings (Berechtigungen, Autostart-Einträge, Apps, Agenten und Lauscher); `nil` ohne Findings.
+    /// Höchster Schweregrad aller Findings (Berechtigungen, Autostart-Einträge, Erweiterungen, Apps, Agenten und Lauscher);
+    /// `nil` ohne Findings.
     public var highestSeverity: RiskFinding.Severity? {
         (serviceGroups.map(\.highestSeverity) + autostartSections.map(\.highestSeverity)
-            + [appsHighestSeverity, agentsHighestSeverity, networkHighestSeverity])
+            + [extensionsHighestSeverity, appsHighestSeverity, agentsHighestSeverity, networkHighestSeverity])
             .compactMap(\.self).max()
     }
 
     /// Bereich, den die Kachel „Auffällig“ öffnet (`FlaggedBreakdown.tileArea`).
     public var flaggedArea: FlaggedArea { metrics.flagged.tileArea }
+
+    private var extensionsHighestSeverity: RiskFinding.Severity? {
+        extensions.recordIDs.compactMap(highestSeverity(for:)).max()
+    }
 
     private var appsHighestSeverity: RiskFinding.Severity? {
         installedApps.compactMap { highestSeverity(for: $0.id) }.max()
@@ -93,11 +100,13 @@ public struct PresentationSnapshot: Hashable, Sendable {
         let installedApps = snapshot.installedApps.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
         let network = NetworkOverview.make(snapshot: snapshot)
         let agents = AgentPresentationState(snapshot: snapshot)
+        let extensions = ExtensionReferences(records: snapshot.extensions)
         // Je Bereich genau die Einträge, die seine Liste zeigt (#275).
         let flagged = FlaggedBreakdown(
             recordIDs: [
                 .permissions: serviceGroups.flatMap(\.grants).map(\.id),
                 .autostart: autostartSections.flatMap(\.items).map(\.id),
+                .extensions: extensions.recordIDs,
                 .apps: installedApps.map(\.id),
                 .agents: agents.groups.flatMap(\.recordIDs),
                 .network: NetworkListenerPresenter.rows(
@@ -118,6 +127,7 @@ public struct PresentationSnapshot: Hashable, Sendable {
             coverage: CoverageOverview(snapshot: snapshot, activeSources: activeSources),
             network: network,
             agents: agents,
+            extensions: extensions,
             appLinksByID: AppLinks.index(snapshot.installedApps, in: snapshot),
             findingsByRecordID: Dictionary(grouping: findings, by: \.recordID).mapValues { findings in
                 findings.enumerated()

@@ -1,34 +1,132 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Ein Lauscher in der Liste: Symbol der zugehörigen App (bzw. Terminal-Symbol), Name, „Port · Erreichbarkeit“ (ggf.
-/// „gestartet aus …“) und Badges; von außen erreichbare tragen ein Funksymbol.
+enum NetworkListenerTableLayout {
+    static let spacing = InstrumentSpacing.inline
+    /// Dienst, Port, Erreichbarkeit, Benutzer, Signatur. Bei 900 pt mit Seitenleiste schrumpfen zuerst die übrigen
+    /// Spalten; vorher blieben dem Namen wenige Zeichen („Po…res“, #486).
+    static let columns = InstrumentColumns([
+        .name(minimum: 170), .fixed(92, minimum: 76), .fixed(140, minimum: 120), .fixed(128, minimum: 96),
+        .fixed(132, minimum: 110),
+    ], spacing: spacing)
+    /// Schmalste Tabelle samt Innenrand von Kopf und Zeilen.
+    static let minimumWidth = columns.minimumWidth + 2 * InstrumentSpacing.bar
+}
+
+/// Spaltenkopf der Dienste (§3.7): Titel, über „Dienst“ und „Erreichbarkeit“ die Summen der sichtbaren Zeilen.
+struct NetworkListenerTableHeader: View {
+    let rows: [NetworkListenerRow]
+
+    var body: some View {
+        let exposed = rows.count { $0.listener.reachability.isExposed }
+        InstrumentColumnsLayout(NetworkListenerTableLayout.columns, alignment: .bottom) {
+            header(String(localized: "Dienst"),
+                   value: rows.count == 1 ? String(localized: "1 Dienst") : String(localized: "\(rows.count) Dienste"))
+                .padding(.leading, InstrumentSize.rowIconTall + InstrumentSpacing.group)
+            header(String(localized: "Port"))
+            header(String(localized: "Erreichbarkeit"), value: String(localized: "\(exposed) aus dem Netz"))
+            header(String(localized: "Benutzer"))
+            header(String(localized: "Signatur"))
+        }
+        .padding(.horizontal, InstrumentSpacing.bar)
+        .padding(.vertical, InstrumentSpacing.cell)
+    }
+
+    private func header(_ title: String, value: String = "") -> some View {
+        HeatColumnHeader(title: title, value: value, heat: nil, sortAscending: nil, alignment: .leading)
+            .padding(.horizontal, InstrumentSpacing.inline)
+    }
+}
+
+/// Die Zeilen ohne Scrollbereich (auch für Bilder: `ImageRenderer` zeichnet keinen `ScrollView`-Inhalt); jede Zeile trägt
+/// ihre ID für den Sprung aus einer Benachrichtigung (`ScrollViewReader`).
+struct NetworkListenerTableRows<Menu: View>: View {
+    let rows: [NetworkListenerRow]
+    let badges: (NetworkListenerRow) -> [RecordBadge]
+    @Binding var selection: NetworkListener.ID?
+    @ViewBuilder let contextMenu: (NetworkListenerRow) -> Menu
+
+    var body: some View {
+        LazyVStack(spacing: InstrumentSpacing.stack) {
+            ForEach(rows) { row in
+                NetworkListenerRowView(row: row, badges: badges(row), isSelected: selection == row.id)
+                    .selectableRow { selection = row.id }
+                    .contextMenu { contextMenu(row) }
+                    .id(row.id)
+            }
+        }
+        .padding(.horizontal, InstrumentSpacing.group)
+        .padding(.vertical, InstrumentSpacing.item)
+    }
+}
+
+/// Ein Lauscher als Tabellenzeile: Symbol, Name mit Befund-Punkt und Badges, darunter die Herkunft; Port, Erreichbarkeit
+/// als Zustandschip mit Adressen, Benutzer und Signatur.
 struct NetworkListenerRowView: View {
     let row: NetworkListenerRow
     let badges: [RecordBadge]
+    var isSelected = false
+
+    private var listener: NetworkListener { row.listener }
 
     var body: some View {
-        HStack(spacing: 10) {
-            NetworkListenerIcon(row: row, size: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(verbatim: row.title)
+        InstrumentColumnsLayout(NetworkListenerTableLayout.columns) {
+            HStack(spacing: InstrumentSpacing.group) {
+                NetworkListenerIcon(row: row, size: InstrumentSize.rowIconTall)
+                VStack(alignment: .leading, spacing: 0) {
+                    HStack(spacing: InstrumentSpacing.item) {
+                        if row.severity != nil { FindingDot(size: InstrumentSize.findingDotSmall) }
+                        Text(verbatim: row.title).font(InstrumentFont.body).lineLimit(1).truncationMode(.middle)
+                        RecordBadgeChips(badges: badges)
+                    }
+                    Text(verbatim: origin)
+                        .font(InstrumentFont.label)
+                        .foregroundStyle(.instrumentSecondary)
                         .lineLimit(1)
                         .truncationMode(.middle)
-                    if row.listener.reachability.isExposed {
-                        ExposedListenerSymbol()
-                    }
                 }
-                Text(verbatim: row.subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                RecordBadgesRow(badges: badges)
             }
+            .padding(.horizontal, InstrumentSpacing.inline)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(verbatim: listener.portText)
+                .font(InstrumentFont.code)
+                .lineLimit(1)
+                .padding(.horizontal, InstrumentSpacing.inline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
+                StatusChip(listener.reachItem)
+                Text(verbatim: listener.reachabilityText)
+                    .font(InstrumentFont.label)
+                    .foregroundStyle(.instrumentSecondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            .padding(.horizontal, InstrumentSpacing.inline)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            Text(verbatim: ListenerUser(uid: listener.uid, currentUID: getuid()).displayName)
+                .font(InstrumentFont.body)
+                .foregroundStyle(.instrumentSecondary)
+                .lineLimit(1)
+                .padding(.horizontal, InstrumentSpacing.inline)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            SigningLabel(signing: listener.signing, style: .compact)
+                .font(InstrumentFont.body)
+                .lineLimit(1)
+                .padding(.horizontal, InstrumentSpacing.inline)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.vertical, 2)
+        .padding(.horizontal, InstrumentSpacing.group)
+        .padding(.vertical, InstrumentSpacing.inline)
+        .instrumentRowBackground(isSelected: isSelected)
         .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+
+    /// „gestartet aus iTerm“, sonst der Prozessname.
+    private var origin: String {
+        row.launchingAppName.map { String(localized: "gestartet aus \($0)") } ?? listener.processName
     }
 }
 
@@ -59,8 +157,8 @@ struct ProgramIcon: View {
             )
         } else {
             Image(systemName: "terminal")
-                .font(.system(size: size * 0.7))
-                .foregroundStyle(.secondary)
+                .font(.system(size: size * 0.7)) // design-token: Symbol wächst mit der Symbolgröße
+                .foregroundStyle(.instrumentSecondary)
                 .frame(width: size, height: size)
                 .accessibilityHidden(true)
         }
@@ -81,7 +179,7 @@ struct BundleAppLabel: View {
     let signing: SigningInfo
 
     var body: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: InstrumentSpacing.item) {
             AppIconView(
                 app: AppIdentity(bundleID: nil, path: path, displayName: name, signing: signing, presence: .present),
                 size: 16
@@ -89,16 +187,6 @@ struct BundleAppLabel: View {
             Text(verbatim: name).lineLimit(1).truncationMode(.middle)
         }
         .help(path)
-    }
-}
-
-/// Kennzeichen „von außen erreichbar“.
-struct ExposedListenerSymbol: View {
-    var body: some View {
-        Image(systemName: "dot.radiowaves.left.and.right")
-            .foregroundStyle(PresentationTone.warning.color)
-            .help("Von außen erreichbar")
-            .accessibilityLabel("Von außen erreichbar")
     }
 }
 
@@ -138,18 +226,18 @@ extension NetworkListener {
     }
 }
 
-#Preview("Lauscher-Zeile") {
-    List {
-        NetworkListenerRowView(row: NetworkListenerRow(.preview), badges: [])
-        NetworkListenerRowView(
-            row: NetworkListenerRow(NetworkListener(
-                executablePath: "/usr/local/bin/redis-server", uid: getuid(), transport: .tcp, port: 6379,
-                addresses: ["127.0.0.1", "::1"], signing: SigningInfo(kind: .unsigned),
-                firstSeenAt: .now, lastSeenAt: .now
-            )),
-            badges: []
-        )
+#Preview("Lauscher-Zeilen") {
+    let rows = NetworkServicesPreviewData.listeners.map {
+        NetworkListenerRow($0, severity: NetworkServicesPreviewData.severity(for: $0.id))
     }
-    .frame(width: 360, height: 160)
+    TaskManagerTable {
+        NetworkListenerTableHeader(rows: rows)
+    } rows: {
+        NetworkListenerTableRows(rows: rows, badges: { $0.severity.map { [.review($0)] } ?? [] },
+                                 selection: .constant(rows.first?.id), contextMenu: { _ in EmptyView() })
+    }
+    .padding(14)
+    .frame(width: 860, height: 420)
+    .instrumentBackground()
 }
 #endif

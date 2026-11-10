@@ -12,6 +12,11 @@ struct PathCategoryProvider: StorageCategoryProvider {
     let measurer: any FileSizeMeasuring
     var openFiles: any OpenFileProbing = LibprocOpenFileProbe()
 
+    /// Ohne die ausgelassenen Einträge: Sie bietet Speicher nie an.
+    var locations: [StorageCategoryLocation] {
+        category.roots.map { StorageCategoryLocation(path: $0, includesEntry: isCandidate) }
+    }
+
     func scan() async -> StorageCategoryReport {
         let listing = RootListing(roots: category.roots, including: isCandidate)
         let entries = listing.entries

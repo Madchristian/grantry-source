@@ -167,6 +167,7 @@ extension MainSection {
         case .apps: .apps
         case .permissions: .permissions
         case .autostart: .autostart
+        case .extensions: .extensions
         case .agents: .agents
         case .network: .network
         case .security: .security

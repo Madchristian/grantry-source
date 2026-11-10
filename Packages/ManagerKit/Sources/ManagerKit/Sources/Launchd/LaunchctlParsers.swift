@@ -33,6 +33,21 @@ enum LaunchctlParsers {
         })
     }
 
+    /// `launchctl print <domain>` → Dienste im Block `services = { … }` mit PID (0 = läuft nicht), letztem Exit-Status
+    /// (`LaunchdExitStatus`) und Label – das Label als Rest der Zeile wie bei `loadedLabels(_:)`. Zeilen mit weniger als
+    /// drei Spalten entfallen.
+    static func services(_ output: String) -> [LaunchdServiceStatus]? {
+        guard let lines = blockLines(in: output, header: "services = {") else { return nil }
+        return lines.compactMap { line in
+            let columns = line.split(maxSplits: 2, whereSeparator: \.isWhitespace)
+            guard columns.count == 3 else { return nil }
+            let label = columns[2].trimmingCharacters(in: .whitespaces)
+            guard !label.isEmpty else { return nil }
+            return LaunchdServiceStatus(label: label, pid: Int32(columns[0]).flatMap { $0 > 0 ? $0 : nil },
+                                        lastExit: LaunchdExitStatus(columns[1]))
+        }
+    }
+
     /// Getrimmte, nicht leere Zeilen zwischen der Zeile `header` (exakt, nach Trimmen) und der nächsten `}`;
     /// `nil`, wenn `header` fehlt.
     private static func blockLines(in output: String, header: String) -> [String]? {

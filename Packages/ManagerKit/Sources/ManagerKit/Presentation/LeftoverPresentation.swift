@@ -16,6 +16,7 @@ extension LeftoverKind {
         case .logs: "Protokolle"
         case .applicationScripts: "App-Skripte"
         case .storage: "Speicher"
+        case .servicePlugin: "Plug-in"
         }
     }
 }

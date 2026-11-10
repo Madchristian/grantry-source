@@ -1,9 +1,10 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Ein Lauscher im Detail: Erreichbarkeit und Prüfhinweise, Port, Adressen und Benutzer, Programm samt Signatur und
-/// wodurch er vermutlich gestartet wird (#128). „Prozess beenden …“ nach Bestätigung (#128, Teil 2). Darunter live, was
-/// das Programm gerade im Netz tut (`NetworkListenerActivitySection`).
+/// Ein Lauscher im Detail-Panel rechts (Gestaltung „Lagebild“, #366): Erreichbarkeit und Prüfhinweise, Port, Adressen
+/// und Benutzer, Programm samt Signatur und wodurch er vermutlich gestartet wird (#128). „Prozess beenden …“ nach
+/// Bestätigung (#128, Teil 2). Darunter live, was das Programm gerade im Netz tut (`NetworkListenerActivitySection`).
 struct NetworkListenerDetailView: View {
     let row: NetworkListenerRow
     let badges: [RecordBadge]
@@ -16,43 +17,56 @@ struct NetworkListenerDetailView: View {
     var activity: NetworkActivityModel?
     /// Fehlt in Previews; der Autostart-Eintrag ist dann nicht anklickbar.
     @Environment(MainWindowModel.self) private var window: MainWindowModel?
+    @Environment(\.self) private var environment
 
     private var listener: NetworkListener { row.listener }
 
     var body: some View {
-        Form {
-            header
-            actionSection
-            if !findings.isEmpty {
-                Section("Hinweise") { RecordHints(findings: findings) }
+        ChartScrollView(showsIndicators: true) {
+            VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
+                header
+                Divider()
+                actionGroup
+                if !findings.isEmpty {
+                    DetailGroup(title: String(localized: "Hinweise")) {
+                        ForEach(findings) { NetworkNote(text: $0.message, kind: $0.severity.noteKind) }
+                    }
+                }
+                serviceGroup
+                if let activity {
+                    NetworkListenerActivitySection(model: activity, executablePath: listener.executablePath)
+                }
+                DetailGroup(title: String(localized: "Programm")) {
+                    ProgramDetailEntries(program: listener.program, notesInterpreter: true)
+                }
+                launchGroup
             }
-            serviceSection
-            if let activity {
-                NetworkListenerActivitySection(model: activity, executablePath: listener.executablePath)
-            }
-            programSection
-            launchSection
+            .padding(InstrumentSpacing.bar)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .formStyle(.grouped)
+        .instrumentPanel(padding: 0)
     }
 
     private var header: some View {
-        Section {
-            HStack(spacing: 12) {
-                NetworkListenerIcon(row: row, size: 48)
-                VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: InstrumentSpacing.cell) {
+            HStack(spacing: InstrumentSpacing.panel) {
+                NetworkListenerIcon(row: row, size: InstrumentSize.shield)
+                VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
                     Text(verbatim: row.title)
-                        .font(.title2.weight(.semibold))
+                        .font(InstrumentFont.value)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
                         .textSelection(.enabled)
-                    StatusLabel(.toned(
-                        listener.reachability.isExposed ? .warning : .positive,
-                        listener.reachability.isExposed
-                            ? String(localized: "Von außen erreichbar")
-                            : String(localized: "Nur auf diesem Mac erreichbar")
-                    ))
-                    RecordBadgesRow(badges: badges)
+                    Text(verbatim: listener.portText)
+                        .font(InstrumentFont.code)
+                        .foregroundStyle(.instrumentSecondary)
                 }
-                Spacer(minLength: 8)
+                Spacer(minLength: InstrumentSpacing.group)
+            }
+            HStack(spacing: InstrumentSpacing.item) {
+                StatusChip(listener.reachItem)
+                RecordBadgeChips(badges: badges)
+                Spacer(minLength: InstrumentSpacing.group)
                 Button("Im Finder zeigen") { listener.revealInFinder() }
             }
         }
@@ -60,95 +74,66 @@ struct NetworkListenerDetailView: View {
 
     // MARK: - Aktionen
 
-    /// „Prozess beenden …“, nach einem SIGTERM mit Überlebenden „Sofort beenden (SIGKILL) …“ (zweite Bestätigung).
-    /// Ein gesperrter Knopf nennt den Grund (`ListenerTerminationPolicy`) als Tooltip und darunter.
+    /// „Prozess beenden …“ samt SIGKILL-Angebot, Hinweisen und Sprung zum Autostart-Eintrag (`ListenerTerminationActions`).
     @ViewBuilder
-    private var actionSection: some View {
+    private var actionGroup: some View {
         if let termination {
-            Section("Aktionen") {
-                HStack(spacing: 8) {
-                    Button("Prozess beenden …", role: .destructive) { termination.prepare(listener) }
-                        .disabled(!termination.canStart)
-                        .help(termination.disabledReason ?? String(localized: "Beendet den Prozess nach Bestätigung (SIGTERM)."))
-                    if termination.offersForce(for: listener) {
-                        Button("Sofort beenden (SIGKILL) …", role: .destructive) { termination.flow.offerForce() }
-                            .disabled(!termination.actions.canStart)
-                    }
+            DetailGroup(title: String(localized: "Aktionen")) {
+                ListenerTerminationActions(listener: listener, termination: termination) {
                     if let launchedBy, let window {
                         Button("Zum Autostart-Eintrag") { window.show(launchedBy) }
                     }
-                    if termination.isBusy(listener) {
-                        ProgressView()
-                            .controlSize(.small)
-                            .accessibilityLabel("Aktion läuft")
-                    }
-                }
-                if let reason = termination.disabledReason {
-                    HintLabel(text: reason, systemImage: "lock", color: .secondary)
-                }
-                if let notice = termination.notice(for: listener) {
-                    HintLabel(text: notice, systemImage: "info.circle", color: .secondary)
                 }
             }
         }
     }
 
-    private var serviceSection: some View {
-        Section("Dienst") {
-            LabeledContent("Port") { Text(verbatim: listener.portText) }
-            LabeledContent("Adressen") {
-                Text(verbatim: listener.addresses.isEmpty
-                     ? String(localized: "Unbekannt") : listener.addresses.joined(separator: ", "))
-                    .textSelection(.enabled)
-            }
-            LabeledContent("Erreichbarkeit") { Text(verbatim: listener.reachabilityText) }
-            LabeledContent("Benutzer") {
-                Text(verbatim: ListenerUser(uid: listener.uid, currentUID: getuid()).displayName)
-            }
-            LabeledContent("Gesehen seit") {
+    private var serviceGroup: some View {
+        DetailGroup(title: String(localized: "Dienst")) {
+            entry(String(localized: "Port"), listener.portText)
+            entry(String(localized: "Adressen"), listener.addresses.isEmpty
+                  ? String(localized: "Unbekannt") : listener.addresses.joined(separator: ", "))
+            entry(String(localized: "Erreichbarkeit"), listener.reachabilityText)
+            entry(String(localized: "Benutzer"), ListenerUser(uid: listener.uid, currentUID: getuid()).displayName)
+            DetailEntry(title: String(localized: "Gesehen seit")) {
                 Text(listener.firstSeenAt, format: .dateTime.day().month().year().hour().minute())
+                    .font(InstrumentFont.body)
             }
         }
     }
 
-    private var programSection: some View {
-        Section("Programm") {
-            LabeledContent("Pfad") { PathText(path: listener.executablePath) }
-            LabeledContent("Signatur") { SigningLabel(signing: listener.signing) }
-            if row.isInterpreter {
-                HintLabel(
-                    text: String(localized: "Interpreter – die Signatur sagt nichts über das ausgeführte Skript."),
-                    systemImage: "info.circle", color: .secondary
-                )
-            }
+    private func entry(_ title: String, _ value: String) -> some View {
+        DetailEntry(title: title) {
+            Text(verbatim: value).font(InstrumentFont.code).textSelection(.enabled).lineLimit(2).truncationMode(.middle)
         }
     }
 
     /// Ein Autostart-Eintrag mit gleichem Programm startet den Lauscher sicher; über das eigene Bundle oder die
     /// Eltern-App ist die Zuordnung nur eine Vermutung und wird so beschriftet. Die Eltern-App steht zusätzlich als
     /// „Gestartet aus“ da.
-    private var launchSection: some View {
-        Section("Gestartet von") {
+    private var launchGroup: some View {
+        DetailGroup(title: String(localized: "Gestartet von")) {
             if let launchedBy {
-                if launchedBy.program == listener.executablePath {
-                    LabeledContent("Autostart-Eintrag") { autostartLink(launchedBy) }
-                } else {
-                    LabeledContent("Vermutlich über Autostart-Eintrag") { autostartLink(launchedBy) }
+                DetailEntry(title: launchedBy.program == listener.executablePath
+                            ? String(localized: "Autostart-Eintrag") : String(localized: "Vermutlich über Autostart-Eintrag")) {
+                    autostartLink(launchedBy)
                 }
             }
             if let launchingApp = row.launchingAppPath, let name = row.launchingAppName {
-                LabeledContent("Gestartet aus") {
-                    BundleAppLabel(path: launchingApp, name: name, signing: .unknown)
+                DetailEntry(title: String(localized: "Gestartet aus")) {
+                    BundleAppLabel(path: launchingApp, name: name, signing: .unknown).font(InstrumentFont.body)
                 }
             } else if launchedBy == nil, let bundle = row.bundlePath {
-                LabeledContent("App") { BundleAppLabel(path: bundle, name: row.title, signing: listener.signing) }
+                DetailEntry(title: String(localized: "App")) {
+                    BundleAppLabel(path: bundle, name: row.title, signing: listener.signing).font(InstrumentFont.body)
+                }
             } else if launchedBy == nil {
-                LabeledContent("Herkunft") { Text("Unbekannt") }
+                entry(String(localized: "Herkunft"), String(localized: "Unbekannt"))
             }
         }
     }
 
-    /// Name des Autostart-Eintrags; mit Fenster-Modell ein Link in den Bereich „Autostart“.
+    /// Name des Autostart-Eintrags; mit Fenster-Modell ein Link in den Bereich „Autostart“ in der Textfarbe von `info`.
     @ViewBuilder
     private func autostartLink(_ item: AutostartItem) -> some View {
         if let window {
@@ -157,11 +142,29 @@ struct NetworkListenerDetailView: View {
             } label: {
                 Text(verbatim: item.label).lineLimit(1).truncationMode(.middle)
             }
-            .buttonStyle(.link)
+            .buttonStyle(.plain)
+            .foregroundStyle(environment.statusTextColor(.info))
+            .font(InstrumentFont.body)
             .help("In „Autostart“ zeigen")
         } else {
-            Text(verbatim: item.label)
+            Text(verbatim: item.label).font(InstrumentFont.body)
         }
+    }
+}
+
+/// Leeres Detail, solange kein Dienst gewählt ist (§3.11).
+struct NetworkListenerNoSelection: View {
+    var body: some View {
+        VStack(spacing: InstrumentSpacing.group) {
+            Image(systemName: "network").font(.largeTitle).foregroundStyle(.tertiary).accessibilityHidden(true)
+            Text("Wähle einen Dienst, um Erreichbarkeit, Aktivität und Programm zu sehen.")
+                .font(InstrumentFont.body)
+                .foregroundStyle(.instrumentSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(InstrumentSpacing.empty)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .instrumentPanel(padding: 0)
     }
 }
 
@@ -173,7 +176,9 @@ struct NetworkListenerDetailView: View {
         activity: .preview(frame: NetworkActivityPreviewData.frame, status: .running,
                            hostNames: NetworkActivityPreviewData.hostNames)
     )
-    .frame(width: 480, height: 640)
+    .frame(width: 400, height: 900)
+    .padding(14)
+    .instrumentBackground()
 }
 
 /// Abschnitt „Aktionen“ mit gesperrtem Knopf (root-Lauscher ohne Helper); ohne Coordinator, beendet nichts.
@@ -190,6 +195,8 @@ struct NetworkListenerDetailView: View {
             actions: actions, availability: .readOnly(.helperRequired)
         )
     )
-    .frame(width: 480, height: 640)
+    .frame(width: 400, height: 640)
+    .padding(14)
+    .instrumentBackground()
 }
 #endif

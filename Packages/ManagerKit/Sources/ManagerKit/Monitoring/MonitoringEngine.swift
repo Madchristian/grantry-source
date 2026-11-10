@@ -12,7 +12,15 @@ public struct MonitoringState: Sendable, Equatable {
     /// Ungefilterte App-Befunde für die technischen Details, auch nach einer Nutzerentscheidung.
     public var appFindings: [RiskFinding] = []
     public var acceptedAppIDs: Set<String> = []
+    /// Ungefilterte Befunde der Erweiterungen für das Detail, auch nach einer Nutzerentscheidung.
+    public var extensionFindings: [RiskFinding] = []
+    public var acceptedExtensionIDs: Set<String> = []
     public var riskAcceptanceError: String?
+
+    /// Befunde der Erweiterungen als `SystemFinding` für Lagezeile und Wachbuch, ohne akzeptierte.
+    public var extensionSystemFindings: [SystemFinding] {
+        SystemFinding.extensionFindings(extensionFindings, in: snapshot?.extensions ?? [], acceptedIDs: acceptedExtensionIDs)
+    }
     /// Beginn des letzten abgeschlossenen Vollscans – auch wenn er nichts Neues ergab (Teilscans zählen nicht).
     public var lastCheckedAt: Date?
     public var scanProgress = ScanProgress()
@@ -99,6 +107,7 @@ public actor MonitoringEngine {
     private let deepVerifier: DeepSignatureVerifier?
     private let now: @Sendable () -> Date
     private var appRiskAcceptances: AppRiskAcceptanceStore
+    private var extensionRiskAcceptances: ExtensionRiskAcceptanceStore
 
     private var state = MonitoringState()
     private let scanDurationStore: ScanDurationStore
@@ -132,6 +141,7 @@ public actor MonitoringEngine {
         notificationPolicy: NotificationPolicy = NotificationPolicy(),
         deepVerifier: DeepSignatureVerifier? = nil,
         appRiskAcceptances: AppRiskAcceptanceStore = AppRiskAcceptanceStore(),
+        extensionRiskAcceptances: ExtensionRiskAcceptanceStore = ExtensionRiskAcceptanceStore(),
         scanDurationsURL: URL? = nil,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
@@ -144,6 +154,7 @@ public actor MonitoringEngine {
         self.notificationPolicy = notificationPolicy
         self.deepVerifier = deepVerifier
         self.appRiskAcceptances = appRiskAcceptances
+        self.extensionRiskAcceptances = extensionRiskAcceptances
         self.scanDurationStore = ScanDurationStore(url: scanDurationsURL)
         self.now = now
         state.activeSources = coordinator.sourceIDs
@@ -225,6 +236,17 @@ public actor MonitoringEngine {
         state.findings = findings(for: snapshot)
         publish()
         if accepted { await notifier.discardAppNotifications(for: [appID]) }
+    }
+
+    /// Wie `setAppRiskAccepted`: Befunde einer Erweiterung akzeptieren oder die Entscheidung zurücknehmen.
+    public func setExtensionRiskAccepted(_ accepted: Bool, extensionID: String) async throws {
+        guard let snapshot = state.snapshot,
+              let record = snapshot.extensions.first(where: { $0.id == extensionID }) else {
+            throw CocoaError(.fileNoSuchFile)
+        }
+        try extensionRiskAcceptances.setAccepted(accepted, for: record)
+        state.findings = findings(for: snapshot)
+        publish()
     }
 
     /// Aktueller Zustand sofort, danach jede Änderung; ein Abonnent, der nicht mitkommt, erhält den jüngsten Zustand.
@@ -438,15 +460,28 @@ public actor MonitoringEngine {
     private func findings(for snapshot: Snapshot) -> [RiskFinding] {
         let all = evaluator.evaluate(snapshot, signatures: signatureVerdicts)
         let appIDs = Set(snapshot.installedApps.map(\.id))
+        let extensionIDs = Set(snapshot.extensions.map(\.id))
         state.appFindings = all.filter { appIDs.contains($0.recordID) }
+        state.extensionFindings = all.filter { extensionIDs.contains($0.recordID) }
+        var errors: [String] = []
+        state.acceptedAppIDs = Self.acceptedIDs(in: snapshot.installedApps, from: &appRiskAcceptances, area: "App-Risiken",
+                                                errors: &errors)
+        state.acceptedExtensionIDs = Self.acceptedIDs(in: snapshot.extensions, from: &extensionRiskAcceptances,
+                                                      area: "Befunde von Erweiterungen", errors: &errors)
+        state.riskAcceptanceError = errors.isEmpty ? nil : errors.joined(separator: " ")
+        let accepted = state.acceptedAppIDs.union(state.acceptedExtensionIDs)
+        return all.filter { !accepted.contains($0.recordID) }
+    }
+
+    /// Akzeptierte Einträge; scheitert die Ablage, keine – mit Fehlertext für den Bereich.
+    private static func acceptedIDs<Record>(in records: [Record], from store: inout RiskAcceptanceStore<Record>,
+                                            area: String, errors: inout [String]) -> Set<String> {
         do {
-            state.acceptedAppIDs = try appRiskAcceptances.acceptedIDs(in: snapshot.installedApps)
-            state.riskAcceptanceError = nil
+            return try store.acceptedIDs(in: records)
         } catch {
-            state.acceptedAppIDs = []
-            state.riskAcceptanceError = "Akzeptierte App-Risiken konnten nicht geladen oder gespeichert werden: \(error.readableDescription)"
+            errors.append("Akzeptierte \(area) konnten nicht geladen oder gespeichert werden: \(error.readableDescription)")
+            return []
         }
-        return all.filter { !state.acceptedAppIDs.contains($0.recordID) }
     }
 
     /// Äquivalenter Vollscan: Der aufgefrischte Snapshot (Sichtungszeiten der Lauscher) ersetzt den gespeicherten,
@@ -478,6 +513,8 @@ public actor MonitoringEngine {
         let notifiable = history.filter {
             if case .installedApp(let app) = $0.event.subject,
                (try? appRiskAcceptances.isAccepted(app)) == true { return false }
+            if case .extensionRecord(let record) = $0.event.subject,
+               (try? extensionRiskAcceptances.isAccepted(record)) == true { return false }
             return notificationPolicy.shouldNotify($0.event)
         }
         if !notifiable.isEmpty {

@@ -13,6 +13,7 @@ extension Snapshot {
         result.networkListeners.removeAll { sources.contains($0.source) }
         result.mcpServers.removeAll { sources.contains($0.source) }
         result.agentAutoApprovals.removeAll { sources.contains($0.source) }
+        result.extensions.removeAll { sources.contains($0.source) }
         result.sourceErrors.removeAll { sources.contains($0.source) }
         result.sourceLimitations.removeAll { sources.contains($0.source) }
         return result

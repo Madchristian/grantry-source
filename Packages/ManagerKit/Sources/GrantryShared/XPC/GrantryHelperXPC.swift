@@ -34,6 +34,29 @@ import Foundation
     func terminateProcess(
         pid: Int32, executablePath: String, startTime: UInt64, force: Bool, reply: @escaping @Sendable (String?) -> Void
     )
+
+    // Task-Manager (TM9, Plan „Helper-Entwurf“): jede verändernde Aktion mit Admin-Bestätigung je Aktion. `authorization`
+    // ist eine `AuthorizationExternalForm` einer frischen, leeren Ref der App; der Helper verlangt damit
+    // `system.privilege.admin` mit Dialog (Text aus seiner eigenen Lesung des Prozesses) und zerstört die Rechte danach.
+    // Prüfregeln: `ProcessTerminationPolicy.taskManagerHelper()` (Schutzliste, Grantry-Bundle, PID + Startzeit + Pfad,
+    // Audit-Token) vor und nach dem Dialog; Frist `HelperService.taskRequestLifetime` ab Eingang.
+
+    /// Beendet einen Prozess **eines anderen Benutzers** (eigene beendet die App selbst): SIGTERM, mit `force` SIGKILL, an
+    /// die bestätigte Prozessgeneration. Ein bereits beendeter Prozess ist Erfolg ohne Dialog.
+    func terminateTaskProcess(
+        pid: Int32, executablePath: String, startTime: UInt64, force: Bool, authorization: Data,
+        reply: @escaping @Sendable (String?) -> Void
+    )
+    /// Setzt die Priorität (nice) eines Prozesses beliebigen Benutzers; `priority` muss ein Wert aus `ProcessPriority`
+    /// sein. Ein beendeter Prozess ist ein Fehler (`TaskActionViolation.processGone`).
+    func setTaskProcessPriority(
+        pid: Int32, executablePath: String, startTime: UInt64, priority: Int32, authorization: Data,
+        reply: @escaping @Sendable (String?) -> Void
+    )
+    /// Leistungsaufnahme und Takt (TM-9.4): genau `PowerMetricsParser.executable` mit `PowerMetricsParser.arguments`,
+    /// höchstens ein Lauf zur Zeit; JSON-kodiertes `SensorReading`. Rein lesend, ohne Parameter, ohne Dialog.
+    func readSensors(reply: @escaping @Sendable (Data?, String?) -> Void)
+
     /// `launchctl enable|disable system/<Label>`; `plistPath` muss direkt in `/Library/LaunchDaemons` liegen. Der
     /// Override gilt in launchd je Label; trägt eine weitere Plist der Domain `system` dasselbe Label, lehnt der
     /// Helper ab (`PolicyViolation.ambiguousLabel`).
@@ -88,8 +111,13 @@ public enum HelperXPC {
     /// 4: Prozess beenden (#128). 5: Sockets mit Startzeit des Besitzers, Signal an die Prozessgeneration, Ablauffrist
     /// des Beenden-Auftrags (#153). 6: Sockets mit Herkunft des Ports (`hasSystemAssignedPort`, #154). 7: `removePlist`
     /// mit dem Fingerabdruck der Plist aus dem Scan (#156). 8: `unloadAndRemovePlist` statt `removePlist` – Entladen,
-    /// Fingerabdruckprüfung vor dem `bootout`, Löschen und Rollback in einem Helper-Ablauf (#166).
-    public static let protocolVersion = 8
+    /// Fingerabdruckprüfung vor dem `bootout`, Löschen und Rollback in einem Helper-Ablauf (#166). 9: Task-Manager –
+    /// `terminateTaskProcess`, `setTaskProcessPriority`, `readSensors` (TM9).
+    public static let protocolVersion = 9
+
+    /// Kleinste Protokollversion mit den Task-Manager-Befehlen; der Client prüft mit `>=` und meldet einem älteren Helper
+    /// „veraltet“.
+    public static let taskManagerMinimumVersion = 9
 
     /// Kleinste Protokollversion mit `listListeningSockets`. Der Client prüft hier `>=`, nicht `==` wie
     /// `HelperManager` und `SecurityActions`: Ein rein lesender Aufruf funktioniert auch mit einem neueren Helper, der

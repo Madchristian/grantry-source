@@ -20,6 +20,8 @@ public struct SourceID: RawRepresentable, Hashable, Sendable, Codable, CustomStr
     public static let networkListeners = SourceID(rawValue: "network.listeners")
     /// Agenten-Konfigurationen: MCP-Server und automatische Freigaben (#129).
     public static let agents = SourceID(rawValue: "agents.mcp")
+    /// Kernel- und Systemerweiterungen, Plug-ins in Systemdiensten (TM-13.3).
+    public static let extensions = SourceID(rawValue: "extensions")
 }
 
 /// Fehler einer einzelnen Quelle; die übrigen Quellen bleiben davon unberührt.
@@ -67,6 +69,8 @@ public struct InventoryContribution: Sendable, Equatable {
     public var securityChecks: [SecurityCheck]
     public var installedApps: [InstalledApp]
     public var agents: AgentContribution
+    /// Erweiterungen samt nicht gelesener Listen und Pfade (`Snapshot.addingExtensions`).
+    public var extensions: ExtensionContribution
     /// Ordner, die die Quelle nicht vollständig lesen konnte: Ihre Apps aus dem Vorgänger werden fortgeschrieben, statt
     /// als entfernt zu gelten (`Snapshot.carryingForwardApps`, Review M3). Die Quelle gilt trotzdem als erfolgreich.
     public var incompleteFolders: [String]
@@ -95,7 +99,8 @@ public struct InventoryContribution: Sendable, Equatable {
     public init(
         grants: [PermissionGrant] = [], autostartItems: [AutostartItem] = [], securityChecks: [SecurityCheck] = [],
         installedApps: [InstalledApp] = [], agents: AgentContribution = AgentContribution(),
-        incompleteFolders: [String] = [], incompletePlistPaths: [String] = [], limitations: [String] = [],
+        extensions: ExtensionContribution = ExtensionContribution(), incompleteFolders: [String] = [],
+        incompletePlistPaths: [String] = [], limitations: [String] = [],
         retryableLimitations: [String] = [], networkListeners: [NetworkListener] = [], listenersLimitedToUID: UInt32? = nil,
         endedListenerIDs: Set<String> = [], coversFullScope: Bool = true, acceptanceToken: UUID? = nil
     ) {
@@ -104,6 +109,7 @@ public struct InventoryContribution: Sendable, Equatable {
         self.securityChecks = securityChecks
         self.installedApps = installedApps
         self.agents = agents
+        self.extensions = extensions
         self.incompleteFolders = incompleteFolders
         self.incompletePlistPaths = incompletePlistPaths
         self.limitations = limitations

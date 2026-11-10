@@ -96,6 +96,17 @@ enum SecurityParsers {
         guard let mdm = value(of: "MDM enrollment") else { throw unexpected }
         return .mdmEnrollment(enrolled: try answer(mdm), viaDEP: try value(of: "Enrolled via DEP").map(answer) ?? false)
     }
+
+    /// Anmeldefenster-Einstellungen (`LoginWindowProbe.preferencesPath`): Ein nicht leeres `autoLoginUser` schaltet die
+    /// automatische Anmeldung ein. Ohne Datei (`nil`) gibt es den Schlüssel nicht; eine unlesbare Datei wirft.
+    static func automaticLogin(preferences data: Data?) throws -> SecurityFacts {
+        guard let data else { return .automaticLogin(enabled: false) }
+        guard let plist = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any] else {
+            throw SecurityParseError.unreadablePreferences(path: LoginWindowProbe.preferencesPath)
+        }
+        let user = (plist["autoLoginUser"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return .automaticLogin(enabled: !user.isEmpty)
+    }
 }
 
 extension String {

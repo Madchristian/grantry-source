@@ -64,6 +64,7 @@ public actor ScanTriggers {
     private let paths: [String]
     private let files: [String]
     private let shallowPaths: [String]
+    private let existingPaths: [String]
     private let debounce: Duration
     private let maxDelay: Duration
     private let interval: Duration
@@ -82,12 +83,16 @@ public actor ScanTriggers {
     ///   - paths: beobachtete Verzeichnisse.
     ///   - files: beobachtete Dateien; sie dürfen beim Start fehlen.
     ///   - shallowPaths: flach beobachtete Verzeichnisse (App-Ordner, siehe `FileSystemWatching`).
+    ///   - existingPaths: eng beobachtete Verzeichnisse (Erweiterungen, #389): Sie zählen wie `paths`, aber nur, wenn sie
+    ///     beim Start als Verzeichnis bestehen. Ein fehlendes würde sonst über seinen nächsten Elternordner – etwa den
+    ///     Benutzerordner – rekursiv beobachtet (#279); seine Änderungen deckt dann der reguläre Scan ab.
     ///   - sourceIntervals: eigener Takt je Quelle für Teilscans (`.sourceRefresh`).
     public init(
         watcher: any FileSystemWatching,
         paths: [String],
         files: [String] = [],
         shallowPaths: [String] = [],
+        existingPaths: [String] = [],
         debounce: Duration = .seconds(2),
         maxDelay: Duration = .seconds(10),
         interval: Duration = .seconds(900),
@@ -98,6 +103,7 @@ public actor ScanTriggers {
         self.paths = paths
         self.files = files
         self.shallowPaths = shallowPaths
+        self.existingPaths = existingPaths
         self.debounce = debounce
         self.maxDelay = maxDelay
         self.interval = interval
@@ -127,8 +133,9 @@ public actor ScanTriggers {
                 }
             }
         }
-        watchTask = Task { [watcher, paths, files, shallowPaths] in
-            for await path in watcher.changes(in: paths, files: files, shallowPaths: shallowPaths) {
+        let watchedPaths = paths + existingPaths.filter(Self.isDirectory)
+        watchTask = Task { [watcher, files, shallowPaths] in
+            for await path in watcher.changes(in: watchedPaths, files: files, shallowPaths: shallowPaths) {
                 self.fileChanged(path)
             }
         }
@@ -145,6 +152,12 @@ public actor ScanTriggers {
     public func requestScan(only sources: Set<SourceID>) {
         guard !sources.isEmpty else { return }
         continuation?.yield(.sourceRefresh(sources))
+    }
+
+    /// `true`, wenn `path` (Symlinks aufgelöst) ein Verzeichnis ist.
+    private static func isDirectory(_ path: String) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) && isDirectory.boolValue
     }
 
     /// Pfad des ersten Signals der laufenden Serie; `nil` ohne Serie.

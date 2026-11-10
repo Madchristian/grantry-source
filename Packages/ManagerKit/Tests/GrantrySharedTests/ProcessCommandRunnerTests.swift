@@ -53,6 +53,34 @@ import TestSupport
         #expect(result.stderr.count == 300_000)
     }
 
+    // MARK: - Ausgabegrenze (#355)
+
+    /// Endlose Ausgabe: Das Lesen endet an der Grenze, der Prozess wird beendet – kein Warten auf den Timeout.
+    @Test(arguments: [["-c", "exec yes x"], ["-c", "exec yes y >&2"]])
+    func stopsReadingAtOutputLimit(arguments: [String]) async throws {
+        let elapsed = await clock.measure {
+            await #expect(throws: CommandError.outputTooLarge(executable: "/bin/sh", limit: 65_536)) {
+                try await runner.run("/bin/sh", arguments, timeout: .seconds(30), outputLimit: 65_536)
+            }
+        }
+        #expect(elapsed < .seconds(10))
+    }
+
+    @Test func outputWithinLimitIsReturned() async throws {
+        let result = try await runner.run("/bin/sh", ["-c", "yes x | head -c 1000"], timeout: .seconds(5),
+                                          outputLimit: 1_000)
+        #expect(result.stdout.utf8.count == 1_000)
+    }
+
+    /// Ersatz-Runner ohne eigene Umsetzung prüfen die Grenze nach dem Lauf.
+    @Test func legacyRunnerChecksOutputLimitAfterwards() async throws {
+        let legacy: any CommandRunning = LegacyRunner()
+        #expect(try await legacy.run("/unused", [], timeout: .seconds(1), outputLimit: 6).stdout == "legacy")
+        await #expect(throws: CommandError.outputTooLarge(executable: "/unused", limit: 5)) {
+            try await legacy.run("/unused", [], timeout: .seconds(1), outputLimit: 5)
+        }
+    }
+
     @Test func timesOutHangingProcess() async {
         await #expect(throws: CommandError.timedOut(executable: "/bin/sleep", seconds: 0.5)) {
             try await runner.run("/bin/sleep", ["10"], timeout: .milliseconds(500))

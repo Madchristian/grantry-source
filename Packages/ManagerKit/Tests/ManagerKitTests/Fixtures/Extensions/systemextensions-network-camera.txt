@@ -1,0 +1,8 @@
+3 extension(s)
+--- com.apple.system_extension.network_extension (Go to 'System Settings > General > Login Items & Extensions > Network Extensions' to modify these system extension(s))
+enabled	active	teamID	bundleID (version)	name	[state]
+*	*	MLZF7K7B5R	at.obdev.littlesnitch.networkextension (6.2.1/6224)	Little Snitch Network Extension	[activated enabled]
+		MLZF7K7B5R	at.obdev.littlesnitch.networkextension (6.1.4/6148)	Little Snitch Network Extension	[activated disabled]
+--- com.apple.system_extension.cmio (Go to 'System Settings > General > Login Items & Extensions > Camera Extensions' to modify these system extension(s))
+enabled	active	teamID	bundleID (version)	name	[state]
+*	*	Q5C99V536K	com.reincubate.macos.cam.mac-extension (2.4.0/2400)	Camo Camera	[activated enabled]

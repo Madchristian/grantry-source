@@ -1,0 +1,14 @@
+{
+  "SPHardwareDataType" : [
+    {
+      "_name" : "hardware_overview",
+      "boot_rom_version" : "2022.100.22.0.0 (iBridge: 21.16.4222.0.0,0)",
+      "cpu_type" : "Quad-Core Intel Core i7",
+      "current_processor_speed" : "2,3 GHz",
+      "machine_model" : "MacBookPro16,2",
+      "machine_name" : "MacBook Pro",
+      "number_processors" : 4,
+      "physical_memory" : "32 GB"
+    }
+  ]
+}

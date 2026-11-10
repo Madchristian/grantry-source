@@ -4,7 +4,7 @@ import Foundation
 public struct HistoryFilter: Hashable, Sendable {
     /// Art des betroffenen Eintrags.
     public enum Category: Hashable, Sendable, CaseIterable {
-        case all, apps, agents, permissions, autostart, security, network
+        case all, apps, agents, permissions, autostart, extensions, security, network, taskManager
 
         public var displayName: String {
             switch self {
@@ -13,8 +13,10 @@ public struct HistoryFilter: Hashable, Sendable {
             case .agents: "Agenten"
             case .permissions: "Berechtigungen"
             case .autostart: "Autostart"
+            case .extensions: "Erweiterungen"
             case .security: "Sicherheit"
             case .network: "Netzwerk"
+            case .taskManager: "Task-Manager"
             }
         }
     }
@@ -111,10 +113,12 @@ public struct HistoryFilter: Hashable, Sendable {
     private func matchesCategory(_ subject: ChangeSubject) -> Bool {
         switch (category, subject) {
         case (.all, _), (.apps, .installedApp), (.permissions, .grant), (.autostart, .autostartItem),
-             (.security, .securityCheck), (.network, .networkListener): true
+             (.security, .securityCheck), (.network, .networkListener), (.taskManager, .taskAction),
+             (.extensions, .extensionRecord): true
         case (.agents, .mcpServer), (.agents, .agentAutoApproval): true
         case (.agents, _): false
-        case (.apps, _), (.permissions, _), (.autostart, _), (.security, _), (.network, _): false
+        case (.apps, _), (.permissions, _), (.autostart, _), (.extensions, _), (.security, _), (.network, _),
+             (.taskManager, _): false
         }
     }
 }

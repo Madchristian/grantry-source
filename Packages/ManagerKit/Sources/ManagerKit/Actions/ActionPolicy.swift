@@ -47,6 +47,16 @@ public enum ActionAvailability: Hashable, Sendable {
         case helperRequired
         /// Apple-signiertes Programm eines anderen Benutzers: Der Helper beendet keine Apple-Programme.
         case foreignAppleProgram
+        /// Starten und Stoppen im Tab „Dienste“ gibt es nur für eigene LaunchAgents (`~/Library/LaunchAgents`); andere
+        /// Agenten und System-Dienste erst mit dem Helper (TM9).
+        case notOwnAgent
+        /// Das Programm des Dienstes steht auf der Schutzliste (`ProtectedProcesses.system`, TM9): Auch ein eigener Agent
+        /// startet und stoppt Grantry dann nicht.
+        case protectedProgram
+        /// Das Programm des Dienstes liegt auf einem Netzlaufwerk, hinter einem Symlink dorthin oder sonst nicht sicher
+        /// lokal (`LocalPathResolver`): Die Schutzliste ließe sich nur prüfen, indem Grantry den Pfad auflöst und dabei
+        /// an einem hängenden Volume blockiert – der Dienst bleibt deshalb gesperrt.
+        case unverifiableProgram
 
         public var description: String {
             switch self {
@@ -70,6 +80,14 @@ public enum ActionAvailability: Hashable, Sendable {
             case .ownProcess: "Grantry beendet sich nicht selbst"
             case .helperRequired: ProcessTerminationError.helperRequired.errorDescription ?? ""
             case .foreignAppleProgram: "Apple-Programme anderer Benutzer beendet Grantry nicht"
+            case .notOwnAgent:
+                "Starten und Stoppen gibt es nur für eigene Agenten aus ~/Library/LaunchAgents – System-Dienste erst mit "
+                    + "dem Helper"
+            case .protectedProgram:
+                "Unverzichtbares macOS-Programm (Schutzliste) – Grantry startet und stoppt diesen Dienst nicht"
+            case .unverifiableProgram:
+                "Programm liegt nicht sicher lokal (Netzlaufwerk oder nicht prüfbarer Pfad) – Grantry startet und stoppt "
+                    + "diesen Dienst nicht"
             }
         }
     }

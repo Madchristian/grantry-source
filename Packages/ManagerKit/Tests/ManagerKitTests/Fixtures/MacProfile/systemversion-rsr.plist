@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ProductBuildVersion</key>
+	<string>22E772610a</string>
+	<key>ProductName</key>
+	<string>macOS</string>
+	<key>ProductUserVisibleVersion</key>
+	<string>13.3.1 (a)</string>
+	<key>ProductVersion</key>
+	<string>13.3.1</string>
+	<key>ProductVersionExtra</key>
+	<string>(a)</string>
+</dict>
+</plist>

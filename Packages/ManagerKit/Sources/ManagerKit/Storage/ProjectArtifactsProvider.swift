@@ -28,6 +28,9 @@ struct ProjectArtifactsProvider: StorageCategoryProvider {
                         risk: .medium, roots: normalizedRoots)
     }
 
+    /// Keine: Ob ein Artefakt-Ordner angeboten wird, hängt am Alter seines Projekts, die Wurzeln selbst sind Projekte.
+    var locations: [StorageCategoryLocation] { [] }
+
     /// Wurzeln einmal vereinheitlicht: absolut, `.`/`..`/`//` und `/` am Ende entfernt, ohne Duplikate und ohne Wurzeln,
     /// die in einer anderen konfigurierten liegen. So wird kein Artefakt doppelt gemeldet und der Titel stimmt.
     var normalizedRoots: [String] {

@@ -111,10 +111,16 @@ enum PipeReader {
         }
     }
 
-    /// Liest bis EOF. Liefert `nil`, wenn der Task vorher abgebrochen wurde; die Pipe wird in jedem Fall geschlossen.
-    static func readToEnd(_ handle: FileHandle) async -> Data? {
+    /// Liest bis EOF, höchstens aber `limit` + 1 Bytes: Mehr als `limit` zeigt das Überschreiten an, das Lesen endet
+    /// dort. Liefert `nil`, wenn der Task vorher abgebrochen wurde; die Pipe wird in jedem Fall geschlossen.
+    static func readToEnd(_ handle: FileHandle, limit: Int = .max) async -> Data? {
         var data = Data()
         for await chunk in chunks(handle) {
+            let room = limit - data.count
+            guard chunk.count <= room else {
+                data.append(chunk.prefix(room + 1))
+                break
+            }
             data.append(chunk)
         }
         return Task.isCancelled ? nil : data

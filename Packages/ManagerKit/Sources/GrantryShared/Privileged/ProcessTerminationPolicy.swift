@@ -25,9 +25,16 @@ public enum ProcessTerminationViolation: LocalizedError, Equatable {
     /// `EPERM` von `kill`.
     case notPermitted(pid_t)
     case signalFailed(pid_t, errno: Int32)
+    /// Programm auf der Schutzliste (`ProtectedProcesses`, Task-Manager).
+    case systemCritical(String)
+    /// Prozess des Aufrufers selbst – den beendet die App ohne Helper (`excludingUID`).
+    case ownProcess(pid_t)
 
     public var errorDescription: String? {
         switch self {
+        case .systemCritical(let name):
+            "„\(name)“ ist für macOS unverzichtbar – Grantry beendet den Prozess nicht und ändert seine Priorität nicht"
+        case .ownProcess(let pid): "Prozess \(pid) gehört dir – den beendet Grantry ohne Helper"
         case .protectedProcess(let pid): "Prozess \(pid) ist geschützt und wird nicht beendet"
         case .callerUnknown: "Aufrufer nicht feststellbar – Aktion abgebrochen"
         case .grantryProcess(let name): "Grantry beendet sich nicht selbst: \(name)"
@@ -51,7 +58,9 @@ public enum ProcessTerminationViolation: LocalizedError, Equatable {
 ///
 /// Reihenfolge: (1) PID > 1, weder eigene noch Aufrufer-PID, Grantry-Bundle bekannt; (2) Prozess läuft mit demselben
 /// Programm (kanonisch), ggf. demselben Benutzer und ggf. derselben Startzeit – ein nachweislich beendeter ist `.gone`
-/// (Erfolg ohne Signal), einer mit nicht bestätigter Identität `identityUnknown`; (3) das Programm liegt nicht im Grantry-Bundle; (4) mit `appleSignature` nur nicht Apple-signierte
+/// (Erfolg ohne Signal), einer mit nicht bestätigter Identität `identityUnknown`; (3) das Programm liegt nicht im Grantry-Bundle,
+/// steht nicht auf der Schutzliste (`protectedProcesses`) und gehört ggf. nicht dem ausgeschlossenen Benutzer
+/// (`excludingUID`); (4) mit `appleSignature` nur nicht Apple-signierte
 /// Programme; (5) mit `listening` nur Prozesse, die gerade lauschen (bzw. SIGKILL nach erlaubtem SIGTERM,
 /// `ListeningRequirement`); (6) die Identität wird erneut bestätigt (`inspector.process(pid) == process`), weil
 /// Signatur- und Socket-Prüfung Dutzende Millisekunden dauern können – abweichend `processChanged`, inzwischen
@@ -77,33 +86,39 @@ public struct ProcessTerminationPolicy: Sendable {
     private let ownPID: pid_t
     /// `nil`: unbekannt – `validate` lehnt dann alles ab (`ownBundleUnknown`).
     private let protectedBundlePaths: [String]?
+    /// Schutzliste des Task-Managers; `nil` prüft sie nicht (Lauscher und verwaiste Agenten haben eigene Regeln).
+    private let protectedProcesses: ProtectedProcesses?
 
     /// - Parameters:
     ///   - listening: `nil` prüft nicht, ob der Prozess lauscht; `app()` und `helper()` setzen die Prüfung immer.
     ///   - protectedBundlePaths: Bundles, deren Programme nie beendet werden; `nil` heißt „nicht bestimmbar“, dann
     ///     lehnt `validate` jede Anfrage ab (fail-closed, siehe `helper(executablePath:)`).
+    ///   - protectedProcesses: Programme, die nie beendet werden (`systemCritical`).
     public init(
         inspector: any ProcessInspecting = LibprocProcessInspector(),
         appleSignature: (any AppleSignatureChecking)? = nil,
         listening: ListeningRequirement? = nil,
         ownPID: pid_t = getpid(),
-        protectedBundlePaths: [String]?
+        protectedBundlePaths: [String]?,
+        protectedProcesses: ProtectedProcesses? = nil
     ) {
         self.inspector = inspector
         self.appleSignature = appleSignature
         self.listening = listening
         self.ownPID = ownPID
         self.protectedBundlePaths = protectedBundlePaths
+        self.protectedProcesses = protectedProcesses
     }
 
     /// - Parameters:
     ///   - requiredUID: erwarteter Benutzer; `nil` prüft ihn nicht.
+    ///   - excludingUID: Benutzer, dessen Prozesse abgelehnt werden (`ownProcess`); `nil` prüft ihn nicht.
     ///   - startTime: erwartete `RunningProcess.startTime`; `nil` prüft sie nicht.
     ///   - callerPID: PID des Aufrufers (Helper), ist geschützt.
     ///   - force: SIGKILL statt SIGTERM (Ausnahme der `ListeningRequirement`).
     public func validate(
-        pid: pid_t, executablePath: String, requiredUID: UInt32? = nil, startTime: UInt64? = nil, callerPID: pid_t? = nil,
-        force: Bool = false
+        pid: pid_t, executablePath: String, requiredUID: UInt32? = nil, excludingUID: UInt32? = nil,
+        startTime: UInt64? = nil, callerPID: pid_t? = nil, force: Bool = false
     ) throws(ProcessTerminationViolation) -> Target {
         guard pid > 1, pid != ownPID, pid != callerPID else { throw .protectedProcess(pid) }
         guard let protectedBundlePaths else { throw .ownBundleUnknown }
@@ -115,6 +130,10 @@ public struct ProcessTerminationPolicy: Sendable {
         guard !protectedBundlePaths.contains(where: { Self.isInBundle(process.executablePath, bundlePath: $0) }) else {
             throw .grantryProcess(name)
         }
+        if protectedProcesses?.protects(pid: pid, executablePath: process.executablePath) == true {
+            throw .systemCritical(name)
+        }
+        guard excludingUID.map({ $0 != process.uid }) ?? true else { throw .ownProcess(pid) }
         switch appleSignature?.verdict(pid: pid, executablePath: process.executablePath) {
         case .apple?: throw .appleSigned(name)
         case .unknown?: throw .signatureUnknown(name)
@@ -186,6 +205,32 @@ extension ProcessTerminationPolicy {
         inspector: any ProcessInspecting = LibprocProcessInspector(allowingUnreadableExecutablePath: true)
     ) -> Self {
         Self(inspector: inspector, protectedBundlePaths: [bundlePath])
+    }
+
+    /// Im Task-Manager für „Task beenden“ (Spec 2026-11-06 §2): eigene Prozesse ohne Lauscher-Bedingung mit denselben
+    /// Regeln wie `orphanedAgentProcess()` – Pfad (auch unlesbar), Benutzer und Startzeit unverändert, Grantry geschützt,
+    /// Signal an die geprüfte Prozessgeneration. Die Lauscher-Bedingung schützt den Helper vor beliebigen Aufträgen; die
+    /// App darf eigene Prozesse ohnehin signalisieren, deshalb nur über `OwnProcessSignaler`, nie im Helper. Dazu die
+    /// Schutzliste (`ProtectedProcesses.system`, TM9): `loginwindow` läuft unter der eigenen UID. Prozesse anderer
+    /// Benutzer beendet der Helper (`taskManagerHelper()`).
+    public static func taskManagerProcess(
+        bundlePath: String = Bundle.main.bundlePath,
+        inspector: any ProcessInspecting = LibprocProcessInspector(allowingUnreadableExecutablePath: true)
+    ) -> Self {
+        Self(inspector: inspector, protectedBundlePaths: [bundlePath], protectedProcesses: .system)
+    }
+
+    /// Im Helper für den Task-Manager (TM9): Prozesse beliebiger Benutzer **ohne** Lauscher- und Signaturbedingung,
+    /// denn jede Aktion bestätigt ein Admin mit Kennwort oder Touch ID (Plan TM9, Helper-Entwurf). Geschützt sind die
+    /// Schutzliste und das Bundle des Helpers; liegt `executablePath` in keinem `.app`, lehnt die Policy alles ab
+    /// (`ownBundleUnknown`, fail-closed wie `helper()`). Ein unlesbarer Programmpfad passt nie (`LibprocProcessInspector()`
+    /// verlangt ihn).
+    public static func taskManagerHelper(
+        executablePath: String? = Bundle.main.executablePath, inspector: any ProcessInspecting = LibprocProcessInspector()
+    ) -> Self {
+        Self(inspector: inspector,
+             protectedBundlePaths: executablePath.flatMap(enclosingAppBundle(ofExecutable:)).map { [$0] },
+             protectedProcesses: .system)
     }
 
     /// Im Helper: nur lauschende Prozesse, Apple-Programme gesperrt, geschützt ist das Bundle, in dem der Helper liegt. Liegt `executablePath`

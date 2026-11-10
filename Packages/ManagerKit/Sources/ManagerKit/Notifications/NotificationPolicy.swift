@@ -4,7 +4,8 @@
 /// Netzwerkdienste je Einstellung (`ListenerNotificationSetting`): neue Lauscher bei „alle“ immer, bei „nur von außen
 /// erreichbare“ nur solche; ein Wechsel auf „von außen erreichbar“ außer bei „aus“; beendete, Dienste von macOS
 /// (`NetworkListener.isAppleService`; Interpreter und Netzwerkwerkzeuge zählen nie dazu) und vermutliche Clients
-/// (`NetworkListener.isBenignClientUDP`) nie.
+/// (`NetworkListener.isBenignClientUDP`) nie. Erweiterungen bei jeder neuen und bei einem Wechsel von Signatur oder Team;
+/// neue Versionen, Zustandswechsel und Entfernen stehen nur im Verlauf (TM-13.3).
 public struct NotificationPolicy: Sendable {
     private let listenerSetting: @Sendable () -> ListenerNotificationSetting
 
@@ -17,7 +18,10 @@ public struct NotificationPolicy: Sendable {
         switch event.subject {
         case .securityCheck(let after): shouldNotify(event, check: after)
         case .networkListener(let after): shouldNotify(event, listener: after)
+        case .extensionRecord(let after): shouldNotify(event, extension: after)
         case .grant, .autostartItem, .installedApp, .mcpServer, .agentAutoApproval: true
+        // Eigene Aktion im Task-Manager: steht im Verlauf, meldet sich aber nicht.
+        case .taskAction: false
         }
     }
 
@@ -30,6 +34,16 @@ public struct NotificationPolicy: Sendable {
         }
         guard let old = before.effectiveState, let new = after.effectiveState else { return false }
         return new.isDeterioration(from: old)
+    }
+
+    private func shouldNotify(_ event: ChangeEvent, extension after: ExtensionRecord) -> Bool {
+        switch event.kind {
+        case .added: return true
+        case .modified:
+            guard case .extensionRecord(let before)? = event.before else { return false }
+            return after.signingDiffers(from: before) || after.teamDiffers(from: before)
+        case .removed: return false
+        }
     }
 
     private func shouldNotify(_ event: ChangeEvent, listener after: NetworkListener) -> Bool {

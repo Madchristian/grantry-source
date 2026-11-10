@@ -46,7 +46,9 @@ struct GrantryApp: App {
         .menuBarExtraStyle(.window)
 
         Settings {
-            SettingsView(prerequisites: appDelegate.prerequisites, dockVisibility: appDelegate.dockVisibility)
+            SettingsView(prerequisites: appDelegate.prerequisites, dockVisibility: appDelegate.dockVisibility,
+                         menuBarMeters: appDelegate.appModel.menuBarMeters, taskManager: appDelegate.appModel.taskManager,
+                         watchbook: appDelegate.appModel.watchbook)
                 .environment(appDelegate.updates)
         }
 
@@ -122,6 +124,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     let updates: UpdateModel
     let whatsNew: WhatsNewModel
     let navigator = MainWindowNavigator()
+    /// Menüleisten-Elemente (TM6, TM17): je Messgröße ein Statusobjekt links neben dem Schild, Standard aus.
+    private lazy var meterItems = MenuBarMeterStatusItems(
+        meters: appModel.menuBarMeters, model: appModel.taskManager
+    ) { [appModel, navigator] kind, close in
+        AnyView(MenuBarMeterContent(kind: kind, model: appModel.taskManager, meters: appModel.menuBarMeters,
+                                    sensors: appModel.sensors, close: close) {
+            navigator.showTaskManager($0, metric: $1)
+        })
+    }
     private var dockWindowToRestore: NSWindow?
     private var dockRestoreExpiry: Task<Void, Never>?
     lazy var dockVisibility = DockVisibilityModel { [weak self] visible in
@@ -236,6 +247,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
             Task { await prerequisites.recheck(after: snapshot) }
         }
         updates.start()
+        appModel.menuBarMeters.activate()
+        // Erst nach den Szenen: So stehen die Elemente beim ersten Start links neben dem Schild.
+        Task { meterItems.activate() }
         Task {
             #if !DEBUG
             if await prerequisites.renewHelperRegistrationIfNeeded() {

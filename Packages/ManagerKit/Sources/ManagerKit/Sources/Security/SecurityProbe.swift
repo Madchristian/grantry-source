@@ -69,3 +69,30 @@ struct SoftwareUpdateProbe: SecurityProbe {
         ]
     }
 }
+
+/// Probe über die Anmeldefenster-Einstellungen; die Datei ist für alle lesbar, Root ist nicht nötig (#409).
+public struct LoginWindowProbe: SecurityProbe {
+    public static let preferencesPath = "/Library/Preferences/com.apple.loginwindow.plist"
+
+    /// Inhalt der Datei; `nil`, wenn sie fehlt. Andere Lesefehler werfen (Prüfung `unknown`).
+    let readPreferences: @Sendable () throws -> Data?
+
+    public init(readPreferences: @escaping @Sendable () throws -> Data? = Self.readInstalledPreferences) {
+        self.readPreferences = readPreferences
+    }
+
+    public var kinds: [SecurityCheckKind] { [.automaticLogin] }
+
+    public func read(now: Date) async throws -> [SecurityFacts] {
+        [try SecurityParsers.automaticLogin(preferences: readPreferences())]
+    }
+
+    /// Liest `preferencesPath`; eine fehlende Datei ist `nil`.
+    public static func readInstalledPreferences() throws -> Data? {
+        do {
+            return try Data(contentsOf: URL(filePath: preferencesPath))
+        } catch CocoaError.fileReadNoSuchFile {
+            return nil
+        }
+    }
+}

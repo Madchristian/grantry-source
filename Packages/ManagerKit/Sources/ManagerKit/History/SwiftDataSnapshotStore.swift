@@ -6,7 +6,7 @@ import SwiftData
 
 /// `SnapshotStore` auf Basis von SwiftData. `@Model`-Objekte verlassen den Actor nie; nach außen gehen nur Wertetypen.
 @ModelActor
-public actor SwiftDataSnapshotStore: SnapshotStore {
+public actor SwiftDataSnapshotStore: SnapshotStore, TaskActionLogging {
     static let logger = Logger(subsystem: ManagerKit.logSubsystem, category: "history")
 
     /// Öffnet (oder erstellt) die Ablage in der Datei `url`.
@@ -206,6 +206,16 @@ public actor SwiftDataSnapshotStore: SnapshotStore {
     public func pruneEvents(olderThan date: Date) throws {
         try transaction {
             try modelContext.delete(model: StoredEvent.self, where: #Predicate { $0.detectedAt < date })
+        }
+    }
+
+    // MARK: TaskActionLogging
+
+    /// Hängt die Aktion als gelesenes Event an (eigene Aktion, kein Badge); der Snapshot bleibt unberührt.
+    public func record(_ record: TaskActionRecord, at date: Date) throws {
+        try transaction {
+            let event = HistoryEvent(id: UUID(), event: record.event(at: date), isRead: true)
+            modelContext.insert(try Self.storedEvent(from: event, sequence: try nextSequence()))
         }
     }
 

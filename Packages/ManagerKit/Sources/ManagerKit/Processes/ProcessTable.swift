@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import GrantryShared
+import Synchronization
 
 /// Ein Eintrag der Prozesstabelle für das Segment „Prozesse“ (#221). Programmpfad, Argumente, Arbeitsordner und
 /// Speicher liest Grantry nur für Prozesse des eigenen Benutzers; bei fremden bleiben sie leer.
@@ -53,6 +54,34 @@ public struct ProcessEntry: Hashable, Sendable {
     static func lastComponent(_ path: String) -> String { (path as NSString).lastPathComponent }
 }
 
+/// Eine Zeile von `sysctl(KERN_PROC_ALL)`: Identität, Eltern, Benutzer und Kurzname des Kernels (`p_comm`, höchstens
+/// 16 Zeichen). Für alle Benutzer lesbar.
+struct KernelProcess: Hashable, Sendable {
+    let pid: pid_t
+    let parentPID: pid_t
+    let uid: UInt32
+    /// Mikrosekunden seit 1970 wie `RunningProcess.startTime`.
+    let startTime: UInt64
+    /// `""`, wenn leer.
+    let command: String
+
+    init(pid: pid_t, parentPID: pid_t, uid: UInt32, startTime: UInt64, command: String) {
+        self.pid = pid
+        self.parentPID = parentPID
+        self.uid = uid
+        self.startTime = startTime
+        self.command = command
+    }
+
+    /// `nil` für PID 0, Zombies und unlesbare Startzeiten.
+    init?(_ info: kinfo_proc) {
+        guard info.kp_proc.p_pid > 0, Int32(info.kp_proc.p_stat) != SZOMB,
+              let startTime = LibprocProcessInspector.microseconds(info.kp_proc.p_un.__p_starttime) else { return nil }
+        self.init(pid: info.kp_proc.p_pid, parentPID: info.kp_eproc.e_ppid, uid: info.kp_eproc.e_ucred.cr_uid,
+                  startTime: startTime, command: LibprocProcessTable.string(from: info.kp_proc.p_comm) ?? "")
+    }
+}
+
 /// Liest die Prozesstabelle.
 public protocol ProcessTableReading: Sendable {
     func entries() throws -> [ProcessEntry]
@@ -74,15 +103,13 @@ public struct LibprocProcessTable: ProcessTableReading {
     }
 
     public func entries() throws -> [ProcessEntry] {
-        try Self.kernelEntries().compactMap { info in
-            let pid = info.kp_proc.p_pid
-            guard pid > 0, Int32(info.kp_proc.p_stat) != SZOMB,
-                  let startTime = LibprocProcessInspector.microseconds(info.kp_proc.p_un.__p_starttime) else { return nil }
-            let uid = info.kp_eproc.e_ucred.cr_uid
-            let parent = info.kp_eproc.e_ppid
-            guard uid == currentUID else { return ProcessEntry(pid: pid, parentPID: parent, uid: uid, startTime: startTime) }
+        try Self.kernelProcesses().map { process in
+            let pid = process.pid
+            guard process.uid == currentUID else {
+                return ProcessEntry(pid: pid, parentPID: process.parentPID, uid: process.uid, startTime: process.startTime)
+            }
             return ProcessEntry(
-                pid: pid, parentPID: parent, uid: uid, startTime: startTime,
+                pid: pid, parentPID: process.parentPID, uid: process.uid, startTime: process.startTime,
                 executablePath: LibprocProcessInspector.executablePath(of: pid) ?? "",
                 arguments: Self.arguments(of: pid), workingDirectory: Self.workingDirectory(of: pid),
                 memoryBytes: Self.footprint(of: pid), isSessionLeader: Self.isSessionLeader(pid)
@@ -90,15 +117,44 @@ public struct LibprocProcessTable: ProcessTableReading {
         }
     }
 
-    static func kernelEntries() throws -> [kinfo_proc] {
-        var name: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
-        var size = 0
-        guard sysctl(&name, u_int(name.count), nil, &size, nil, 0) == 0 else { throw ProcessTableError(code: errno) }
-        // Reserve: zwischen den Aufrufen können Prozesse hinzukommen.
-        size += 64 * MemoryLayout<kinfo_proc>.stride
-        var buffer = [kinfo_proc](repeating: kinfo_proc(), count: size / MemoryLayout<kinfo_proc>.stride)
-        guard sysctl(&name, u_int(name.count), &buffer, &size, nil, 0) == 0 else { throw ProcessTableError(code: errno) }
-        return Array(buffer.prefix(size / MemoryLayout<kinfo_proc>.stride))
+    /// Alle laufenden Prozesse laut Kernel, ohne PID 0 und Zombies (auch für den Task-Manager, `ProcessUsageSampler`).
+    static func kernelProcesses() throws -> [KernelProcess] {
+        try kernelEntries().compactMap(KernelProcess.init)
+    }
+
+    /// Nur die Prozesse des Benutzers `uid` (`KERN_PROC_UID`, effektive UID wie `KernelProcess.uid`).
+    static func kernelProcesses(ownedBy uid: UInt32) throws -> [KernelProcess] {
+        try kernelEntries(KERN_PROC_UID, Int32(bitPattern: uid)).compactMap(KernelProcess.init)
+    }
+
+    /// Einträge je Auswahl beim letzten Lesen: Mit Reserve darüber genügt meist ein Aufruf; die Größenabfrage läuft im
+    /// Kernel selbst einmal über alle Prozesse (gedrosselt im Hintergrund rund 1 ms je Takt, #530).
+    private static let lastCounts = Mutex<[Int32: Int]>([:])
+    /// Reserve: Zwischen zwei Takten oder zwischen Größenabfrage und Lesen können Prozesse hinzukommen.
+    private static let spareEntries = 64
+
+    static func kernelEntries(_ selection: Int32 = KERN_PROC_ALL, _ argument: Int32 = 0) throws -> [kinfo_proc] {
+        var name: [Int32] = [CTL_KERN, KERN_PROC, selection, argument]
+        let stride = MemoryLayout<kinfo_proc>.stride
+        var count = lastCounts.withLock { $0[selection] }
+        for _ in 0..<3 {
+            if count == nil {
+                var size = 0
+                guard sysctl(&name, u_int(name.count), nil, &size, nil, 0) == 0 else { throw ProcessTableError(code: errno) }
+                count = size / stride
+            }
+            let capacity = (count ?? 0) + spareEntries
+            var buffer = [kinfo_proc](repeating: kinfo_proc(), count: capacity)
+            var size = capacity * stride
+            if sysctl(&name, u_int(name.count), &buffer, &size, nil, 0) == 0 {
+                buffer.removeLast(capacity - size / stride)
+                lastCounts.withLock { $0[selection] = buffer.count }
+                return buffer
+            }
+            guard errno == ENOMEM else { throw ProcessTableError(code: errno) }
+            count = nil
+        }
+        throw ProcessTableError(code: ENOMEM)
     }
 
     /// argv laut `KERN_PROCARGS2`: `argc` (Int32), Programmpfad, Füll-Nullbytes, dann `argc` Zeichenketten.

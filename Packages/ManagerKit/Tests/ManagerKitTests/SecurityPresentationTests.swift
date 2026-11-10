@@ -11,7 +11,7 @@ import Testing
         #expect(row.id == "firewall" && row.kind == .firewall)
         #expect(row.title == "Firewall")
         #expect(row.statusText == "Hinweis" && row.tone == .warning)
-        #expect(row.systemImage == PresentationTone.warning.systemImage)
+        #expect(row.systemImage == "firewall" && row.state == .warning && row.brief == "Tarnmodus aus")
         #expect(row.summary == "Firewall an, Tarnmodus aus – der Mac antwortet auf Anfragen wie Ping.")
         #expect(row.offers == [.action(.enableStealthMode, title: "Tarnmodus einschalten")])
         #expect(row.accessibilityLabel == "Firewall: Hinweis. Firewall an, Tarnmodus aus – der Mac antwortet auf Anfragen wie Ping.")
@@ -110,7 +110,7 @@ import Testing
     @Test func enrolledMDMIsNeutral() {
         let row = SecurityCheckPresentation(TestData.evaluatedCheck(.mdmEnrollment(enrolled: true, viaDEP: false)), now: now)
         #expect(row.statusText == "Angemeldet" && row.tone == .neutral)
-        #expect(row.systemImage == PresentationTone.neutral.systemImage)
+        #expect(row.systemImage == "building.2.fill" && row.brief == "MDM angemeldet")
         let notEnrolled = SecurityCheckPresentation(TestData.evaluatedCheck(.mdmEnrollment(enrolled: false, viaDEP: false)), now: now)
         #expect(notEnrolled.statusText == "In Ordnung" && notEnrolled.tone == .positive)
     }
@@ -119,7 +119,7 @@ import Testing
         var check = SecurityCheck.failed(.gatekeeper, detail: "spctl lieferte nach 15 s kein Ergebnis")
         check.lastKnownState = .good
         let row = SecurityCheckPresentation(check, now: now)
-        #expect(row.statusText == "Nicht prüfbar" && row.tone == .neutral && row.systemImage == "questionmark.circle.fill")
+        #expect(row.statusText == "Nicht prüfbar" && row.tone == .neutral && row.systemImage == "checkmark.seal.fill")
         #expect(row.summary == "Konnte nicht geprüft werden: spctl lieferte nach 15 s kein Ergebnis")
         #expect(row.details == ["Zuletzt bekannt: in Ordnung"])
         #expect(row.offers.isEmpty)

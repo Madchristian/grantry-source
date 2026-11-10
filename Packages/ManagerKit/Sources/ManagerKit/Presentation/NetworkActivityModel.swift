@@ -12,9 +12,9 @@ import Observation
 ///
 /// `rows` wird nur neu aufgebaut, wenn sich Messung, Hostnamen, Filter, Suche oder Sortierung ändern; fertige
 /// Hostnamen-Abfragen werden gesammelt und gebündelt übernommen (mit der nächsten Messung, spätestens nach
-/// `hostNameBatchDelay`). Nachgeschlagen werden nur Gegenstellen offener Verbindungen; ausgegraute behalten ihren
-/// Namen. Die Sortierung gilt für Prozesse; Verbindungen innerhalb eines Prozesses bleiben nach
-/// Gesamtrate sortiert.
+/// `hostNameBatchDelay`). Nachgeschlagen werden nur Gegenstellen offener Verbindungen und nur, solange ein Abnehmer
+/// Hostnamen zeigt (`Consumer.showsHostNames`); ausgegraute behalten ihren Namen. Die Sortierung gilt für Prozesse;
+/// Verbindungen innerhalb eines Prozesses bleiben nach Gesamtrate sortiert.
 @MainActor
 @Observable
 public final class NetworkActivityModel {
@@ -50,6 +50,7 @@ public final class NetworkActivityModel {
 
     @ObservationIgnored private let sampler: NettopSampler
     @ObservationIgnored private let programs: ActivityProgramResolver
+    @ObservationIgnored private let interfaceCounters: @Sendable () -> InterfaceByteReading?
     @ObservationIgnored private let resolver: HostNameResolver
     @ObservationIgnored private let systemVersion: String
     @ObservationIgnored private var startsSampling = true
@@ -65,14 +66,18 @@ public final class NetworkActivityModel {
     @ObservationIgnored private var resolvedHostNames: [String: String] = [:]
     @ObservationIgnored private var hostNameFlush: Task<Void, Never>?
 
+    /// - Parameter interfaceCounters: Byte-Zähler der Schnittstellen für den Plausibilitätsdeckel (`TrafficTracker`);
+    ///   `nil` ergibt keinen Deckel.
     public init(
         sampler: NettopSampler = NettopSampler(),
         programs: ActivityProgramResolver = ActivityProgramResolver(),
         hostNameResolver: HostNameResolver = HostNameResolver(),
+        interfaceCounters: @escaping @Sendable () -> InterfaceByteReading? = InterfaceByteReading.current,
         systemVersion: String = NetworkActivityModel.currentSystemVersion
     ) {
         self.sampler = sampler
         self.programs = programs
+        self.interfaceCounters = interfaceCounters
         resolver = hostNameResolver
         self.systemVersion = systemVersion
     }
@@ -95,9 +100,19 @@ public final class NetworkActivityModel {
         .make(failure: status.failure, skippedLineCount: frame.report.skippedLineCount, systemVersion: systemVersion)
     }
 
-    /// Wer gerade misst; die Ansicht „Aktivität“ und das Detail eines Netzwerkdienstes teilen sich einen Lauf.
+    /// Wer gerade misst; die Ansichten „Verbindungen“ und „Aktivität“, das Detail eines Netzwerkdienstes und die
+    /// Netzspalte des Task-Managers teilen sich einen Lauf.
     public enum Consumer: Hashable, Sendable {
-        case activityView, listenerDetail
+        case connectionsView, activityView, listenerDetail, taskManager, taskManagerUsers
+
+        /// Zeigt Hostnamen der Gegenstellen; „Verbindungen“ zeigt nur numerische Endpunkte, die Netzspalten des
+        /// Task-Managers brauchen nur Raten je Prozess – beide lösen deshalb keine DNS-Abfragen aus.
+        var showsHostNames: Bool {
+            switch self {
+            case .activityView, .listenerDetail: true
+            case .connectionsView, .taskManager, .taskManagerUsers: false
+            }
+        }
     }
 
     /// Abnehmer, für die gerade gemessen wird (`start(for:)`).
@@ -110,10 +125,21 @@ public final class NetworkActivityModel {
         start()
     }
 
-    /// Hört für `consumer` auf; gemessen wird weiter, solange ein anderer Abnehmer misst.
+    /// Hört für `consumer` auf; gemessen wird weiter, solange ein anderer Abnehmer misst. Zeigt keiner mehr Hostnamen,
+    /// entfallen laufende Abfragen.
     public func stop(for consumer: Consumer) {
         consumers.remove(consumer)
-        if consumers.isEmpty { stop() }
+        if consumers.isEmpty {
+            stop()
+        } else if !resolvesHostNames {
+            cancelHostNameLookups()
+        }
+    }
+
+    /// Hostnamen werden nachgeschlagen, solange ein Abnehmer sie zeigt; `start()` ohne Abnehmer gilt als Ansicht mit
+    /// Hostnamen.
+    private var resolvesHostNames: Bool {
+        consumers.isEmpty || consumers.contains { $0.showsHostNames }
     }
 
     /// Aktivität des Programms unter `executablePath` im aktuellen Stand (Detail eines Netzwerkdienstes).
@@ -129,7 +155,8 @@ public final class NetworkActivityModel {
         status = .running
         show(.empty, hostNames: [:])
         let sampler = sampler
-        let pipeline = ActivityPipeline(tracker: TrafficTracker(), programs: programs)
+        let pipeline = ActivityPipeline(tracker: TrafficTracker(sampleInterval: .seconds(sampler.interval)),
+                                        programs: programs, interfaces: interfaceCounters)
         runTask = Task { [weak self] in
             let (frames, continuation) = AsyncStream.makeStream(of: ActivityFrame.self,
                                                                 bufferingPolicy: .bufferingNewest(1))
@@ -185,7 +212,7 @@ public final class NetworkActivityModel {
         for address in addresses where names[address] == nil {
             if let name = resolver.cachedName(for: address) {
                 names[address] = name
-            } else if frame.activeRemoteAddresses.contains(address), resolver.needsLookup(address) {
+            } else if resolvesHostNames, frame.activeRemoteAddresses.contains(address), resolver.needsLookup(address) {
                 let id = nextLookupID
                 nextLookupID += 1
                 lookupTasks[id] = Task { [weak self, resolver] in

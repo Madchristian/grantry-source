@@ -5,7 +5,7 @@ import Observation
 /// Ansicht, in der eine Aktion ausgelöst wurde; dort erscheint ihr Ergebnis. Je Bereich eine, damit die Meldung
 /// sichtbar bleibt, wenn der betroffene Eintrag (oder seine Gruppe) nach der Aktion verschwindet.
 public enum ActionContext: Hashable, Sendable {
-    case permissions, autostart, security, history, apps, cleanup, agents, observations, network
+    case permissions, autostart, security, history, apps, cleanup, agents, observations, network, taskManager
 }
 
 /// Führt die verändernden Aktionen aus; in der App der `ActionCoordinator`.

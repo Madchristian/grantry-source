@@ -2,11 +2,11 @@ import Foundation
 
 extension FileFingerprint {
     /// Fingerabdruck von `target` (Symlinks bereits aufgelöst) oder `nil`, wenn seine Attribute nicht lesbar sind.
-    /// Bei Bundles zählt das Siegel (`Contents/_CodeSignature/CodeResources`, sonst `Contents/Info.plist`), zusammen mit
-    /// der Inode des Bundle-Verzeichnisses; sonst das Ziel selbst.
+    /// Bei Bundles (Apps und Plug-ins, `isSealedBundle`) zählt das Siegel (`Contents/_CodeSignature/CodeResources`, sonst
+    /// `Contents/Info.plist`), zusammen mit der Inode des Bundle-Verzeichnisses; sonst das Ziel selbst.
     init?(of target: String) {
         guard let own = Self.attributes(of: target) else { return nil }
-        let sealed = Self.isAppBundle(target)
+        let sealed = Self.isSealedBundle(target)
             ? ["Contents/_CodeSignature/CodeResources", "Contents/Info.plist"].lazy
                 .compactMap { Self.attributes(of: "\(target)/\($0)") }.first
             : nil
@@ -26,6 +26,14 @@ extension FileFingerprint {
 
     static func isAppBundle(_ path: String) -> Bool {
         URL(fileURLWithPath: path).pathExtension == "app"
+    }
+
+    /// Bundle-Endungen, deren Inhalt sich ändern kann, ohne dass sich das Bundle-Verzeichnis selbst ändert (Update an
+    /// Ort und Stelle): Apps sowie Plug-ins und Erweiterungen (`ServicePluginScanner`, `AppExtensionIndexBuilder`).
+    static let sealedBundleExtensions: Set<String> = ["app", "driver", "plugin", "bundle", "kext", "systemextension", "dext"]
+
+    static func isSealedBundle(_ path: String) -> Bool {
+        sealedBundleExtensions.contains(URL(fileURLWithPath: path).pathExtension.lowercased())
     }
 }
 

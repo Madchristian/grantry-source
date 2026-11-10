@@ -14,6 +14,16 @@ extension TestData {
         PendingUpdate(identifier: identifier, displayName: name, displayVersion: nil, firstSeenAt: firstSeenAt)
     }
 
+    /// Alle zehn Prüfungen in Ordnung, in Anzeigereihenfolge.
+    static func goodSecurityChecks(now: Date = date) -> [SecurityCheck] {
+        [
+            .fileVault(.on), .automaticLogin(enabled: false), firewallOn, .sharingServices(active: []), .sip(.enabled),
+            .gatekeeper(enabled: true), .xprotect(version: "5321", installedAt: now - 3 * day),
+            .automaticUpdates(disabled: []), .pendingUpdates(updates: [], lastCheck: now - day),
+            .mdmEnrollment(enrolled: false, viaDEP: false),
+        ].map { evaluatedCheck($0, now: now) }
+    }
+
     /// Prüfung mit der Ampel, die die Standard-Policy zu `now` vergibt.
     static func evaluatedCheck(_ facts: SecurityFacts, now: Date = date) -> SecurityCheck {
         SecurityCheck(kind: facts.kind, state: SecurityPolicy.standard.evaluate(facts, now: now), facts: facts)

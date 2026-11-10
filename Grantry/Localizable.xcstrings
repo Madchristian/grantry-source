@@ -1,6 +1,14 @@
 {
   "sourceLanguage" : "de",
   "strings" : {
+    "Je Block" : {},
+    "Wachbuch einschalten" : {},
+    "Längere Zeiträume liest Grantry aus dem Wachbuch. Es ist ausgeschaltet." : {},
+    "Im Zeitraum gibt es noch keine Leistungswerte. Das Wachbuch hält sie fest, solange Leistung, Chip oder Übersicht geöffnet ist." : {},
+    "Das Wachbuch wird gelesen …" : {},
+    "Leistungsaufnahme, %@" : {},
+    "Aus dem Wachbuch: gemessen, solange Leistung, Chip oder Übersicht offen war. Lücken bleiben leer." : {},
+
     "Befunde" : {},
     "Alle Einträge" : {},
     "Auffällige und Hinweise" : {},
@@ -16,6 +24,12 @@
     "Dock-Symbol anzeigen" : {},
     "Grantry bleibt über die Menüleiste erreichbar, auch ohne Dock-Symbol." : {},
     "Einstellungen …" : {},
+    "Wachbuch führen" : {
+
+    },
+    "Bei schweren Befunden benachrichtigen" : {},
+    "Dauerlast über 10 Minuten, ernster thermischer Zustand oder kritischer Speicherdruck – höchstens eine Mitteilung je Art und Stunde." : {},
+    "Nur wirksam, solange das Wachbuch geführt wird." : {},
     "Was ist neu?" : {},
     "Grantry %@" : {},
     "Los geht’s" : {},
@@ -110,10 +124,31 @@
         }
       }
     },
+    "0,5 s" : {
+
+    },
     "1 Dienst nimmt Verbindungen aus dem Netz an." : {
 
     },
     "1 neuer Eintrag ist nicht mehr (oder nicht mehr unverändert) vorhanden." : {
+
+    },
+    "1 s" : {
+
+    },
+    "15 min" : {
+
+    },
+    "2 s" : {
+
+    },
+    "5 min" : {
+
+    },
+    "5 s" : {
+
+    },
+    "60 s" : {
 
     },
     "Abbrechen" : {
@@ -137,6 +172,9 @@
     "Agenten durchsuchen" : {
 
     },
+    "Akku" : {
+
+    },
     "Aktion läuft" : {
 
     },
@@ -153,6 +191,12 @@
 
     },
     "Alle als gelesen markieren" : {
+
+    },
+    "Alle gespeicherten Stunden der letzten 30 Tage werden entfernt. Das lässt sich nicht rückgängig machen." : {
+
+    },
+    "Alle gespeicherten Stunden des App-Verlaufs entfernen" : {
 
     },
     "Alle Änderungen" : {
@@ -180,6 +224,15 @@
 
     },
     "App entfernen …" : {
+
+    },
+    "App-Verlauf" : {
+
+    },
+    "Wachbuch" : {
+
+    },
+    "App-Verlauf löschen?" : {
 
     },
     "Apple-Systemdienste ausblenden" : {
@@ -215,6 +268,9 @@
     "Aufgeräumt" : {
 
     },
+    "Aufklappen" : {
+
+    },
     "Aufräumen" : {
 
     },
@@ -230,6 +286,27 @@
     "Ausgewähltes entfernen …" : {
 
     },
+    "Auslastung" : {
+
+    },
+    "Auslastung je Kern" : {
+
+    },
+    "1 von %lld Prozessen" : {
+
+    },
+    "%lld von %lld Prozessen" : {
+
+    },
+    "%lld von %lld Sockets, %@" : {
+
+    },
+    "%lld von %lld" : {
+
+    },
+    "Auslastung in der Menüleiste anzeigen" : {
+
+    },
     "Automatische Freigabe" : {
 
     },
@@ -240,6 +317,9 @@
 
     },
     "Autostart-Eintrag %@" : {
+
+    },
+    "Autostart-Einträge anzeigen" : {
 
     },
     "Autostart-Einträge durchsuchen" : {
@@ -323,13 +403,28 @@
     "Bitte MacManager beenden und Grantry erneut öffnen. Verlauf und Einstellungen werden dann übernommen." : {
 
     },
+    "CPU der letzten 60 Sekunden" : {
+
+    },
+    "CPU-Last aller Prozesse, letzte 60 Sekunden" : {
+
+    },
+    "CPU-Verlauf und Speicher neben dem Grantry-Schild; gemessen wird nur, solange die Anzeige an ist." : {
+
+    },
     "DMG-Prüfsumme …" : {
+
+    },
+    "Darstellung" : {
 
     },
     "Das Ergebnis ist veraltet – Apps haben sich seit der Suche geändert oder sie liegt länger zurück. Bitte erneut suchen." : {
 
     },
     "Datei" : {
+
+    },
+    "Datenverkehr des Systems" : {
 
     },
     "Deaktivieren" : {
@@ -339,6 +434,9 @@
 
     },
     "Der Sicherheitsstatus erscheint nach dem nächsten Scan." : {
+
+    },
+    "Der Verlauf füllt sich, solange der Task-Manager misst." : {
 
     },
     "Der abschließende Scan ist ausgeblieben – bitte erneut versuchen." : {
@@ -374,6 +472,9 @@
     "Die Suche startet nur, wenn du sie anstößt. Entfernt wird erst nach deiner Bestätigung." : {
 
     },
+    "Die erste Messung folgt mit dem nächsten Takt." : {
+
+    },
     "Die gespeicherte Beobachtung ließ sich nicht laden." : {
 
     },
@@ -398,10 +499,22 @@
     "Dienste von macOS und beendete Dienste werden nie gemeldet; der Verlauf enthält alle Änderungen." : {
 
     },
+    "Domäne" : {
+
+    },
+    "Du" : {
+
+    },
+    "Eigene Agenten, alle Dienste der Sitzung oder System-Dienste" : {
+
+    },
     "Einrichtung öffnen …" : {
 
     },
     "Einstellung" : {
+
+    },
+    "Eltern- und Kindprozesse eingerückt zeigen (← zuklappen, → aufklappen)" : {
 
     },
     "Empfangen" : {
@@ -411,6 +524,9 @@
 
     },
     "Empfangen pro Sekunde" : {
+
+    },
+    "Energie" : {
 
     },
     "Entfernen …" : {
@@ -426,6 +542,9 @@
 
     },
     "Erneut versuchen" : {
+
+    },
+    "Erreichbar" : {
 
     },
     "Erreichbarkeit" : {
@@ -465,6 +584,12 @@
 
     },
     "Für dieses Tool ist nicht bekannt, welche App die Server startet." : {
+
+    },
+    "GPU" : {
+
+    },
+    "Gegenstelle" : {
 
     },
     "Gegenstellen" : {
@@ -539,6 +664,9 @@
     "Gruppierung" : {
 
     },
+    "Größte Verbraucher" : {
+
+    },
     "Hauptfenster öffnen" : {
 
     },
@@ -557,7 +685,13 @@
     "Hält den aktuellen Stand fest und zeigt später, was ein Tool eingerichtet hat." : {
 
     },
+    "Im Autostart zeigen" : {
+
+    },
     "Im Finder zeigen" : {
+
+    },
+    "Im Task-Manager anzeigen" : {
 
     },
     "Im Terminal „<DMG>“ durch den Pfad zur geladenen Datei ersetzen und das Ergebnis vergleichen." : {
@@ -608,6 +742,9 @@
     "Jetzt scannen" : {
 
     },
+    "Jetzt starten (launchctl kickstart)" : {
+
+    },
     "Kein Dienst passt zu den gewählten Filtern." : {
 
     },
@@ -618,6 +755,9 @@
 
     },
     "Kein Programm nimmt Verbindungen an (Systemdienste ausgeblendet)." : {
+
+    },
+    "Kein Prozess belegt dauerhaft mehr als 80 % eines Kerns." : {
 
     },
     "Kein Prozess passt zu den gewählten Filtern." : {
@@ -677,16 +817,31 @@
     "Keiner der neuen Einträge ist noch vorhanden." : {
 
     },
+    "Kennzahl" : {
+
+    },
     "Konfiguration" : {
 
     },
     "Kopieren" : {
 
     },
+    "Label oder PID" : {
+
+    },
     "Lauschende Dienste oder aktuelle Netzwerkaktivität zeigen" : {
 
     },
+    "Leistung" : {
+
+    },
+    "Lesen" : {
+
+    },
     "Letzte Änderungen" : {
+
+    },
+    "Letzter Exit" : {
 
     },
     "Liste filtern" : {
@@ -716,6 +871,12 @@
     "Mit Resten entfernen …" : {
 
     },
+    "Mit SIGTERM beenden (launchctl kill)" : {
+
+    },
+    "Nach %@ sortieren" : {
+
+    },
     "Nach App" : {
 
     },
@@ -734,7 +895,16 @@
     "Name" : {
 
     },
+    "Name oder PID" : {
+
+    },
+    "Name, PID oder Benutzer" : {
+
+    },
     "Name, Ziel oder Port" : {
+
+    },
+    "Netzteil und Laden" : {
 
     },
     "Netzwerk" : {
@@ -752,6 +922,9 @@
     "Neues Tool? Beobachte die Installation – Grantry zeigt danach, was hinzugekommen ist, und räumt es auf Wunsch wieder auf." : {
 
     },
+    "Nicht gespeichert: %@" : {
+
+    },
     "Nicht prüfen" : {
 
     },
@@ -767,7 +940,16 @@
     "Noch kein Scan durchgeführt." : {
 
     },
+    "Noch kein Verlauf" : {
+
+    },
     "Noch keine Daten" : {
+
+    },
+    "Noch keine Messung" : {
+
+    },
+    "Noch keine Messwerte" : {
 
     },
     "Noch keine Sicherheitsprüfung" : {
@@ -803,6 +985,9 @@
     "Offene Verbindungen" : {
 
     },
+    "Ohne Verlauf: Werte anderer Benutzer stammen aus ps" : {
+
+    },
     "Ohne nettop zeigt Grantry keine Zahlen." : {
 
     },
@@ -810,6 +995,9 @@
 
     },
     "Ort" : {
+
+    },
+    "PID" : {
 
     },
     "Paketquelle" : {
@@ -824,10 +1012,25 @@
     "Port" : {
 
     },
+    "Priorität" : {
+
+    },
+    "Priorität (nice) des Prozesses ändern" : {
+
+    },
+    "Priorität: %@" : {
+
+    },
+    "Pro Kern" : {
+
+    },
     "Programm" : {
 
     },
     "Programm auf dem Mac" : {
+
+    },
+    "Programm oder Port" : {
 
     },
     "Prozess" : {
@@ -836,7 +1039,16 @@
     "Prozess beenden …" : {
 
     },
+    "Prozess eines anderen Benutzers – macOS fragt je Aktion nach dem Administratorkennwort." : {
+
+    },
+    "Prozessbaum" : {
+
+    },
     "Prozesse" : {
+
+    },
+    "Belegung" : {
 
     },
     "Prüfsumme kopieren" : {
@@ -875,10 +1087,52 @@
     "Schließen" : {
 
     },
+    "Schreiben" : {
+
+    },
+    "Schutz" : {
+
+    },
+    "Steckbrief" : {
+
+    },
+    "Mehr zu diesem Mac" : {
+
+    },
+    "Sprung in den jeweiligen Bereich" : {
+
+    },
+    "Seriennummer" : {
+
+    },
+    "%@: verdeckt" : {
+
+    },
+    "%@ einblenden" : {
+
+    },
+    "%@ ausblenden" : {
+
+    },
+    "Einblenden" : {
+
+    },
+    "Ausblenden" : {
+
+    },
+    "Wird gelesen" : {
+
+    },
+    "Öffnet den Bereich." : {
+
+    },
     "Seit %@" : {
 
     },
     "Seit dem ersten Scan hat sich nichts geändert." : {
+
+    },
+    "Senden" : {
 
     },
     "Server entfernen …" : {
@@ -899,10 +1153,28 @@
     "Signatur des Programms" : {
 
     },
+    "SoC, über den Helper" : {
+
+    },
+    "Socket" : {
+
+    },
+    "Sofort beenden" : {
+
+    },
+    "Sofort beenden (SIGKILL) – ⌥⌫" : {
+
+    },
     "Sofort beenden (SIGKILL) …" : {
 
     },
     "Sortieren nach" : {
+
+    },
+    "Spalten" : {
+
+    },
+    "Spalten ein- oder ausblenden" : {
 
     },
     "Später" : {
@@ -912,6 +1184,12 @@
 
     },
     "Starte eine Beobachtung, bevor du ein Tool installierst – danach zeigt Grantry, was es eingerichtet hat." : {
+
+    },
+    "Starten" : {
+
+    },
+    "Stoppen" : {
 
     },
     "Suche abbrechen" : {
@@ -927,6 +1205,21 @@
 
     },
     "Systemdienste anzeigen" : {
+
+    },
+    "Takt" : {
+
+    },
+    "Task beenden" : {
+
+    },
+    "Task beenden – ⌫" : {
+
+    },
+    "Task-Manager" : {
+
+    },
+    "Task-Manager öffnen" : {
 
     },
     "Trotzdem starten" : {
@@ -950,6 +1243,9 @@
     "Verbindungen" : {
 
     },
+    "Verkehr seit Messbeginn" : {
+
+    },
     "Verlauf" : {
 
     },
@@ -963,6 +1259,15 @@
 
     },
     "Verlauf filtern" : {
+
+    },
+    "Verlauf je Benutzer" : {
+
+    },
+    "Verlauf löschen" : {
+
+    },
+    "Verlauf löschen …" : {
 
     },
     "Vermutlich über Autostart-Eintrag" : {
@@ -980,7 +1285,13 @@
     "Weitere Kopie von Grantry – sie teilt Berechtigungen und Daten mit der laufenden Grantry. Grantry entfernt sie deshalb nicht; bitte im Finder in den Papierkorb legen." : {
 
     },
+    "Wer diesen Mac erreichen kann" : {
+
+    },
     "Wert steht im Klartext in der Konfigurationsdatei – Grantry zeigt ihn nicht an." : {
+
+    },
+    "Wie oft gemessen wird" : {
 
     },
     "Wiederherstellbar" : {
@@ -990,6 +1301,9 @@
 
     },
     "Wird wiederhergestellt" : {
+
+    },
+    "Wähle einen Socket, um Adressen, Verkehr und Programm zu sehen." : {
 
     },
     "Wähle links eine App, um Details zu sehen." : {
@@ -1011,6 +1325,9 @@
 
     },
     "Wähle links einen MCP-Server oder eine Freigabe, um Details zu sehen." : {
+
+    },
+    "Zeichnet alle 10 Sekunden Auslastung, größte Verbraucher, Befunde und Systemereignisse auf, auch ohne offenes Fenster – ohne Helper und ohne Netzwerkmessung. Gespeichert nur auf diesem Mac, 7 Tage." : {
 
     },
     "Zeigt den Eintrag im Bereich „Autostart“." : {
@@ -1040,6 +1357,9 @@
     "Ziel-URL" : {
 
     },
+    "Zuklappen" : {
+
+    },
     "Zuletzt geprüft: %@" : {
 
     },
@@ -1061,7 +1381,16 @@
     "Zustand" : {
 
     },
+    "absteigend sortiert" : {
+
+    },
+    "alle Benutzer" : {
+
+    },
     "aufgeräumt" : {
+
+    },
+    "aufsteigend sortiert" : {
 
     },
     "beendet" : {
@@ -1070,10 +1399,22 @@
     "entfernt" : {
 
     },
+    "gebunden" : {
+
+    },
     "geschlossen" : {
 
     },
+    "keine Messung" : {
+
+    },
     "launchd führt je Label nur einen Dienst; Aktivieren/Deaktivieren ist dann gesperrt." : {
+
+    },
+    "lauscht" : {
+
+    },
+    "letzte 60 Sekunden, gemeinsame Zeitachse" : {
 
     },
     "lokal" : {
@@ -1095,6 +1436,9 @@
 
     },
     "und %lld weitere" : {
+
+    },
+    "verbunden" : {
 
     },
     "z. B. Cursor" : {
@@ -1133,7 +1477,301 @@
     "„%@“ läuft – zum Entfernen zuerst beenden." : {
 
     },
+    "„%@“ sofort beenden …" : {
+
+    },
     "„Jetzt scannen“ erfasst Berechtigungen und Autostart-Einträge." : {
+
+    },
+    "Chip" : {
+
+    },
+    "Keine Chipdaten" : {
+
+    },
+    "Dieser Mac meldet keine Leistungsstufen eines Apple-Chips." : {
+
+    },
+    "Leistung, Takt und Cluster-Aktivität misst der Helper (powermetrics) – ohne ihn bleiben sie leer." : {
+
+    },
+    "Leistungsaufnahme" : {
+
+    },
+    "Nur mit Helper messbar" : {
+
+    },
+    "Auslastung je Kern, nach Cluster" : {
+
+    },
+    "Prozessname" : {
+
+    },
+    "Sockets aller Benutzer" : {
+
+    },
+    "Live über nettop" : {
+
+    },
+    "%lld Sockets · %lld Prozesse" : {
+
+    },
+    "Firewall an" : {
+
+    },
+    "Firewall aus" : {
+
+    },
+    "Ohne nettop zeigt Grantry keine Verbindungen." : {
+
+    },
+    "Messe Verbindungen …" : {
+
+    },
+    "Keine Verbindung passt zum gewählten Filter." : {
+
+    },
+    "%lld von %lld angezeigt" : {
+
+    },
+    "nettop zeigt die Sockets aller Benutzer. Prozesse anderer Benutzer beendet Grantry nur über den Helper." : {
+
+    },
+    "Wähle eine Verbindung, um Details zu sehen." : {
+
+    },
+    "Offene Sockets" : {
+
+    },
+    "Lauschend" : {
+
+    },
+    "Offene TCP-Ports" : {
+
+    },
+    "Öffentlich" : {
+
+    },
+    "Alle Schnittstellen oder öffentliche Adresse" : {
+
+    },
+    "Mit offenen Sockets" : {
+
+    },
+    "Verlauf der letzten 2 Minuten: empfangen und gesendet" : {
+
+    },
+    "Systemverkehr" : {
+
+    },
+    "Gebunden" : {
+
+    },
+    "Verbunden" : {
+
+    },
+    "Protokoll" : {
+
+    },
+    "Lokaler Endpunkt" : {
+
+    },
+    "Entfernter Endpunkt" : {
+
+    },
+    "Netzwerkdienst" : {
+
+    },
+    "Verbindung" : {
+
+    },
+    "Endpunkte" : {
+
+    },
+    "Datenverkehr" : {
+
+    },
+    "Exposition" : {
+
+    },
+    "Lokal" : {
+
+    },
+    "Entfernt" : {
+
+    },
+    "Offene Verbindungen, lauschende Dienste oder aktuelle Netzwerkaktivität zeigen" : {
+
+    },
+    "Erweiterungen" : {
+
+    },
+    "Erster Scan läuft …" : {
+
+    },
+    "Nicht vollständig geprüft" : {
+
+    },
+    "Keine Erweiterung passt zum gewählten Filter." : {
+
+    },
+    "In den Papierkorb legen?" : {
+
+    },
+    "Der Finder legt „%@“ in den Papierkorb; „Zurücklegen“ bleibt möglich. Für Plug-ins unter /Library fragt der Finder nach deinem Passwort. Ein schon geladenes Plug-in bleibt bis zum Neustart seines Dienstes aktiv." : {
+
+    },
+    "Nicht in den Papierkorb gelegt" : {
+
+    },
+    "In den Systemeinstellungen öffnen" : {
+
+    },
+    "Zugehörige App zeigen" : {
+
+    },
+    "In den Papierkorb …" : {
+
+    },
+    "Entscheidung nicht gespeichert: %@" : {
+
+    },
+    "Erweiterung oder Hersteller" : {
+
+    },
+    "Rechte-Schichten" : {
+
+    },
+    "Wie nah fremder Code am Kern läuft" : {
+
+    },
+    "Schichten" : {
+
+    },
+    "1 Erweiterung" : {
+
+    },
+    "%lld Erweiterungen" : {
+
+    },
+    ", %lld auffällig" : {
+
+    },
+    "Erweiterung" : {
+
+    },
+    "Hersteller" : {
+
+    },
+    "Bewertung" : {
+
+    },
+    "Version" : {
+
+    },
+    "Geprüft" : {
+
+    },
+    "Was sie darf" : {
+
+    },
+    "Grantry fällt an dieser Erweiterung nichts auf." : {
+
+    },
+    "Wähle eine Erweiterung, um zu sehen, was sie darf, woher sie kommt und was Grantry auffällt." : {
+
+    },
+    "In „Erweiterungen“ zeigen" : {
+
+    },
+    "Zeigt die Erweiterung im Bereich „Erweiterungen“." : {
+
+    },
+    "Alle im Bereich „Erweiterungen“ zeigen" : {
+
+    },
+    "Außer den Erweiterungen oben hat Grantry keine Reste gelöschter Apps gefunden." : {
+
+    },
+    "1 Erweiterung ohne App" : {
+
+    },
+    "%lld Erweiterungen ohne App" : {
+
+    },
+    "%lld Dienste" : {
+
+    },
+    "%lld Programme" : {
+
+    },
+    "%lld aus dem Netz" : {
+
+    },
+    "1 Dienst" : {
+
+    },
+    "1 Programm" : {
+
+    },
+    "Aktiv" : {
+
+    },
+    "Alle" : {
+
+    },
+    "Alle Programme · letzte 2 Minuten" : {
+
+    },
+    "Andere Geräte können sich verbinden" : {
+
+    },
+    "Angezeigt von allen Diensten ohne Systemdienste" : {
+
+    },
+    "Angezeigt von allen Diensten, Systemdienste eingeschlossen" : {
+
+    },
+    "Aus dem Netz" : {
+
+    },
+    "Aus dem Netz erreichbar" : {
+
+    },
+    "Firewall ist aus: %lld Dienste nehmen Verbindungen aus dem Netz an." : {
+
+    },
+    "Firewall ist aus: 1 Dienst nimmt Verbindungen aus dem Netz an." : {
+
+    },
+    "Grantry empfiehlt eine Prüfung" : {
+
+    },
+    "Mit Hinweis" : {
+
+    },
+    "Nur auf diesem Mac" : {
+
+    },
+    "Nur dieser Mac" : {
+
+    },
+    "Nur über Loopback erreichbar" : {
+
+    },
+    "Programme aktiv" : {
+
+    },
+    "Verlauf dieses Programms" : {
+
+    },
+    "Wähle einen Dienst, um Erreichbarkeit, Aktivität und Programm zu sehen." : {
+
+    },
+    "davon %lld Systemdienste von macOS" : {
+
+    },
+    "gestartet aus %@" : {
 
     }
   },

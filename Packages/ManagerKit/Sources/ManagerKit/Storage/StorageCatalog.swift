@@ -53,10 +53,11 @@ public enum StorageCatalog {
                   runner: ProcessCommandRunner(), locator: ToolLocator(home: configuration.home))
     }
 
-    /// `openFiles` und `fullDiskAccess` sind für Tests austauschbar.
+    /// `openFiles`, `fullDiskAccess` und die Mount-Tabelle `volumes` sind für Tests austauschbar.
     static func providers(_ configuration: Configuration, measurer: any FileSizeMeasuring, runner: any CommandRunning,
                           locator: ToolLocator, openFiles: any OpenFileProbing = LibprocOpenFileProbe(),
-                          fullDiskAccess: @escaping @Sendable () async -> Bool = { await FullDiskAccessProbe().hasFullDiskAccess() })
+                          fullDiskAccess: @escaping @Sendable () async -> Bool = { await FullDiskAccessProbe().hasFullDiskAccess() },
+                          volumes: @escaping @Sendable () -> [MountedVolume] = MountedVolume.current)
         -> [any StorageCategoryProvider] {
         let home = configuration.home
         let places = Locations(home: home)
@@ -97,6 +98,7 @@ public enum StorageCatalog {
         if let ownIdentifier = Bundle.main.bundleIdentifier { cachesExclusions.insert(ownIdentifier) }
         let simulatorDevices = places.simulatorDevices
         let virtualBuddy = at("Library/Application Support/VirtualBuddy")
+        @Sendable func entries(of folder: String) -> [String] { Self.entries(of: folder, volumes: volumes()) }
         let installerDownloads = "_Downloads"
         return [
             paths("derivedData", "Xcode DerivedData", "Build-Zwischenstände; Xcode legt sie bei Bedarf neu an.", .low,
@@ -207,9 +209,13 @@ public enum StorageCatalog {
             .map(\.element)
     }
 
-    /// Pfade der nicht versteckten Einträge eines Ordners, sortiert; leer, wenn er fehlt oder nicht lesbar ist.
-    @Sendable static func entries(of folder: String) -> [String] {
-        ((try? FileManager.default.contentsOfDirectory(atPath: folder)) ?? []).sorted()
+    /// Pfade der nicht versteckten Einträge eines Ordners, sortiert; leer, wenn er fehlt, nicht lesbar ist oder nicht
+    /// sicher lokal liegt. Wie beim Belegungsscanner prüft `LocalPathResolver` die Mount-Tabelle vor jedem Zugriff: Ein
+    /// Ordner auf einem Netzlaufwerk wird nie gelesen – ein unerreichbarer Server hielte sonst Speicher und die Hinweise
+    /// der Belegung an (Codex-Review TM-15.6, #405).
+    static func entries(of folder: String, volumes: [MountedVolume]) -> [String] {
+        guard let target = LocalPathResolver.resolve(folder, volumes: volumes), case .directory = target.entry else { return [] }
+        return ((try? FileManager.default.contentsOfDirectory(atPath: target.path)) ?? []).sorted()
             .filter { !RawPath.isHidden($0) }.map { folder + "/" + $0 }
     }
 }

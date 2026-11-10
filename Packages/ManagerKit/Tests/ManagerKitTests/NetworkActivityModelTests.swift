@@ -10,7 +10,7 @@ import TestSupport
     private let instants = SteppedInstants()
 
     private func model(
-        _ streamer: ScriptedLineStreamer,
+        _ streamer: any LineStreaming,
         programs: ActivityProgramResolver = ActivityProgramResolver(
             executablePath: { _ in "/usr/bin/curl" }, inspector: RecordingSigningInspector(result: SigningInfo(kind: .apple))
         ),
@@ -21,6 +21,7 @@ import TestSupport
                                    sleep: { _ in }),
             programs: programs,
             hostNameResolver: hostNames,
+            interfaceCounters: { nil },
             systemVersion: "27.0.1"
         )
     }
@@ -50,6 +51,7 @@ import TestSupport
         }
     }
 
+    /// Zwei Messungen im Abstand eines Intervalls (2 s, nettops Takt): 3000 B empfangen und 1500 B gesendet.
     private var twoSamples: [String] {
         [header, "curl.42,,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,0,0,",
          header, "curl.42,,,3000,1500,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,3000,1500,", header]
@@ -64,7 +66,7 @@ import TestSupport
 
         let row = try #require(model.rows.first)
         #expect(row.title == "curl")
-        #expect(row.downloadRate == 1000)
+        #expect(row.downloadRate == 1500)
         #expect(row.children?.first?.title == "api.example.com (192.0.2.10)")
         #expect(model.notice == nil)
 
@@ -117,7 +119,7 @@ import TestSupport
             sampler: NettopSampler(streamer: streamer, startTime: { _ in 1 }, now: { [instants] in instants.next() },
                                    sleep: { _ in }),
             programs: programs,
-            hostNameResolver: Self.hostNames([:]), systemVersion: "27.0.1"
+            hostNameResolver: Self.hostNames([:]), interfaceCounters: { nil }, systemVersion: "27.0.1"
         )
         let names = { model.frame.report.processes.map(\.shortName) }
         model.start()
@@ -159,7 +161,7 @@ import TestSupport
         #expect(model.status == .running)
         #expect(model.frame.report.history.count == 1)
         let activity = model.listenerActivity(forProgramAt: "/usr/bin/curl")
-        #expect(activity.rate == TrafficRate(download: 1000, upload: 500))
+        #expect(activity.rate == TrafficRate(download: 1500, upload: 750))
         #expect(activity.connections.first?.direction == .outbound)
 
         model.stop(for: .activityView)
@@ -232,6 +234,39 @@ import TestSupport
         #expect(clock.advance(by: .seconds(7200)) == 0)
     }
 
+    /// Die Netzspalten des Task-Managers zeigen nur Raten je Prozess: Misst allein einer von ihnen, entsteht keine
+    /// DNS-Abfrage. Kommt eine Ansicht mit Hostnamen hinzu, löst sie auf; geht sie wieder, endet auch das Auflösen.
+    @Test(arguments: [NetworkActivityModel.Consumer.taskManager, .taskManagerUsers])
+    func rateOnlyConsumersDoNotResolveHostNames(consumer: NetworkActivityModel.Consumer) async throws {
+        let lookup = FakeReverseDNS(["192.0.2.10": "api.example.com", "192.0.2.20": "cdn.example.com"])
+        let streamer = ManualLineStreamer()
+        let model = model(streamer, hostNames: HostNameResolver(lookup: lookup, timeout: .seconds(3600)))
+        model.start(for: consumer)
+        try await eventually("Lauf gestartet") { streamer.startedRuns == 1 }
+        streamer.send([header, "curl.42,,,0,0,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,0,0,", header,
+                       "curl.42,,,3000,1500,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,3000,1500,", header],
+                      toRun: 0)
+        try await eventually("Raten gemessen") { model.processRates?.isEmpty == false }
+        #expect(lookup.lookedUp.isEmpty)
+        #expect(model.hostNameLookupCount == 0)
+
+        model.start(for: .activityView)
+        streamer.send(["curl.42,,,6000,3000,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,6000,3000,", header],
+                      toRun: 0)
+        try await eventually("Hostname übernommen") { model.hostNames["192.0.2.10"] == "api.example.com" }
+
+        model.stop(for: .activityView)
+        #expect(model.status == .running)
+        streamer.send(["curl.42,,,9000,4500,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,9000,4500,",
+                       "tcp4 192.0.2.1:50001<->192.0.2.20:443,en0,Established,100,100,", header], toRun: 0)
+        try await eventually("Neue Gegenstelle gemessen") { model.frame.remoteAddresses.contains("192.0.2.20") }
+        #expect(lookup.lookedUp == ["192.0.2.10"])
+
+        model.stop(for: consumer)
+        streamer.closeAll()
+        await model.stopAndWait()
+    }
+
     /// Kopf der Ansicht: Summe ↓/↑ des Macs und Verlauf – unabhängig von Filter und Suche.
     @Test func totalsAndHistoryCoverAllProcessesRegardlessOfFilter() async throws {
         let lines = [header, "curl.42,,,0,0,", "node.43,,,0,0,",
@@ -277,6 +312,7 @@ import TestSupport
                                    sleep: { _ in }),
             programs: ActivityProgramResolver(executablePath: { _ in nil }, inspector: RecordingSigningInspector(result: .unknown)),
             hostNameResolver: Self.hostNames(["192.0.2.10": "api.example.com"]),
+            interfaceCounters: { nil },
             systemVersion: "27.0.1"
         )
         model.filter.onlyActive = false

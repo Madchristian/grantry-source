@@ -151,6 +151,14 @@ public struct LibprocProcessInspector: ProcessInspecting {
         }
     }
 
+    /// Startzeit und Benutzer laut **einer** Abfrage der Prozesstabelle (wie `liveness(of:)`); `nil`, wenn unter der PID
+    /// nichts (mehr) läuft, ein Zombie steht oder der Eintrag nicht lesbar ist.
+    public func identity(of pid: pid_t) -> (startTime: UInt64, uid: UInt32)? {
+        guard pid > 0, case .found(let entry) = kernel(pid), !entry.isZombie, let startTime = entry.startTime
+        else { return nil }
+        return (startTime, entry.uid)
+    }
+
     /// Programmpfad laut `proc_pidpath`; `nil`, wenn der Prozess fehlt oder ein Zombie ist.
     public static func executablePath(of pid: pid_t) -> String? {
         var buffer = [CChar](repeating: 0, count: pathCapacity)

@@ -56,6 +56,10 @@ public enum SecuritySettingsLinks {
     public static let fileVault = URL(string: "x-apple.systempreferences:com.apple.preference.security?FileVault")
     public static let softwareUpdate = URL(string: "x-apple.systempreferences:com.apple.Software-Update-Settings.extension")
     public static let firewall = URL(string: "x-apple.systempreferences:com.apple.Network-Settings.extension?Firewall")
+    /// Benutzer & Gruppen mit „Automatisch anmelden als“.
+    public static let usersAndGroups = URL(string: "x-apple.systempreferences:com.apple.Users-Groups-Settings.extension")
+    /// Allgemein › Teilen.
+    public static let sharing = URL(string: "x-apple.systempreferences:com.apple.Sharing-Settings.extension")
 }
 
 /// Helper-Aktionen über `PrivilegedSecurityControlling`, „Jetzt suchen“ per `softwareupdate --list` als Nutzer

@@ -38,6 +38,10 @@ public struct ChangeDescription: Hashable, Sendable {
             self = Self.describe(event.kind, server: server, previous: event.before?.mcpServer)
         case .agentAutoApproval(let approval):
             self = Self.describe(event.kind, approval: approval, previous: event.before?.agentAutoApproval)
+        case .extensionRecord(let record):
+            self = Self.describe(event.kind, record: record, previous: event.before?.extensionRecord)
+        case .taskAction(let record):
+            self = Self.describe(record)
         }
     }
 

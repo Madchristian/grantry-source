@@ -171,7 +171,7 @@ public enum AppInventoryPresenter {
 }
 
 /// Angaben im App-Detail (Spec v3 §5): Herkunft, Architektur, Signatur, Team, Notarisierung, Größe, zuletzt benutzt,
-/// Befunde und verknüpfte Berechtigungen bzw. Autostart-Einträge.
+/// Befunde, verknüpfte Berechtigungen bzw. Autostart-Einträge und mitgebrachte Erweiterungen.
 public struct InstalledAppDetail: Hashable, Sendable {
     /// Eine beschriftete Angabe. `tone` ergänzt nur – der Text trägt die Aussage allein.
     public struct Fact: Identifiable, Hashable, Sendable {
@@ -193,19 +193,22 @@ public struct InstalledAppDetail: Hashable, Sendable {
     public let findings: [RiskFinding]
     public let grants: [PermissionGrant]
     public let autostartItems: [AutostartItem]
+    /// Erweiterungen, die die App mitbringt (TM-13.6), von innen nach außen.
+    public let extensions: [ExtensionReference]
 
     static let loadingText = "Wird ermittelt …"
     static let unknownText = "Unbekannt"
 
     /// - Parameter details: nachgeladene Angaben; `nil`, solange sie noch geladen werden.
     public init(
-        app: InstalledApp, details: AppUsageDetails?, findings: [RiskFinding], links: AppLinks, now: Date,
-        calendar: Calendar = .current, home: String = NSHomeDirectory()
+        app: InstalledApp, details: AppUsageDetails?, findings: [RiskFinding], links: AppLinks,
+        extensions: [ExtensionReference] = [], now: Date, calendar: Calendar = .current, home: String = NSHomeDirectory()
     ) {
         self.app = app
         self.findings = findings
         grants = links.grants
         autostartItems = links.autostartItems
+        self.extensions = extensions
         pathText = PathDisplay.abbreviatingHome(app.path, home: home)
         signingNote = app.signingStatusNote(now: now, calendar: calendar)
         let size = details.map { $0.size.map(AppTexts.formattedSize) ?? Self.unknownText } ?? Self.loadingText

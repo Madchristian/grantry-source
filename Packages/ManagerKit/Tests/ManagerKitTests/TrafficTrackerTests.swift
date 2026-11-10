@@ -173,6 +173,17 @@ import Testing
         let report = tracker.update(with: sample(process(7, received: 0, sent: 0, connections: [tcp(443), listen])),
                                     at: at(0))
         #expect(report.processes[0].listeningTCPPorts == [8080])
+        #expect(report.processes[0].listeningSockets == [listen])
+    }
+
+    /// Der Benutzer bleibt erhalten, auch wenn eine spätere Meldung ihn nicht mehr lesen kann.
+    @Test func keepsLastKnownUser() {
+        var tracker = tracker()
+        var first = process(7, received: 0, sent: 0)
+        first.uid = 501
+        _ = tracker.update(with: sample(first), at: at(0))
+        let report = tracker.update(with: sample(process(7, received: 0, sent: 0)), at: at(2))
+        #expect(report.processes[0].uid == 501)
     }
 
     /// Verlauf je Prozess: ab der zweiten Messung, ausgegraut mit Rate 0, höchstens `historyLength` Punkte.
@@ -290,5 +301,84 @@ import Testing
         let report = tracker.update(with: sample(process(7, received: 1600, sent: 0)), at: at(2))
         #expect(report.processes.first?.transferred.received == 1600)
         #expect(report.processes.first?.rate.download == 500)
+    }
+
+    // MARK: Plausibilitätsdeckel
+
+    /// Byte-Zähler der Schnittstellen (eine Schnittstelle, Index 1).
+    private func interfaces(_ bytes: UInt64, at instant: ContinuousClock.Instant) -> InterfaceByteReading {
+        InterfaceByteReading(instant: instant, bytes: [1: bytes])
+    }
+
+    /// Ein Tracker im 2-s-Takt mit Lesungen vor der Basis (Stand 0) und nach jeder Messung.
+    private func cappedRun(processes steps: [[ProcessTraffic]], interfaceBytes: [UInt64]) -> TrafficReport {
+        var tracker = TrafficTracker(wallClock: { Self.openedAt }, sampleInterval: .seconds(2))
+        tracker.record(interfaces(0, at: at(-1)))
+        var report = TrafficReport.empty
+        for (index, processes) in steps.enumerated() {
+            tracker.record(interfaces(interfaceBytes[index], at: at(index * 2 + 1)))
+            report = tracker.update(with: NettopSample(processes: processes), at: at(index * 2))
+        }
+        return report
+    }
+
+    /// Melden die Prozesse mehr, als die Schnittstellen im Glättungsfenster übertragen haben, werden alle Raten der
+    /// Messung anteilig gekürzt – samt Verbindungen, Verläufen und Summe; die übertragenen Bytes bleiben.
+    @Test func interfaceCountersCapTotalRateProportionally() {
+        let report = cappedRun(processes: [
+            [process(7, received: 0, sent: 0, connections: [tcp(443)]), process(8, received: 0, sent: 0)],
+            [process(7, received: 6000, sent: 0, connections: [tcp(443, received: 6000)]),
+             process(8, received: 2000, sent: 0)],
+        ], interfaceBytes: [100, 4000])
+
+        // Gemeldet 3000 + 1000 B/s; die Schnittstellen übertrugen 4000 B in 2 s.
+        let rates = Dictionary(uniqueKeysWithValues: report.processes.map { ($0.key.pid, $0.rate.download) })
+        #expect(rates == [7: 1500, 8: 500])
+        #expect(report.processes.first { $0.key.pid == 7 }?.connections.first?.rate.download == 1500)
+        #expect(report.processes.first { $0.key.pid == 7 }?.history == [TrafficRate(download: 1500, upload: 0)])
+        #expect(report.total == TrafficRate(download: 2000, upload: 0))
+        #expect(report.history == [TrafficRate(download: 2000, upload: 0)])
+        #expect(report.processes.first { $0.key.pid == 7 }?.transferred.received == 6000)
+    }
+
+    /// Plausible Raten bleiben unverändert.
+    @Test func plausibleRatesStayUncapped() {
+        let report = cappedRun(processes: [
+            [process(7, received: 0, sent: 0)], [process(7, received: 6000, sent: 2000)],
+        ], interfaceBytes: [0, 9000])
+        #expect(report.total == TrafficRate(download: 3000, upload: 1000))
+    }
+
+    /// Zu enge Zeitpunkte (wie früher bei gepufferter Ausgabe) ergeben keine Rate über dem Verkehr der Schnittstellen:
+    /// Ein Schritt dauert für den Deckel mindestens 90 % des Takts.
+    @Test func capUsesAtLeastNinetyPercentOfIntervalPerStep() {
+        var tracker = TrafficTracker(wallClock: { Self.openedAt }, sampleInterval: .seconds(2))
+        tracker.record(interfaces(0, at: at(-1)))
+        _ = tracker.update(with: sample(process(7, received: 0, sent: 0)), at: at(0))
+        tracker.record(interfaces(3600, at: at(3)))
+        let report = tracker.update(with: sample(process(7, received: 3600, sent: 0)), at: at(0) + .milliseconds(1))
+        #expect(abs(report.total.download - 2000) < 1e-6)
+    }
+
+    /// Ohne Lesung vor dem Glättungsfenster oder nach seinem Ende gibt es keinen Deckel.
+    @Test func withoutBracketingReadingsThereIsNoCap() {
+        var tracker = TrafficTracker(wallClock: { Self.openedAt }, sampleInterval: .seconds(2))
+        _ = tracker.update(with: sample(process(7, received: 0, sent: 0)), at: at(0))
+        tracker.record(interfaces(0, at: at(1)))
+        let late = tracker.update(with: sample(process(7, received: 6000, sent: 0)), at: at(2))
+        #expect(late.total.download == 3000)
+
+        var early = TrafficTracker(wallClock: { Self.openedAt }, sampleInterval: .seconds(2))
+        early.record(interfaces(0, at: at(-1)))
+        _ = early.update(with: sample(process(7, received: 0, sent: 0)), at: at(0))
+        let report = early.update(with: sample(process(7, received: 6000, sent: 0)), at: at(2))
+        #expect(report.total.download == 3000)
+    }
+
+    /// Eine neue oder zurückgesetzte Schnittstelle zählt mit ihrem ganzen Stand – der Deckel kappt keinen echten Verkehr.
+    @Test func newOrResetInterfaceCountsFully() {
+        let earlier = InterfaceByteReading(instant: at(0), bytes: [1: 1000, 2: 5000])
+        let later = InterfaceByteReading(instant: at(2), bytes: [1: 1500, 2: 300, 3: 700])
+        #expect(later.bytesTransferred(since: earlier) == 500 + 300 + 700)
     }
 }

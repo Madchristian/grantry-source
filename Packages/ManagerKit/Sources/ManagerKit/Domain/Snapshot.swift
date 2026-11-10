@@ -11,6 +11,8 @@ public struct Snapshot: Hashable, Sendable, Codable {
     public var networkListeners: [NetworkListener]
     public var mcpServers: [MCPServerEntry]
     public var agentAutoApprovals: [AgentAutoApproval]
+    /// Kernel- und Systemerweiterungen, Plug-ins in Systemdiensten (TM-13.3).
+    public var extensions: [ExtensionRecord]
     public var sourceErrors: [SourceError]
     /// Einschränkungen von Quellen, die trotzdem geliefert haben (Review M2) – nur Hinweis, zählt nicht für
     /// `isEquivalent(to:)`.
@@ -43,6 +45,7 @@ public struct Snapshot: Hashable, Sendable, Codable {
         networkListeners: [NetworkListener] = [],
         mcpServers: [MCPServerEntry] = [],
         agentAutoApprovals: [AgentAutoApproval] = [],
+        extensions: [ExtensionRecord] = [],
         sourceErrors: [SourceError],
         sourceLimitations: [SourceLimitation] = [],
         baselineSources: Set<SourceID>? = nil,
@@ -58,12 +61,14 @@ public struct Snapshot: Hashable, Sendable, Codable {
         self.networkListeners = networkListeners
         self.mcpServers = mcpServers
         self.agentAutoApprovals = agentAutoApprovals
+        self.extensions = extensions
         self.sourceErrors = sourceErrors
         self.sourceLimitations = sourceLimitations
         self.baselineSources = baselineSources
             ?? Self.derivedBaselineSources(
                 grants: grants, autostartItems: autostartItems, securityChecks: securityChecks, installedApps: installedApps,
-                networkListeners: networkListeners, mcpServers: mcpServers, agentAutoApprovals: agentAutoApprovals
+                networkListeners: networkListeners, mcpServers: mcpServers, agentAutoApprovals: agentAutoApprovals,
+                extensions: extensions
             )
         self.hasCompleteListenerBaseline = hasCompleteListenerBaseline
         self.lastDeliveryBySource = lastDeliveryBySource
@@ -73,14 +78,15 @@ public struct Snapshot: Hashable, Sendable, Codable {
     private enum CodingKeys: String, CodingKey {
         case takenAt, grants, autostartItems, securityChecks, installedApps, networkListeners, sourceErrors, sourceLimitations, baselineSources
         case mcpServers, agentAutoApprovals, hasCompleteListenerBaseline, lastDeliveryBySource
-        case lastInterimDeliveryBySource
+        case lastInterimDeliveryBySource, extensions
     }
 
     /// Ältere Snapshots: ohne `baselineSources` die abgeleitete Baseline, ohne `securityChecks` keine Prüfungen, ohne
     /// `installedApps` keine Apps, ohne `networkListeners` keine Lauscher, ohne `sourceLimitations` keine Einschränkungen,
     /// ohne Agenten-Felder keine MCP-Server/Freigaben, ohne `hasCompleteListenerBaseline` keine vollständige
     /// Lauscher-Baseline (die nächste vollständige Lieferung gilt dann einmal als Baseline), ohne `lastDeliveryBySource`
-    /// keine Lieferzeitpunkte und Zwischenmessungen.
+    /// keine Lieferzeitpunkte und Zwischenmessungen, ohne `extensions` keine Erweiterungen (ihre erste Lieferung ist dann
+    /// Baseline).
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         self.init(
@@ -92,6 +98,7 @@ public struct Snapshot: Hashable, Sendable, Codable {
             networkListeners: try container.decodeIfPresent([NetworkListener].self, forKey: .networkListeners) ?? [],
             mcpServers: try container.decodeIfPresent([MCPServerEntry].self, forKey: .mcpServers) ?? [],
             agentAutoApprovals: try container.decodeIfPresent([AgentAutoApproval].self, forKey: .agentAutoApprovals) ?? [],
+            extensions: try container.decodeIfPresent([ExtensionRecord].self, forKey: .extensions) ?? [],
             sourceErrors: try container.decode([SourceError].self, forKey: .sourceErrors),
             sourceLimitations: try container.decodeIfPresent([SourceLimitation].self, forKey: .sourceLimitations) ?? [],
             baselineSources: try container.decodeIfPresent(Set<SourceID>.self, forKey: .baselineSources),
@@ -108,11 +115,11 @@ public struct Snapshot: Hashable, Sendable, Codable {
     private static func derivedBaselineSources(
         grants: [PermissionGrant], autostartItems: [AutostartItem], securityChecks: [SecurityCheck],
         installedApps: [InstalledApp], networkListeners: [NetworkListener],
-        mcpServers: [MCPServerEntry], agentAutoApprovals: [AgentAutoApproval]
+        mcpServers: [MCPServerEntry], agentAutoApprovals: [AgentAutoApproval], extensions: [ExtensionRecord]
     ) -> Set<SourceID> {
         Set(grants.map(\.source) + autostartItems.map(\.source) + securityChecks.map(\.source)
             + installedApps.map(\.source) + networkListeners.map(\.source)
-            + mcpServers.map(\.source) + agentAutoApprovals.map(\.source))
+            + mcpServers.map(\.source) + agentAutoApprovals.map(\.source) + extensions.map(\.source))
     }
 
     public var failedSources: Set<SourceID> { Set(sourceErrors.map(\.source)) }
@@ -133,6 +140,7 @@ public struct Snapshot: Hashable, Sendable, Codable {
             && Self.recordsAreEquivalent(networkListeners, other.networkListeners)
             && Self.recordsAreEquivalent(mcpServers, other.mcpServers)
             && Self.recordsAreEquivalent(agentAutoApprovals, other.agentAutoApprovals)
+            && Self.recordsAreEquivalent(extensions, other.extensions)
     }
 
     /// Übernimmt für jede in diesem Snapshot fehlgeschlagene Quelle die Einträge je Typ aus `previous`,
@@ -149,6 +157,7 @@ public struct Snapshot: Hashable, Sendable, Codable {
         result.networkListeners += Self.missingRecords(of: failed, from: previous.networkListeners, in: networkListeners)
         result.mcpServers += Self.missingRecords(of: failed, from: previous.mcpServers, in: mcpServers)
         result.agentAutoApprovals += Self.missingRecords(of: failed, from: previous.agentAutoApprovals, in: agentAutoApprovals)
+        result.extensions += Self.missingRecords(of: failed, from: previous.extensions, in: extensions)
         return result
     }
 

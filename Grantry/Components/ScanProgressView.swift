@@ -1,3 +1,4 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -32,9 +33,7 @@ struct ScanProgressView: View {
                     .minimumScaleFactor(0.8)
             }
             .frame(idealWidth: 180)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Scan")
-            .accessibilityValue(text)
+            .accessibilityReading(Text("Scan"), value: Text(verbatim: text))
         }
     }
 }

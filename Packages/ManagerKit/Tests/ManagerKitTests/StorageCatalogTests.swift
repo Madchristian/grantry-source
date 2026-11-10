@@ -144,6 +144,24 @@ import TestSupport
         #expect(models.paths().contains("/home/Library/Caches/llama.cpp"))
     }
 
+    /// Codex-Review TM-15.6 (#405): Die Hinweise der Belegung lesen nach jedem Scan die Orte der Kategorien. Ein Code-Ordner
+    /// auf einem Netzlaufwerk wird dabei nie gelesen – ein unerreichbarer Server hielte sonst den Abschluss des Scans an.
+    @Test func codeRootsOnNetworkVolumesAreNeverListed() throws {
+        try ScratchDirectory.withCanonical(prefix: "catalog") { home in
+            let local = home.appending(path: "Code"), network = home.appending(path: "NAS")
+            for project in [local.appending(path: "app"), network.appending(path: "remote")] {
+                try FileManager.default.createDirectory(at: project, withIntermediateDirectories: true)
+            }
+            let volumes = [MountedVolume(path: "/", isLocal: true), MountedVolume(path: network.path, isLocal: false)]
+            let providers = StorageCatalog.providers(
+                StorageCatalog.Configuration(home: home.path, codeRoots: [local.path, network.path], minimumAgeDays: 30),
+                measurer: FixedSizeMeasurer(), runner: MockCommandRunner(), locator: ToolLocator(home: home.path) { _ in false },
+                openFiles: FakeOpenFileProbe(), fullDiskAccess: { false }, volumes: { volumes })
+            let worktrees = try #require(providers.first { $0.category.id == "agentWorktrees" })
+            #expect(worktrees.locations.map(\.path) == [local.appending(path: "app/.claude/worktrees").path])
+        }
+    }
+
     private func catalog() -> [any StorageCategoryProvider] {
         StorageCatalog.providers(
             StorageCatalog.Configuration(home: "/home", codeRoots: [], minimumAgeDays: 30),

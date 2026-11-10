@@ -1,21 +1,31 @@
 {
-  "version": "2026.10.261",
-  "intro": "Weniger Hintergrundarbeit, mehr Überblick.",
+  "version": "2026.11.10",
+  "intro": "Der Task-Manager ist da.",
   "highlights": [
     {
-      "symbol": "doc.badge.gearshape",
-      "title": "Gezieltere Beobachtung",
-      "body": "Konfigurationsdateien wie ~/.claude.json werden direkt beobachtet – Grantry reagiert nicht mehr auf jede Änderung im Benutzerordner."
+      "symbol": "gauge.with.dots.needle.67percent",
+      "title": "Task-Manager im Lagebild",
+      "body": "Übersicht, Leistung je Kern, Chip mit Takt und Thermik, Prozesse, Details, Energie, App-Verlauf, Benutzer und Dienste in einem Bereich."
     },
     {
-      "symbol": "arrow.triangle.branch",
-      "title": "Orca-Worktrees im Speicher",
-      "body": "Eine neue Kategorie zeigt Größe, Branch und letzte Änderung jedes Orca-Worktrees – nur zur Übersicht."
+      "symbol": "book.closed",
+      "title": "Wachbuch",
+      "body": "Auf Wunsch ein lokaler Verlauf der letzten 7 Tage: Last, Hitze und Speicherdruck mit den größten Verbrauchern zu jedem Zeitpunkt."
     },
     {
-      "symbol": "clock.arrow.circlepath",
-      "title": "Genauere Time-Machine-Vorschläge",
-      "body": "Spiele weiterer Steam-Bibliotheken, aktuelle Größen nach dem Aufräumen und ehrliche Angaben bei unbekanntem Sicherungsstatus."
+      "symbol": "menubar.rectangle",
+      "title": "Werte in der Menüleiste",
+      "body": "CPU, GPU, Speicher, Netz, Datenträger, Thermik und Akku als eigene Anzeigen – und die Übersicht mit allen Werten im Popover."
+    },
+    {
+      "symbol": "lock.shield",
+      "title": "Dieser Mac und Erweiterungen",
+      "body": "Ein Steckbrief des Macs in „Sicherheit“ und ein neuer Bereich für Kernel- und Systemerweiterungen von Drittanbietern."
+    },
+    {
+      "symbol": "internaldrive",
+      "title": "Belegung und Verbindungen",
+      "body": "Aufräumen zeigt, welche Ordner wie viel Platz belegen; Netzwerk zeigt alle offenen Verbindungen auf einen Blick."
     }
   ]
 }

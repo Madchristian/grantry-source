@@ -209,15 +209,14 @@ private final class BlockingIconReader: AppIconReading {
     }
 
     /// Review N5: Ein hängendes Symbol hält die serielle Queue höchstens seine Frist auf. Danach gilt es als generisch,
-    /// wird nicht gemerkt, und die übrigen Symbole laden weiter.
+    /// wird nicht gemerkt, und die übrigen Symbole laden weiter. Das hängende Lesen endet erst mit der Freigabe am Ende:
+    /// Wartete die Queue darauf, griffe das Zeitlimit – ohne Wanduhr-Frist, die unter Last flackert (Issue 214).
     @Test(.timeLimit(.minutes(1))) func hangingIconDoesNotBlockTheQueue() async {
         let reader = BlockingIconReader(blockedPath: "/hang.app")
         let loader = AppIconLoader(reader: reader, timeout: .milliseconds(100), callGuard: BlockingCallGuard(maximumHanging: 2))
-        let start = ContinuousClock.now
         let hanging = await loader.icon(forPath: "/hang.app")
         #expect(hanging == LoadedAppIcon(icon: .genericApplication, revision: 0))
         #expect(await loader.icon(forPath: "/other.app").icon == .genericApplication)
-        #expect(ContinuousClock.now - start < .seconds(5))
         reader.latch.release()
     }
 

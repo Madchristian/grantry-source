@@ -1,26 +1,23 @@
 import Foundation
-import Synchronization
 import Testing
 import TestSupport
 @testable import ManagerKit
 
-/// Liefert Seiten aus `events` (neueste zuerst); mit `gates` hält der n-te Aufruf von `events(limit:after:)` an.
+/// Liefert Seiten aus `events` (neueste zuerst); mit `pagingGate` hält jedes Nachladen (Aufruf mit Cursor) an.
+///
+/// Die Sperre hängt am Cursor, nicht an der Aufrufnummer: Nachladen und Neuladen rufen die Ablage nebenläufig auf,
+/// unter Last käme sonst das Neuladen zuerst an und bliebe an der Sperre des Nachladens hängen (Issue 214).
 private final class PagedStore: SnapshotStore {
     let events: [HistoryEvent]
-    private let calls = Mutex(0)
-    private let gates: [Int: Gate]
+    private let pagingGate: Gate?
 
-    init(events: [HistoryEvent], gates: [Int: Gate] = [:]) {
+    init(events: [HistoryEvent], pagingGate: Gate? = nil) {
         self.events = events
-        self.gates = gates
+        self.pagingGate = pagingGate
     }
 
     func events(limit: Int, after cursor: HistoryEvent?) async throws -> [HistoryEvent] {
-        let call = calls.withLock { calls in
-            defer { calls += 1 }
-            return calls
-        }
-        try await gates[call]?.wait()
+        if cursor != nil { try await pagingGate?.wait() }
         let start = cursor.flatMap { cursor in events.firstIndex { $0.id == cursor.id }.map { $0 + 1 } } ?? 0
         return Array(events.dropFirst(start).prefix(limit))
     }
@@ -74,7 +71,7 @@ private final class PagedStore: SnapshotStore {
         try await withReceipts { receipts in
             let all = Self.events(HistoryModel.pageSize + 20)
             let slow = Gate()
-            let store = PagedStore(events: all, gates: [1: slow])
+            let store = PagedStore(events: all, pagingGate: slow)
             let model = HistoryModel(store: store, receipts: receipts)
             await model.reload()
 

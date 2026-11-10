@@ -4,13 +4,42 @@ extension SecurityCheckKind {
     public var displayName: String {
         switch self {
         case .fileVault: "FileVault"
+        case .automaticLogin: "Automatische Anmeldung"
         case .firewall: "Firewall"
+        case .sharingServices: "Freigabedienste"
         case .sip: "Systemintegritätsschutz (SIP)"
         case .gatekeeper: "Gatekeeper"
         case .xprotect: "XProtect"
         case .automaticUpdates: "Automatische Updates"
         case .pendingUpdates: "Ausstehende Updates"
         case .mdmEnrollment: "Geräteverwaltung (MDM)"
+        }
+    }
+
+    /// Kurzer Name für Kurzbefunde in Chips („SIP nicht prüfbar“).
+    public var shortName: String {
+        switch self {
+        case .sip: "SIP"
+        case .sharingServices: "Freigaben"
+        case .pendingUpdates: "Updates"
+        case .mdmEnrollment: "MDM"
+        default: displayName
+        }
+    }
+
+    /// Symbol der Prüfung in ihrer Zeile; den Zustand zeigt der Chip daneben.
+    public var systemImage: String {
+        switch self {
+        case .fileVault: "lock.fill"
+        case .automaticLogin: "person.badge.key.fill"
+        case .firewall: "firewall"
+        case .sharingServices: "person.2.fill"
+        case .sip: "lock.shield.fill"
+        case .gatekeeper: "checkmark.seal.fill"
+        case .xprotect: "shield.lefthalf.filled"
+        case .automaticUpdates: "arrow.triangle.2.circlepath"
+        case .pendingUpdates: "arrow.down.circle.fill"
+        case .mdmEnrollment: "building.2.fill"
         }
     }
 }
@@ -58,6 +87,22 @@ extension SoftwareUpdateKey {
         case .criticalUpdateInstall: "Sicherheitsmaßnahmen installieren"
         case .configDataInstall: "Systemdateien installieren"
         }
+    }
+}
+
+extension SharingService {
+    /// Wortlaut nach Systemeinstellungen › Allgemein › Teilen.
+    public var displayName: String {
+        switch self {
+        case .screenSharing: "Bildschirmfreigabe"
+        case .fileSharing: "Dateifreigabe"
+        case .remoteLogin: "Entfernte Anmeldung"
+        }
+    }
+
+    /// „Dateifreigabe (Port 445, 548)“.
+    public var displayNameWithPorts: String {
+        "\(displayName) (Port \(ports.map(String.init).joined(separator: ", ")))"
     }
 }
 

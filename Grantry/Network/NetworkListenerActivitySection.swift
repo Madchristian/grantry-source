@@ -1,4 +1,5 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -12,38 +13,34 @@ struct NetworkListenerActivitySection: View {
 
     var body: some View {
         let activity = model.listenerActivity(forProgramAt: executablePath)
-        Section {
+        DetailGroup(title: String(localized: "Netzwerkaktivität")) {
             if let notice = model.notice {
                 NetworkActivityNoticeBar(notice: notice, retry: model.retry)
             }
             if model.status.failure == nil {
                 content(activity)
             }
-        } header: {
-            Text("Netzwerkaktivität")
-        } footer: {
-            Text("Live über nettop, alle Prozesse dieses Programms. Summen seit Beginn der Messung.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            NetworkNote(text: String(localized: "Live über nettop, alle Prozesse dieses Programms. Summen seit Beginn der Messung."))
         }
         if model.status.failure == nil, !activity.isEmpty {
             if activity.processes.count > 1 || activity.processes.contains(where: \.isGone) {
-                processSection(activity.processes)
+                processGroup(activity.processes)
             }
-            connectionSection(activity)
+            connectionGroup(activity)
         }
     }
 
     @ViewBuilder
     private func content(_ activity: ListenerActivity) -> some View {
         if model.frame.report.history.isEmpty {
-            HStack(spacing: 8) {
+            HStack(spacing: InstrumentSpacing.group) {
                 ProgressView().controlSize(.small)
-                Text("Messe Netzwerkaktivität …").foregroundStyle(.secondary)
+                Text("Messe Netzwerkaktivität …").font(InstrumentFont.body).foregroundStyle(.instrumentSecondary)
             }
         } else if activity.isEmpty {
             Text("nettop meldet für dieses Programm gerade keinen Prozess mit Netzwerkzugriff.")
-                .foregroundStyle(.secondary)
+                .font(InstrumentFont.body)
+                .foregroundStyle(.instrumentSecondary)
         } else {
             summary(activity)
         }
@@ -51,21 +48,18 @@ struct NetworkListenerActivitySection: View {
 
     @ViewBuilder
     private func summary(_ activity: ListenerActivity) -> some View {
-        HStack(spacing: 16) {
-            TrafficRateLabel(value: activity.rate.download, direction: .download)
-            TrafficRateLabel(value: activity.rate.upload, direction: .upload)
-            Spacer(minLength: 8)
-            TrafficSparkline(history: activity.history, capacity: TrafficTracker.historyLength,
-                             help: "Verlauf dieses Programms (bis 2 Minuten): empfangen (farbig) und gesendet (grau)")
-                .frame(width: 140, height: 26)
-        }
-        .font(.callout)
-        LabeledContent("Empfangen gesamt") { BytesText(activity.transferred.received) }
-        LabeledContent("Gesendet gesamt") { BytesText(activity.transferred.sent) }
-        LabeledContent("Offene Verbindungen") { Text(verbatim: connectionSummary(activity)) }
-        LabeledContent("Gegenstellen") { Text(verbatim: "\(activity.remoteHostCount)").monospacedDigit() }
+        TrafficMirror(rate: activity.rate, history: activity.history,
+                      accessibilityTitle: String(localized: "Verlauf dieses Programms"))
+        MeasureFieldRow(fields: [
+            (String(localized: "Empfangen gesamt"), TrafficFormat.bytes(activity.transferred.received)),
+            (String(localized: "Gesendet gesamt"), TrafficFormat.bytes(activity.transferred.sent)),
+            (String(localized: "Offene Verbindungen"), connectionSummary(activity)),
+            (String(localized: "Gegenstellen"), "\(activity.remoteHostCount)"),
+        ])
         if activity.processes.count == 1, let process = activity.processes.first {
-            LabeledContent("Prozess") { Text(verbatim: "\(process.shortName) · PID \(process.pid)") }
+            DetailEntry(title: String(localized: "Prozess")) {
+                Text(verbatim: "\(process.shortName) · PID \(process.pid)").font(InstrumentFont.code)
+            }
         }
     }
 
@@ -78,36 +72,35 @@ struct NetworkListenerActivitySection: View {
         return "\(String(total)) (\(String(inbound)) eingehend, \(String(outbound)) ausgehend)"
     }
 
-    private func processSection(_ processes: [ListenerActivity.Process]) -> some View {
-        Section("Prozesse") {
+    private func processGroup(_ processes: [ListenerActivity.Process]) -> some View {
+        DetailGroup(title: String(localized: "Prozesse")) {
             ForEach(processes) { process in
-                HStack(spacing: 12) {
+                HStack(spacing: InstrumentSpacing.group) {
                     Text(verbatim: "\(process.shortName) · PID \(process.pid)")
+                        .font(InstrumentFont.body)
                         .lineLimit(1)
+                        .foregroundStyle(process.isGone ? .instrumentSecondary : .primary)
                     if process.isGone {
-                        Text("beendet").font(.caption).foregroundStyle(.secondary)
+                        StatusChip(String(localized: "beendet"), tone: .neutral, isSmall: true)
                     }
-                    Spacer(minLength: 8)
+                    Spacer(minLength: InstrumentSpacing.group)
                     RatePair(rate: process.rate)
                     BytesText(process.transferred.total)
                         .help("Übertragen seit Beginn der Messung")
                 }
-                .opacity(process.isGone ? 0.45 : 1)
             }
         }
     }
 
-    private func connectionSection(_ activity: ListenerActivity) -> some View {
-        Section {
+    private func connectionGroup(_ activity: ListenerActivity) -> some View {
+        DetailGroup(title: String(localized: "Verbindungen")) {
             if activity.connections.isEmpty {
-                Text("Keine offenen Verbindungen.").foregroundStyle(.secondary)
+                Text("Keine offenen Verbindungen.").font(InstrumentFont.body).foregroundStyle(.instrumentSecondary)
             } else {
                 ForEach(activity.connections) { connection in
                     ListenerConnectionRow(connection: connection, showsPID: activity.processes.count > 1)
                 }
             }
-        } header: {
-            Text("Verbindungen")
         }
     }
 }
@@ -119,47 +112,42 @@ private struct ListenerConnectionRow: View {
     let showsPID: Bool
 
     var body: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .top, spacing: InstrumentSpacing.group) {
             Image(systemName: symbol)
-                .foregroundStyle(.secondary)
-                .frame(width: 16)
+                .foregroundStyle(.instrumentSecondary)
+                .frame(width: InstrumentSize.disclosure)
                 .help(Text(verbatim: connection.direction?.displayName ?? connection.connection.transport.displayName))
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
+                HStack(spacing: InstrumentSpacing.item) {
                     Text(verbatim: connection.title)
+                        .font(InstrumentFont.body)
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .textSelection(.enabled)
+                        .foregroundStyle(connection.isGone ? .instrumentSecondary : .primary)
                     if connection.isNew {
-                        Text("neu")
-                            .font(.caption2.weight(.semibold))
-                            .padding(.horizontal, 4)
-                            .background(PresentationTone.positive.color.opacity(0.2), in: Capsule())
+                        StatusChip(String(localized: "neu"), tone: .info, isSmall: true)
                     }
                     if connection.isGone {
-                        Text("geschlossen").font(.caption).foregroundStyle(.secondary)
+                        StatusChip(String(localized: "geschlossen"), tone: .neutral, isSmall: true)
                     }
                 }
-                Text(verbatim: primaryDetail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .textSelection(.enabled)
-                Text(verbatim: secondaryDetail)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .textSelection(.enabled)
-            }
-            Spacer(minLength: 8)
-            VStack(alignment: .trailing, spacing: 2) {
-                RatePair(rate: connection.rate)
-                Text(verbatim: "↓ \(TrafficFormat.bytes(connection.transferred.received))  ↑ \(TrafficFormat.bytes(connection.transferred.sent))")
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .help("Übertragen seit Beginn der Messung")
+                Group {
+                    Text(verbatim: primaryDetail)
+                    Text(verbatim: secondaryDetail)
+                }
+                .font(InstrumentFont.label)
+                .foregroundStyle(.instrumentSecondary)
+                .textSelection(.enabled)
+                HStack(spacing: InstrumentSpacing.group) {
+                    RatePair(rate: connection.rate)
+                    Text(verbatim: "↓ \(TrafficFormat.bytes(connection.transferred.received))  ↑ \(TrafficFormat.bytes(connection.transferred.sent))")
+                        .font(InstrumentFont.label.monospacedDigit())
+                        .foregroundStyle(.instrumentSecondary)
+                        .help("Übertragen seit Beginn der Messung")
+                }
             }
         }
-        .opacity(connection.isGone ? 0.45 : 1)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(verbatim: connection.accessibilityLabel))
         .contextMenu {
@@ -211,9 +199,8 @@ private struct RatePair: View {
 
     var body: some View {
         Text(verbatim: "↓ \(TrafficFormat.rate(rate.download))  ↑ \(TrafficFormat.rate(rate.upload))")
-            .font(.callout)
-            .monospacedDigit()
-            .foregroundStyle(rate.total > 0 ? .primary : .secondary)
+            .font(InstrumentFont.numeric)
+            .foregroundStyle(rate.total > 0 ? Color.primary : .instrumentSecondary)
             .accessibilityLabel(Text(verbatim:
                 "empfängt \(TrafficFormat.rate(rate.download)), sendet \(TrafficFormat.rate(rate.upload))"))
     }
@@ -226,21 +213,22 @@ private struct BytesText: View {
 
     var body: some View {
         Text(verbatim: TrafficFormat.bytes(count))
-            .monospacedDigit()
-            .foregroundStyle(.secondary)
+            .font(InstrumentFont.numeric)
+            .foregroundStyle(.instrumentSecondary)
     }
 }
 
 #if DEBUG
 #Preview("Dienst-Aktivität") {
-    Form {
+    VStack(alignment: .leading, spacing: 16) {
         NetworkListenerActivitySection(
             model: .preview(frame: NetworkActivityPreviewData.frame, status: .running,
                             hostNames: NetworkActivityPreviewData.hostNames),
             executablePath: NetworkListener.preview.executablePath
         )
     }
-    .formStyle(.grouped)
-    .frame(width: 480, height: 640)
+    .padding(16)
+    .frame(width: 400, height: 640)
+    .instrumentPanel()
 }
 #endif

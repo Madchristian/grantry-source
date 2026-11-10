@@ -25,7 +25,7 @@ public enum NetworkActivityPreviewData {
                                                      upload: 2_000)],
                             isGone: false,
                             history: (0..<24).map { TrafficRate(download: 3_400 + Double($0 % 5) * 900, upload: 18_000) },
-                            listeningTCPPorts: [3000]),
+                            listeningSockets: [listening(port: 3000)]),
             ProcessActivity(key: curl, shortName: "curl", rate: .zero, transferred: ByteTotals(received: 5_000, sent: 700),
                             connections: [], isGone: true),
         ]
@@ -50,6 +50,13 @@ public enum NetworkActivityPreviewData {
         ActivityFrame(report: TrafficReport(processes: [], total: .zero, history: Array(repeating: .zero, count: 5),
                                             skippedLineCount: 0),
                       programs: [:])
+    }
+
+    static func listening(port: UInt16, address: String? = nil, transport: ConnectionTransport = .tcp,
+                          version: IPVersion = .v4) -> ConnectionTraffic {
+        ConnectionTraffic(transport: transport, ipVersion: version, local: ConnectionEndpoint(address: address, port: port),
+                          remote: ConnectionEndpoint(address: nil, port: nil), state: transport == .tcp ? "Listen" : "",
+                          bytesIn: nil, bytesOut: nil)
     }
 
     private static func connection(remote: String, port: UInt16, local: UInt16 = 50_000, download: Double,

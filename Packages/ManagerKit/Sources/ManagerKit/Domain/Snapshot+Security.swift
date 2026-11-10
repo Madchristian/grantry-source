@@ -17,6 +17,45 @@ extension Snapshot {
         }
         return result
     }
+
+    /// Ersetzt die Prüfung „Freigabedienste“ durch eine frisch aus `networkListeners` abgeleitete (#409) – ohne eigenen
+    /// Scan, auch in Teilscans, damit sie dem Stand der Lauscher folgt. Die Dienste von macOS lauschen als root: Ohne
+    /// vollständiges Bild aller Benutzer (Quelle ausgefallen, nur eigene Dienste lesbar, noch nie vollständig geliefert)
+    /// ist sie `unknown` mit Einschränkung, nie eine Entwarnung; Fakten und letzte Ampel kommen dann aus `previous`.
+    ///
+    /// Idempotent: Erneutes Anwenden mit demselben Vorgänger ändert nichts.
+    func derivingSharingServicesCheck(from previous: Snapshot?, policy: SecurityPolicy, now: Date) -> Snapshot {
+        let fresh = if let gap = listenerGapForSharingServices {
+            SecurityCheck.failed(.sharingServices, detail: gap)
+        } else {
+            SecurityCheck(evaluating: .sharingServices(active: SharingService.active(in: networkListeners)),
+                          policy: policy, now: now)
+        }
+        let check = fresh.carryingForward(
+            from: previous?.securityChecks.first { $0.kind == .sharingServices }, policy: policy, now: now
+        )
+        let prefix = SecurityPostureSource.limitationPrefix(of: .sharingServices)
+        var result = self
+        result.securityChecks = (securityChecks.filter { $0.kind != .sharingServices } + [check]).sortedByKind()
+        result.sourceLimitations = sourceLimitations.filter {
+            !($0.source == .securityPosture && $0.message.hasPrefix(prefix))
+        } + SecurityPostureSource.limitations(of: [check]).map {
+            SourceLimitation(source: .securityPosture, message: $0, isRetryable: true)
+        }
+        return result
+    }
+
+    /// Warum die Lauscher nicht alle Dienste zeigen; `nil`, wenn sie vollständig sind. Nicht behebbare Hinweise der
+    /// Quelle (geschützte Prozesse) zählen nicht – die Dienste von macOS hält launchd, und das liest der Helper.
+    private var listenerGapForSharingServices: String? {
+        if let error = sourceErrors.first(where: { $0.source == .networkListeners }) {
+            return "Netzwerkdienste nicht lesbar – \(error.message)"
+        }
+        if let limitation = sourceLimitations.first(where: { $0.source == .networkListeners && $0.isRetryable }) {
+            return limitation.message
+        }
+        return hasCompleteListenerBaseline ? nil : "Dienste des Systems noch nicht vollständig gelesen"
+    }
 }
 
 extension SecurityCheck {

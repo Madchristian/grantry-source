@@ -1,0 +1,10 @@
+5 extension(s)
+--- com.apple.system_extension.driver_extension (Go to 'System Settings > General > Login Items & Extensions > Driver Extensions' to modify these system extension(s))
+enabled	active	teamID	bundleID (version)	name	[state]
+*	*	Y93VXCB8Q5	com.corsair.cue.main.VirtualHIDDeviceDriver (1.8.10/1.8.10)	com.corsair.cue.main.VirtualHIDDeviceDriver	[activated enabled]
+--- com.apple.system_extension.endpoint_security (Go to 'System Settings > General > Login Items & Extensions > Endpoint Security Extensions' to modify these system extension(s))
+enabled	active	teamID	bundleID (version)	name	[state]
+		UBF8T346G9	com.microsoft.wdav.epsext (101.26072.0017/101.26072.0017)	Microsoft Defender Endpoint Security Extension	[terminated waiting to uninstall on reboot]
+		UBF8T346G9	com.microsoft.wdav.epsext (101.26092.0009/101.26092.0009)	Microsoft Defender Endpoint Security Extension	[terminated waiting to uninstall on reboot]
+*	*	UBF8T346G9	com.microsoft.wdav.epsext (101.26092.0012/101.26092.0012)	Microsoft Defender Endpoint Security Extension	[activated enabled]
+		UBF8T346G9	com.microsoft.wdav.epsext (101.26082.0012/101.26082.0012)	Microsoft Defender Endpoint Security Extension	[terminated waiting to uninstall on reboot]

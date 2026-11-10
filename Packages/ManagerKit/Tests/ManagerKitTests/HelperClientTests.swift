@@ -1,5 +1,6 @@
 import Testing
 import Foundation
+import Security
 import Synchronization
 import TestSupport
 import HelperCore
@@ -137,6 +138,15 @@ import HelperCore
         func terminateProcess(
             pid: Int32, executablePath: String, startTime: UInt64, force: Bool, reply: @escaping @Sendable (String?) -> Void
         ) { hold(reply) }
+        func terminateTaskProcess(
+            pid: Int32, executablePath: String, startTime: UInt64, force: Bool, authorization: Data,
+            reply: @escaping @Sendable (String?) -> Void
+        ) { hold(reply) }
+        func setTaskProcessPriority(
+            pid: Int32, executablePath: String, startTime: UInt64, priority: Int32, authorization: Data,
+            reply: @escaping @Sendable (String?) -> Void
+        ) { hold(reply) }
+        func readSensors(reply: @escaping @Sendable (Data?, String?) -> Void) { hold(reply) }
     }
 
     /// Endpoint eines bereits invalidierten Listeners: Verbindungen dorthin scheitern sofort. Der Listener muss vor dem
@@ -215,6 +225,133 @@ import HelperCore
             )
         }
         #expect(harness.silentHelper?.receivedOperations == 0)
+    }
+
+    // MARK: Task-Manager (Protokoll 9)
+
+    @Test func outdatedHelperIsNotAskedForTaskManagerCommands() async throws {
+        let harness = Harness.silent(version: HelperXPC.taskManagerMinimumVersion - 1)
+        let client = harness.client()
+        let authorization = ActionAuthorization.placeholder().externalForm
+        await #expect(throws: HelperClientError.outdated) {
+            try await client.terminateTaskProcess(pid: 4242, executablePath: "/x", startTime: 1, force: false,
+                                                  authorization: authorization)
+        }
+        await #expect(throws: HelperClientError.outdated) {
+            try await client.setTaskProcessPriority(pid: 4242, executablePath: "/x", startTime: 1, priority: .low,
+                                                    authorization: authorization)
+        }
+        await #expect(throws: HelperClientError.outdated) { _ = try await client.sensorReading() }
+        #expect(try #require(harness.silentHelper).receivedOperations == 0)
+    }
+
+    /// Über echtes XPC: Der Helper führt `powermetrics` mit fester Kommandozeile aus, die App erhält das `SensorReading`.
+    @Test func sensorReadingRoundTrip() async throws {
+        let line = ([PowerMetricsParser.executable] + PowerMetricsParser.arguments).joined(separator: " ")
+        let plist = #"<?xml version="1.0"?><plist version="1.0"><dict><key>processor</key><dict>"#
+            + #"<key>combined_power</key><real>1500</real></dict></dict></plist>"#
+        let harness = Harness(runner: MockCommandRunner([line: CommandResult(exitCode: 0, stdout: plist, stderr: "")]))
+        #expect(try await harness.client().sensorReading().combinedMilliwatts == 1500)
+    }
+
+    @Test func taskActionTimeoutExceedsHelperLifetime() {
+        #expect(HelperClient.taskActionTimeout > .seconds(120))  // HelperService.taskRequestLifetime
+    }
+
+    // MARK: Admin-Bestätigung je Aktion (Brücke zum ProcessTerminator)
+
+    /// Hält die an den Helper gesendeten Bestätigungen fest, statt zu handeln.
+    private final class RecordingTaskHelper: PrivilegedTaskControlling {
+        private let forms = Mutex<[Data]>([])
+        var receivedForms: [Data] { forms.withLock { $0 } }
+
+        func terminateTaskProcess(pid: Int32, executablePath: String, startTime: UInt64, force: Bool,
+                                  authorization: Data) async throws {
+            forms.withLock { $0.append(authorization) }
+        }
+
+        func setTaskProcessPriority(pid: Int32, executablePath: String, startTime: UInt64, priority: ProcessPriority,
+                                    authorization: Data) async throws {
+            forms.withLock { $0.append(authorization) }
+        }
+    }
+
+    /// Stellt je Aufruf eine eigene, erkennbare Bestätigung aus – oder scheitert wie Authorization Services.
+    private final class CountingIssuer: ActionAuthorizationIssuing {
+        private let issued = Mutex(0)
+        private let failure: ActionAuthorizationError?
+        var issuedCount: Int { issued.withLock { $0 } }
+
+        init(failure: ActionAuthorizationError? = nil) { self.failure = failure }
+
+        func issue() throws -> IssuedAuthorization {
+            if let failure { throw failure }
+            let number = issued.withLock { count -> Int in
+                count += 1
+                return count
+            }
+            return IssuedAuthorization(
+                externalForm: Data(repeating: UInt8(number), count: TaskActionViolation.authorizationLength), reference: nil
+            )
+        }
+    }
+
+    /// Fragt ohne Dialog (keine Flags), ob die Bestätigung das Admin-Recht schon trägt; eine leere Ref darf es nicht.
+    private static func adminRightStatus(of externalForm: Data) -> OSStatus {
+        var form = AuthorizationExternalForm()
+        withUnsafeMutableBytes(of: &form.bytes) { $0.copyBytes(from: externalForm) }
+        var reference: AuthorizationRef?
+        guard AuthorizationCreateFromExternalForm(&form, &reference) == errAuthorizationSuccess, let reference else {
+            return errAuthorizationInternal
+        }
+        defer { AuthorizationFree(reference, []) }
+        return "system.privilege.admin".withCString { name in
+            var item = AuthorizationItem(name: name, valueLength: 0, value: nil, flags: 0)
+            return withUnsafeMutablePointer(to: &item) { itemPointer in
+                var rights = AuthorizationRights(count: 1, items: itemPointer)
+                return AuthorizationCopyRights(reference, &rights, nil, [], nil)
+            }
+        }
+    }
+
+    /// Echte Authorization Services (ohne Dialog): Jede Aktion bekommt eine eigene, leere Ref.
+    @Test func everyActionGetsItsOwnEmptyAuthorization() throws {
+        let issuer = ActionAuthorization()
+        let first = try issuer.issue()
+        let second = try issuer.issue()
+        #expect(first.externalForm.count == TaskActionViolation.authorizationLength)
+        #expect(second.externalForm.count == TaskActionViolation.authorizationLength)
+        #expect(first.externalForm != second.externalForm)
+        // Gebildet (sonst `errAuthorizationInternal`), aber ohne das Recht: ohne Dialog verweigert.
+        #expect(Self.adminRightStatus(of: first.externalForm) == errAuthorizationDenied)
+        #expect(Self.adminRightStatus(of: second.externalForm) == errAuthorizationDenied)
+    }
+
+    @Test func bridgeIssuesOneFreshAuthorizationPerProcess() async throws {
+        let issuer = CountingIssuer()
+        let helper = RecordingTaskHelper()
+        let bridge = HelperTaskTerminator(helper: helper, authorization: issuer)
+        try await bridge.terminateProcess(pid: 4242, executablePath: "/x", startTime: 1, force: false)
+        try await bridge.terminateProcess(pid: 4242, executablePath: "/x", startTime: 1, force: true)
+        #expect(issuer.issuedCount == 2)
+        #expect(helper.receivedForms.count == 2)
+        #expect(Set(helper.receivedForms).count == 2)  // keine Bestätigung wird wiederverwendet
+    }
+
+    @Test func unpreparedAuthorizationNeverReachesTheHelper() async {
+        let failure = ActionAuthorizationError(status: errAuthorizationInternal)
+        let helper = RecordingTaskHelper()
+        let bridge = HelperTaskTerminator(helper: helper, authorization: CountingIssuer(failure: failure))
+        await #expect(throws: failure) {
+            try await bridge.terminateProcess(pid: 4242, executablePath: "/x", startTime: 1, force: false)
+        }
+        #expect(helper.receivedForms.isEmpty)
+    }
+
+    @Test func unpreparedAuthorizationCountsAsNotSent() {
+        #expect(!ProcessTerminator.mayHaveSignalled(after: ActionAuthorizationError(status: errAuthorizationInternal)))
+        // Gegenprobe: Nach dem Senden bleibt das Ergebnis bei Zeitüberschreitung ungewiss.
+        #expect(ProcessTerminator.mayHaveSignalled(after: HelperClientError.unavailable("Zeitüberschreitung")))
     }
 
     private static func terminatingService(_ processes: [RunningProcess], signaler: RecordingSignaler, ownPID: pid_t = 555)

@@ -10,6 +10,11 @@ struct RemovalSheet: View {
     @State private var model: RemovalModel?
     @Environment(\.dismiss) private var dismiss
 
+    /// Mitgebrachte Erweiterungen der App (TM-13.6); nur beim Entfernen, nicht bei „Reste anzeigen“.
+    private var extensionNote: String? {
+        request.mode == .uninstall ? appModel.presentation?.extensions.removalNote(forAppAt: request.app.path) : nil
+    }
+
     var body: some View {
         if let model {
             if model.isSelfUninstall, let progress = appModel.selfUninstall.progress {
@@ -24,7 +29,8 @@ struct RemovalSheet: View {
                 .padding(20)
                 .frame(width: RemovalSheetContent.width)
             } else {
-                RemovalSheetContent(actions: appModel.actions, model: model, uninstallGrantry: appModel.uninstallGrantry)
+                RemovalSheetContent(actions: appModel.actions, model: model, extensionNote: extensionNote,
+                                    uninstallGrantry: appModel.uninstallGrantry)
             }
         } else {
             Color.clear
@@ -39,12 +45,15 @@ struct RemovalSheet: View {
 
 /// Auswahl und Bestätigung in einem Blatt; Return und Escape brechen ab, die Aktion läuft nur nach einem Klick
 /// (`ConfirmationButtonRow`). Läuft die App, wird nur „Beenden“ angeboten; Homebrew-Casks zeigen einen Hinweis statt
-/// einer Aktion, Grantry selbst „Grantry deinstallieren“ (#115).
+/// einer Aktion, Grantry selbst „Grantry deinstallieren“ (#115). Bringt die App Erweiterungen mit, nennt ein Hinweis sie
+/// (TM-13.6).
 private struct RemovalSheetContent: View {
     static let width: CGFloat = 600
 
     let actions: ActionRunner
     @Bindable var model: RemovalModel
+    /// Systemerweiterungen, die mit der App gehen, und Erweiterungen, die bleiben; ändert den Ablauf nicht.
+    let extensionNote: String?
     let uninstallGrantry: (SelfUninstallPlan) -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -94,6 +103,10 @@ private struct RemovalSheetContent: View {
     @ViewBuilder
     private var removableContent: some View {
         if model.isAppRunning { runningNotice }
+        if let extensionNote, !model.isSelfUninstall {
+            InfoLabel(text: extensionNote)
+                .fixedSize(horizontal: false, vertical: true)
+        }
         if !model.canSearch {
             InfoLabel(text: String(localized: "Die Reste-Suche ist erst nach dem ersten Scan möglich."))
         }

@@ -12,6 +12,7 @@ public struct SecurityPostureSource: InventorySource {
     public static let watchedFiles = [
         SecurityTools.softwareUpdatePreferences,
         SecurityTools.networkExtensionPreferences,
+        LoginWindowProbe.preferencesPath,
     ]
 
     /// Ordner, deren Änderung einen Scan auslösen soll: das aktuelle XProtect unter `/var/protected/xprotect` und das
@@ -31,12 +32,14 @@ public struct SecurityPostureSource: InventorySource {
         self.now = now
     }
 
-    /// Die acht Prüfungen aus Spec §2.
+    /// Die acht Prüfungen aus Spec §2 und die automatische Anmeldung (#409); die Freigabedienste leitet der
+    /// `ScanCoordinator` aus den Netzwerkdiensten ab (`SecurityCheckKind.isDerivedFromInventory`).
     public static func standard(
         runner: any CommandRunning = ProcessCommandRunner(),
         readPreferences: @escaping @Sendable () throws -> Data = {
             try Data(contentsOf: URL(filePath: SecurityTools.softwareUpdatePreferences))
         },
+        readLoginWindowPreferences: @escaping @Sendable () throws -> Data? = LoginWindowProbe.readInstalledPreferences,
         now: @escaping @Sendable () -> Date = Date.init
     ) -> SecurityPostureSource {
         func command(
@@ -53,6 +56,7 @@ public struct SecurityPostureSource: InventorySource {
             command(.xprotect, SecurityTools.xprotect, ["version", "--json"], SecurityParsers.xprotect),
             SoftwareUpdateProbe(readPreferences: readPreferences),
             command(.mdmEnrollment, SecurityTools.profiles, ["status", "-type", "enrollment"], SecurityParsers.mdmEnrollment),
+            LoginWindowProbe(readPreferences: readLoginWindowPreferences),
         ], now: now)
     }
 
@@ -65,8 +69,7 @@ public struct SecurityPostureSource: InventorySource {
             }
             return await group.reduce(into: []) { $0 += $1 }
         }
-        let rank = Dictionary(uniqueKeysWithValues: SecurityCheckKind.allCases.enumerated().map { ($1, $0) })
-        let sorted = checks.sorted { rank[$0.kind, default: .max] < rank[$1.kind, default: .max] }
+        let sorted = checks.sortedByKind()
         return InventoryContribution(securityChecks: sorted, retryableLimitations: Self.limitations(of: sorted))
     }
 
@@ -74,16 +77,19 @@ public struct SecurityPostureSource: InventorySource {
     /// fragt die Probe erneut.
     static func limitations(of checks: [SecurityCheck]) -> [String] {
         checks.filter { $0.state == .unknown }.map { check in
-            "\(check.kind.displayName) nicht geprüft: \(check.detail ?? "Ergebnis nicht auswertbar")"
+            "\(limitationPrefix(of: check.kind)): \(check.detail ?? "Ergebnis nicht auswertbar")"
         }
+    }
+
+    /// Anfang der Einschränkung zu `kind` („Firewall nicht geprüft“).
+    static func limitationPrefix(of kind: SecurityCheckKind) -> String {
+        "\(kind.displayName) nicht geprüft"
     }
 
     /// Bewertete Prüfungen der Probe oder – bei einem Fehler – ihre Prüfungen `unknown` mit Fehlertext.
     private static func checks(of probe: any SecurityProbe, policy: SecurityPolicy, now: Date) async -> [SecurityCheck] {
         do {
-            return try await probe.read(now: now).map { facts in
-                SecurityCheck(kind: facts.kind, state: policy.evaluate(facts, now: now), facts: facts)
-            }
+            return try await probe.read(now: now).map { SecurityCheck(evaluating: $0, policy: policy, now: now) }
         } catch {
             return probe.kinds.map { .failed($0, detail: error.readableDescription) }
         }

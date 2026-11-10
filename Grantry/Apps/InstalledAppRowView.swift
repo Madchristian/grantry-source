@@ -1,3 +1,4 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -41,10 +42,10 @@ struct InstalledAppRowView: View {
             }
         }
         .padding(.vertical, 2)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: row.accessibilityLabel))
-        .accessibilityValue(Text(verbatim: (badges.filter { !$0.isReview }.map(\.accessibilityLabel)
-            + (isRiskAccepted ? [String(localized: "Risiko akzeptiert")] : [])).joined(separator: ", ")))
+        .accessibilityReading(Text(verbatim: row.accessibilityLabel),
+                              value: Text(verbatim: (badges.filter { !$0.isReview }.map(\.accessibilityLabel)
+                                  + (isRiskAccepted ? [String(localized: "Risiko akzeptiert")] : []))
+                                  .joined(separator: ", ")))
     }
 }
 

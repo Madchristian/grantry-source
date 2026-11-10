@@ -1,10 +1,13 @@
+import Foundation
+
 /// Wohin ein Klick auf eine Benachrichtigung führt. Die Meldung trägt das Ziel in ihrer `userInfo` (`userInfo`),
 /// die App liest es beim Klick wieder aus (`init(userInfo:)`). Einzelmeldungen zu einer Sicherheitsprüfung führen zu
 /// dieser Prüfung, Einzelmeldungen zu einer vorhandenen App zu ihr (Bereich Apps, `InstalledApp.id`), solche zu einem
 /// laufenden Netzwerkdienst zu ihm (`NetworkListener.id`), alles andere – auch jede Sammelmeldung – in den Verlauf;
 /// eine Meldung ohne lesbares Ziel (etwa aus einer älteren Version) ebenfalls.
 /// Update-Meldungen führen in die Übersicht, Einzelmeldungen zu einem MCP-Server oder einer Freigabe in den Bereich Agenten,
-/// der Hinweis auf verwaiste Agenten-Bäume nach Aufräumen → Prozesse.
+/// der Hinweis auf verwaiste Agenten-Bäume nach Aufräumen → Prozesse. Erweiterungen führen bis zu ihrem eigenen Bereich
+/// (TM-13.5) in den Verlauf. Mitteilungen zu schweren Befunden führen ins Wachbuch an den Beginn des Befunds (TM-12.8).
 public enum NotificationDestination: Hashable, Sendable {
     case history
     case securityCheck(SecurityCheckKind)
@@ -16,6 +19,8 @@ public enum NotificationDestination: Hashable, Sendable {
     case update
     /// Viele verwaiste Agenten-Bäume (#224); führt nach Aufräumen → Prozesse.
     case processes
+    /// Wachbuch an dieser Zeitmarke (Beginn eines schweren Befunds).
+    case watchbook(Date)
 
     static let userInfoKey = "destination"
     private static let historyRawValue = "history"
@@ -25,6 +30,7 @@ public enum NotificationDestination: Hashable, Sendable {
     private static let installedAppPrefix = "installedApp:"
     private static let networkListenerPrefix = "networkListener:"
     private static let agentPrefix = "agent:"
+    private static let watchbookPrefix = "watchbook:"
 
     /// Ziel der Einzelmeldung zu `event`. Entfernte Einträge gibt es nur noch im Verlauf.
     public init(for event: ChangeEvent) {
@@ -38,7 +44,7 @@ public enum NotificationDestination: Hashable, Sendable {
         case .networkListener(let listener): self = .networkListener(listener.id)
         case .mcpServer(let server): self = .agent(server.id)
         case .agentAutoApproval(let approval): self = .agent(approval.id)
-        case .grant, .autostartItem: self = .history
+        case .grant, .autostartItem, .extensionRecord, .taskAction: self = .history
         }
     }
 
@@ -60,6 +66,9 @@ public enum NotificationDestination: Hashable, Sendable {
             self = .networkListener(String(raw.dropFirst(Self.networkListenerPrefix.count)))
         } else if raw.hasPrefix(Self.agentPrefix), raw.count > Self.agentPrefix.count {
             self = .agent(String(raw.dropFirst(Self.agentPrefix.count)))
+        } else if raw.hasPrefix(Self.watchbookPrefix),
+                  let seconds = TimeInterval(raw.dropFirst(Self.watchbookPrefix.count)), seconds.isFinite {
+            self = .watchbook(Date(timeIntervalSince1970: seconds))
         } else {
             return nil
         }
@@ -77,6 +86,7 @@ public enum NotificationDestination: Hashable, Sendable {
         case .agent(let id): Self.agentPrefix + id
         case .update: Self.updateRawValue
         case .processes: Self.processesRawValue
+        case .watchbook(let time): Self.watchbookPrefix + String(time.timeIntervalSince1970)
         }
     }
 }

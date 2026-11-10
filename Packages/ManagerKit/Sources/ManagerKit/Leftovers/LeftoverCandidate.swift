@@ -4,6 +4,8 @@ import Foundation
 public enum LeftoverKind: String, Hashable, Sendable, CaseIterable {
     case appBundle, container, groupContainer, applicationSupport, caches, preferences, savedState, httpStorage, webKit,
          logs, applicationScripts, storage
+    /// Plug-in eines Systemdienstes (Bereich „Erweiterungen“, `ServicePluginRemover`).
+    case servicePlugin
 }
 
 /// `safe`: per Bundle-/Team-ID belegt, vorausgewählt. `uncertain`: nur über den Namen, nicht vorausgewählt.

@@ -18,24 +18,15 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var window = window
-        let scanActivity = ScanActivity(appModel.monitoring)
-        NavigationSplitView {
-            SidebarView(selection: $window.section, unreadCount: appModel.monitoring.unreadCount)
-                .navigationSplitViewColumnWidth(
-                    min: WindowLayout.sidebarMin, ideal: WindowLayout.sidebarIdeal, max: WindowLayout.sidebarMax
-                )
-        } detail: {
-            detail
-                .navigationSplitViewColumnWidth(min: WindowLayout.contentMin, ideal: WindowLayout.contentMin)
-                .navigationTitle(window.section.title)
-                .navigationSubtitle(ScanStatusText.subtitle(for: appModel.monitoring))
-                .toolbar {
-                    ScanToolbarItem(isEnabled: scanActivity.isScanButtonEnabled,
-                                    pendingSignatureChecks: appModel.monitoring.pendingSignatureChecks,
-                                    signatureChecksTimedOut: appModel.monitoring.signatureChecksTimedOut) {
-                        Task { await appModel.scanNow() }
-                    }
-                }
+        let monitoring = appModel.monitoring
+        let scan = ScanToolbarItem(isEnabled: ScanActivity(monitoring).isScanButtonEnabled,
+                                   pendingSignatureChecks: monitoring.pendingSignatureChecks,
+                                   signatureChecksTimedOut: monitoring.signatureChecksTimedOut) {
+            Task { await appModel.scanNow() }
+        }
+        MainWindowSplit(selection: $window.section, unreadCount: monitoring.unreadCount) {
+            detail.mainWindowChrome(title: window.section.title, subtitle: ScanStatusText.subtitle(for: monitoring),
+                                    scan: scan)
         }
         .sheet(isPresented: $onboarding.isPresented) {
             OnboardingView(appModel: appModel, prerequisites: prerequisites, onboarding: onboarding)
@@ -119,33 +110,18 @@ struct RootView: View {
     private var detail: some View {
         switch window.section {
         case .overview: DashboardView(appModel: appModel, prerequisites: prerequisites, onboarding: onboarding)
+        case .taskManager: TaskManagerView(appModel: appModel)
         case .apps: AppsView(appModel: appModel)
         case .cleanup: CleanupView(appModel: appModel, prerequisites: prerequisites, onboarding: onboarding)
         case .observations: ObservationsView(appModel: appModel)
         case .permissions: PermissionsView(appModel: appModel)
         case .autostart: AutostartView(appModel: appModel)
+        case .extensions: ExtensionsView(appModel: appModel)
         case .network: NetworkSectionView(appModel: appModel, prerequisites: prerequisites)
         case .agents: AgentsView(appModel: appModel)
         case .security: SecurityView(appModel: appModel, prerequisites: prerequisites)
         case .history: HistoryView(appModel: appModel)
         }
-    }
-}
-
-/// Sidebar mit den Bereichen; „Verlauf“ trägt die Zahl ungelesener Änderungen.
-struct SidebarView: View {
-    @Binding var selection: MainSection
-    let unreadCount: Int
-
-    var body: some View {
-        List(selection: $selection) {
-            ForEach(MainSection.allCases) { section in
-                Label(section.title, systemImage: section.systemImage)
-                    .badge(section == .history ? unreadCount : 0)
-                    .tag(section)
-            }
-        }
-        .listStyle(.sidebar)
     }
 }
 

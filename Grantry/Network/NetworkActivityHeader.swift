@@ -1,23 +1,26 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Kopf der Aktivität: Summe ↓/s und ↑/s des Macs, daneben der Verlauf der letzten 2 Minuten (empfangen in der
-/// Akzentfarbe, gesendet in Sekundärfarbe, gemeinsame Skala).
+/// Kopf der Aktivität als Panel (Gestaltung „Lagebild“, #366): Datenverkehr des Macs als Spiegel der letzten 2 Minuten mit
+/// den aktuellen Raten, darunter die Kennzahlen als Messfelder in einer Reihe.
 struct NetworkActivityHeader: View {
-    let total: TrafficRate
+    let overview: NetworkActivityOverview
     let history: [TrafficRate]
 
     var body: some View {
-        HStack(spacing: 16) {
-            TrafficRateLabel(value: total.download, direction: .download)
-            TrafficRateLabel(value: total.upload, direction: .upload)
-            Spacer(minLength: 8)
-            TrafficSparkline(history: history,
-                             help: "Verlauf der letzten 2 Minuten: empfangen (farbig) und gesendet (grau)")
-                .frame(width: 160, height: 28)
+        VStack(alignment: .leading, spacing: InstrumentSpacing.cell) {
+            PeilHead(String(localized: "Datenverkehr"), detail: String(localized: "Alle Programme · letzte 2 Minuten"))
+            TrafficMirror(rate: overview.rate, history: history)
+            MeasureFieldRow(fields: [
+                (String(localized: "Empfangen gesamt"), TrafficFormat.bytes(overview.transferred.received)),
+                (String(localized: "Gesendet gesamt"), TrafficFormat.bytes(overview.transferred.sent)),
+                (String(localized: "Programme aktiv"), "\(overview.activePrograms)"),
+                (String(localized: "Offene Verbindungen"), "\(overview.openConnections)"),
+                (String(localized: "Gegenstellen"), "\(overview.remoteHosts)"),
+            ])
         }
-        .font(.callout)
-        .padding(8)
+        .instrumentPanel()
     }
 }
 
@@ -37,9 +40,7 @@ struct TrafficRateLabel: View {
             Image(systemName: direction == .download ? "arrow.down" : "arrow.up")
         }
         .help(Text(label))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(label))
-        .accessibilityValue(Text(verbatim: TrafficFormat.rate(value)))
+        .accessibilityReading(Text(label), value: Text(verbatim: TrafficFormat.rate(value)))
     }
 
     private var label: LocalizedStringKey { direction == .download ? "Empfangen" : "Gesendet" }

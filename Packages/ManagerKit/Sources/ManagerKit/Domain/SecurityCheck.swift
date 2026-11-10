@@ -3,7 +3,12 @@ import Foundation
 /// Art einer Sicherheitsprüfung (Spec v2 §2); der Rohwert ist die `id` des `SecurityCheck`. Die Reihenfolge der Fälle
 /// ist die Anzeigereihenfolge.
 public enum SecurityCheckKind: String, Hashable, Sendable, Codable, CaseIterable {
-    case fileVault, firewall, sip, gatekeeper, xprotect, automaticUpdates, pendingUpdates, mdmEnrollment
+    case fileVault, automaticLogin, firewall, sharingServices, sip, gatekeeper, xprotect, automaticUpdates, pendingUpdates
+    case mdmEnrollment
+
+    /// Aus den Einträgen anderer Quellen abgeleitet statt von einer `SecurityProbe` gelesen
+    /// (`Snapshot.derivingSharingServicesCheck`).
+    public var isDerivedFromInventory: Bool { self == .sharingServices }
 }
 
 /// Ampel einer Prüfung. `unknown`: nicht lesbar oder unbekanntes Format – nie „kritisch“.
@@ -75,6 +80,10 @@ public enum SecurityFacts: Hashable, Sendable, Codable {
     case automaticUpdates(disabled: Set<SoftwareUpdateKey>)
     case pendingUpdates(updates: [PendingUpdate], lastCheck: Date?)
     case mdmEnrollment(enrolled: Bool, viaDEP: Bool)
+    /// `autoLoginUser` in den Anmeldefenster-Einstellungen gesetzt (#409).
+    case automaticLogin(enabled: Bool)
+    /// Von anderen Geräten erreichbare Freigabedienste, abgeleitet aus den lauschenden Netzwerkdiensten (#409).
+    case sharingServices(active: Set<SharingService>)
 
     public var kind: SecurityCheckKind {
         switch self {
@@ -86,6 +95,8 @@ public enum SecurityFacts: Hashable, Sendable, Codable {
         case .automaticUpdates: .automaticUpdates
         case .pendingUpdates: .pendingUpdates
         case .mdmEnrollment: .mdmEnrollment
+        case .automaticLogin: .automaticLogin
+        case .sharingServices: .sharingServices
         }
     }
 
@@ -157,6 +168,11 @@ public struct SecurityCheck: InventoryRecord, Codable {
         precondition(facts == nil || facts?.kind == kind, "Fakten passen nicht zur Prüfung")
     }
 
+    /// Prüfung mit der Ampel, die `policy` den `facts` zu `now` gibt.
+    public init(evaluating facts: SecurityFacts, policy: SecurityPolicy, now: Date) {
+        self.init(kind: facts.kind, state: policy.evaluate(facts, now: now), facts: facts)
+    }
+
     /// Nicht lesbare Prüfung.
     public static func failed(_ kind: SecurityCheckKind, detail: String) -> SecurityCheck {
         SecurityCheck(kind: kind, state: .unknown, facts: nil, detail: detail)
@@ -182,5 +198,15 @@ public struct SecurityCheck: InventoryRecord, Codable {
     /// damit der nächste Vergleich vom gelesenen Wert ausgeht.
     public func reportsChange(to other: SecurityCheck) -> Bool {
         effectiveState != nil && hasSignificantChanges(comparedTo: other)
+    }
+}
+
+extension [SecurityCheck] {
+    /// In Anzeigereihenfolge (`SecurityCheckKind.allCases`); gleiche Arten behalten ihre Reihenfolge.
+    func sortedByKind() -> [SecurityCheck] {
+        let rank = Dictionary(uniqueKeysWithValues: SecurityCheckKind.allCases.enumerated().map { ($1, $0) })
+        return enumerated().sorted { lhs, rhs in
+            (rank[lhs.element.kind, default: .max], lhs.offset) < (rank[rhs.element.kind, default: .max], rhs.offset)
+        }.map(\.element)
     }
 }

@@ -5,6 +5,7 @@ public struct RiskFinding: Identifiable, Hashable, Sendable, Codable {
         case teamIDChanged, unsignedApp, intelOnly, symlinkedApp, specialFiles
         case exposedListener
         case unpinnedPackage, plaintextSecret, writableConfig, untrustedProgram, cleartextRemote, autoApproval
+        case kernelExtension, privilegedExtension, extensionLeftover, pluginSignature, deprecatedPlugin
     }
 
     /// Schweregrad eines Findings; bestimmt die Sortierung in `RiskEvaluator.evaluate`.
@@ -16,8 +17,8 @@ public struct RiskFinding: Identifiable, Hashable, Sendable, Codable {
 
     public let rule: Rule
     public let severity: Severity
-    /// `id` des betroffenen `PermissionGrant`, `AutostartItem`, `InstalledApp`, `NetworkListener`, `MCPServerEntry` bzw.
-    /// `AgentAutoApproval`.
+    /// `id` des betroffenen `PermissionGrant`, `AutostartItem`, `InstalledApp`, `NetworkListener`, `MCPServerEntry`,
+    /// `AgentAutoApproval` bzw. `ExtensionRecord`.
     public let recordID: String
     public let message: String
 
@@ -167,6 +168,8 @@ public struct RiskEvaluator: Sendable {
         ExposedListenerRule(),
         UnpinnedPackageRule(), PlaintextSecretRule(), WritableAgentConfigRule(), UntrustedMCPProgramRule(),
         CleartextRemoteRule(), ActiveAutoApprovalRule(),
+        KernelExtensionRule(), PrivilegedExtensionRule(), ExtensionLeftoverRule(), ServicePluginSignatureRule(),
+        DeprecatedPluginRule(),
     ])
 
     /// Findings aller Regeln, absteigend nach Schweregrad sortiert, bei Gleichstand aufsteigend nach `recordID`

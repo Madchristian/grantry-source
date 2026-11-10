@@ -31,4 +31,11 @@ import TestSupport
             #expect(LaunchdSearchPath.executable(named: "tool", in: [directories[4].path]) == nil)
         }
     }
+
+    /// Wie `execvp`: Ein Name mit `/` wird nie in den Verzeichnissen gesucht – sonst führte `..` aus den versiegelten
+    /// Systemverzeichnissen heraus.
+    @Test func namesWithASlashAreNeverLookedUp() {
+        #expect(LaunchdSearchPath.executable(named: "../../bin/sh") == nil)
+        #expect(LaunchdSearchPath.executable(named: "../bin/python3") == nil)
+    }
 }

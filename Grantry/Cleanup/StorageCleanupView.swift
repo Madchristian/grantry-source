@@ -12,8 +12,13 @@ struct StorageCleanupView: View {
     @Bindable var model: StorageCleanupModel
     /// Öffnet die Einstellungen zum Festplattenvollzugriff; `nil`, wenn er nicht fehlt.
     var openFullDiskAccess: (() -> Void)?
+    /// Kategorie, zu der die Liste springen soll (aus „Belegung“, #403); nach dem Sprung wieder `nil`. Ohne Scan startet
+    /// er zuerst (nur lesend).
+    @Binding var focusedCategoryID: String?
     let showSetup: () -> Void
     @State private var isConfirming: Bool?
+    /// Aufgeklappte Kategorien.
+    @State private var expanded: Set<String> = []
     @State private var timeMachineChange: TimeMachineChange?
     @State private var showsOptions = false
 
@@ -51,6 +56,10 @@ struct StorageCleanupView: View {
         .actionConfirmation(for: $isConfirming, confirmation: { _ in
             StoragePresentation.confirmation(reports: model.reports, selection: model.selection)
         }) { _ in model.clean() }
+        .onChange(of: focusedCategoryID, initial: true) { _, id in
+            // Noch nicht gescannt: erst lesen, dann springen.
+            if id != nil, model.reports.isEmpty, model.phase == .idle { model.scan() }
+        }
     }
 
     /// Zeile in „Zuletzt aufgeräumt“; bei Übersprungenem und Fehlgeschlagenem mit Grund.
@@ -133,35 +142,59 @@ struct StorageCleanupView: View {
                 description: Text("Der Scan startet nur, wenn du ihn anstößt. Gelöscht wird erst nach deiner Bestätigung.")
             )
         } else {
-            List {
-                ForEach(model.sortedReports) { report in
-                    StorageCategoryRow(report: report, selection: $model.selection,
-                                       timeMachineNote: model.timeMachine.flatMap {
-                                           TimeMachinePresentation.categoryNote(report.id, in: $0.suggestions)
-                                       },
-                                       isLocked: model.phase == .cleaning)
-                }
-                if let report = model.timeMachine, !report.suggestions.isEmpty || report.failure != nil {
-                    TimeMachineSuggestionsSection(report: report, selection: $model.timeMachineSelection,
-                                                  canChange: model.phase == .scanned) { timeMachineChange = $0 }
-                }
-                if !model.recentLog.isEmpty {
-                    Section("Zuletzt aufgeräumt") {
-                        ForEach(Array(model.recentLog.enumerated()), id: \.offset) { _, entry in
-                            recentLogRow(entry)
-                        }
-                        Button("Protokoll im Finder zeigen") {
-                            NSWorkspace.shared.activateFileViewerSelecting([model.logURL])
-                        }
-                        .buttonStyle(.link)
+            ScrollViewReader { proxy in
+                categoryList
+                    .onChange(of: model.reports.map(\.id), initial: true) { focus(using: proxy) }
+                    .onChange(of: focusedCategoryID) { focus(using: proxy) }
+            }
+        }
+    }
+
+    /// Springt zur gewünschten Kategorie und klappt sie auf, sobald ihr Bericht da ist; fehlt er nach dem Scan, entfällt
+    /// der Sprung.
+    private func focus(using proxy: ScrollViewProxy) {
+        guard let id = focusedCategoryID else { return }
+        guard model.reports.contains(where: { $0.id == id }) else {
+            if model.phase == .scanned { focusedCategoryID = nil }
+            return
+        }
+        expanded.insert(id)
+        proxy.scrollTo(id, anchor: .top)
+        focusedCategoryID = nil
+    }
+
+    private var categoryList: some View {
+        List {
+            ForEach(model.sortedReports) { report in
+                StorageCategoryRow(report: report, selection: $model.selection,
+                                   isExpanded: Binding(get: { expanded.contains(report.id) }, set: { isExpanded in
+                                       if isExpanded { expanded.insert(report.id) } else { expanded.remove(report.id) }
+                                   }),
+                                   timeMachineNote: model.timeMachine.flatMap {
+                                       TimeMachinePresentation.categoryNote(report.id, in: $0.suggestions)
+                                   },
+                                   isLocked: model.phase == .cleaning)
+            }
+            if let report = model.timeMachine, !report.suggestions.isEmpty || report.failure != nil {
+                TimeMachineSuggestionsSection(report: report, selection: $model.timeMachineSelection,
+                                              canChange: model.phase == .scanned) { timeMachineChange = $0 }
+            }
+            if !model.recentLog.isEmpty {
+                Section("Zuletzt aufgeräumt") {
+                    ForEach(Array(model.recentLog.enumerated()), id: \.offset) { _, entry in
+                        recentLogRow(entry)
                     }
+                    Button("Protokoll im Finder zeigen") {
+                        NSWorkspace.shared.activateFileViewerSelecting([model.logURL])
+                    }
+                    .buttonStyle(.link)
                 }
             }
-            .listStyle(.inset)
-            .actionConfirmation(for: $timeMachineChange, confirmation: { change in
-                TimeMachinePresentation.confirmation(change, targets: timeMachineTargets(change))
-            }) { model.changeTimeMachine($0) }
         }
+        .listStyle(.inset)
+        .actionConfirmation(for: $timeMachineChange, confirmation: { change in
+            TimeMachinePresentation.confirmation(change, targets: timeMachineTargets(change))
+        }) { model.changeTimeMachine($0) }
     }
 
     private func timeMachineTargets(_ change: TimeMachineChange) -> [TimeMachineSuggestion] {
@@ -291,12 +324,13 @@ private func abbreviatedTarget(_ target: String) -> String { (target as NSString
 private struct StorageCategoryRow: View {
     let report: StorageCategoryReport
     @Binding var selection: Set<String>
+    @Binding var isExpanded: Bool
     /// „Time Machine: gesichert/ausgenommen/teilweise gesichert“ (#227); `nil` ohne Vorschlag der Kategorie.
     let timeMachineNote: String?
     let isLocked: Bool
 
     var body: some View {
-        DisclosureGroup {
+        DisclosureGroup(isExpanded: $isExpanded) {
             ForEach(report.items) { item in
                 itemRow(item)
             }

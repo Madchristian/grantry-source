@@ -2,7 +2,7 @@ import Foundation
 
 /// Inventarbereich mit eigener Scan-Abdeckung (#142) – je Bereich die Quellen, aus denen seine Liste stammt.
 public enum InventoryArea: String, Hashable, Sendable, CaseIterable, Identifiable {
-    case apps, permissions, autostart, agents, network, security
+    case apps, permissions, autostart, extensions, agents, network, security
 
     public var id: Self { self }
 
@@ -12,6 +12,7 @@ public enum InventoryArea: String, Hashable, Sendable, CaseIterable, Identifiabl
         case .apps: "Apps"
         case .permissions: "Berechtigungen"
         case .autostart: "Autostart"
+        case .extensions: "Erweiterungen"
         case .agents: "Agenten"
         case .network: "Netzwerk"
         case .security: "Sicherheit"
@@ -25,6 +26,7 @@ public enum InventoryArea: String, Hashable, Sendable, CaseIterable, Identifiabl
         case .apps: [.apps]
         case .permissions: [.tccUser, .tccSystem]
         case .autostart: [.launchd, .btm]
+        case .extensions: [.extensions]
         case .agents: [.agents]
         case .network: [.networkListeners]
         case .security: [.securityPosture]
@@ -49,6 +51,7 @@ extension SourceID {
         case .apps: "Apps"
         case .networkListeners: "Netzwerkdienste"
         case .agents: "Agenten-Konfigurationen"
+        case .extensions: "Erweiterungen"
         default: rawValue
         }
     }

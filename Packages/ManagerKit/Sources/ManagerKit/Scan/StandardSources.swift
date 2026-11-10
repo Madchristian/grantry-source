@@ -83,4 +83,27 @@ public enum StandardSources {
                 provider: sockets, now: now, schedule: listenerSchedule, terminations: listenerTerminations
             )]
     }
+
+    /// v6: v5 plus Erweiterungen (TM-13.3).
+    ///
+    /// - Parameter extensions: Quelle der Erweiterungen; die App behält sie über die Scans, damit ihr Signaturpuffer
+    ///   wirkt (Standard: eine neue mit `runner`).
+    public static func v6(
+        btmProvider: any BTMDumpProviding,
+        resolver: any AppResolving,
+        sockets: (any ListeningSocketProviding)?,
+        fingerprinter: SecretFingerprinter,
+        runner: any CommandRunning = ProcessCommandRunner(),
+        now: @escaping @Sendable () -> Date = Date.init,
+        apps: AppInventorySource = AppInventorySource(),
+        agents: AgentConfigSource? = nil,
+        listenerSchedule: ListenerHelperSchedule = ListenerHelperSchedule(),
+        listenerTerminations: ListenerTerminationLedger = ListenerTerminationLedger(),
+        extensions: ExtensionInventorySource? = nil
+    ) -> [any InventorySource] {
+        v5(btmProvider: btmProvider, resolver: resolver, sockets: sockets, fingerprinter: fingerprinter, runner: runner,
+           now: now, apps: apps, agents: agents, listenerSchedule: listenerSchedule,
+           listenerTerminations: listenerTerminations)
+            + [extensions ?? ExtensionInventorySource(runner: runner)]
+    }
 }

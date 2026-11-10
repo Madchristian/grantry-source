@@ -1,10 +1,13 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Bereich „Netzwerk“ (#128): lauschende Dienste links, Detail rechts; Scan-Abdeckung (#142) und Firewall-Hinweis über
-/// der Liste, Suche und Filter in der Symbolleiste. Liest aus `PresentationSnapshot.network`. „Prozess beenden …“ im Detail
-/// und Kontextmenü (Teil 2), Ergebnis über `ActionResultContainer` (Kontext `.network`). Solange ein Dienst ausgewählt
-/// ist, misst `NetworkActivityModel` für die Aktivität seines Programms im Detail.
+/// Ansicht „Dienste“ im Bereich Netzwerk (#128), Gestaltung „Lagebild“ (#366): oben die Zustandszeile, darunter
+/// Zählkacheln, Firewall-Hinweis, Tabelle der lauschenden Dienste und rechts das Detail (`NetworkServicesBoard`).
+/// Scan-Abdeckung (#142) und Hinweis auf Auffälliges stehen darüber, Filter in der Symbolleiste. Liest aus
+/// `PresentationSnapshot.network`. „Prozess beenden …“ im Detail und Kontextmenü (Teil 2), Ergebnis über
+/// `ActionResultContainer` (Kontext `.network`). Solange ein Dienst ausgewählt ist, misst `NetworkActivityModel` für die
+/// Aktivität seines Programms im Detail.
 struct NetworkView: View {
     let appModel: AppModel
     let prerequisites: PrerequisitesModel
@@ -14,105 +17,58 @@ struct NetworkView: View {
     /// dem ersten Scan); wird ausgewählt, sobald er auftaucht (`applyPendingFocus(_:)`).
     @State private var pendingFocus: NetworkListener.ID?
 
-    private static let terminationPolicy = ListenerTerminationPolicy()
-
     var body: some View {
         @Bindable var window = window
-        @Bindable var termination = appModel.processTermination
-        ListDetailSplit {
-            VStack(spacing: 0) {
-                SectionCoverageHeader(coverage: coverage)
-                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .network,
-                                 filter: window.networkFindings)
-                hints
-                list
-            }
-        } detail: {
-            ActionResultContainer(actions: appModel.actions, context: .network) {
-                detail
+        let presentation = presentation
+        let verdict = presentation.verdict(firewallHint: network.firewallHint)
+        VStack(spacing: 0) {
+            SectionCoverageHeader(coverage: coverage)
+            FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .network,
+                             filter: window.networkFindings)
+            StatusLine(verdict: verdict.title, finding: verdict.hasFinding, items: verdict.statusItems,
+                       facts: verdict.facts)
+                .padding([.horizontal, .top], InstrumentSpacing.page)
+            ScrollViewReader { proxy in
+                NetworkServicesBoard(
+                    presentation: presentation, firewallHint: network.firewallHint,
+                    badges: { appModel.presentation?.badges.badges(for: $0.id) ?? [] },
+                    filter: $window.networkFilter,
+                    query: Binding(get: { window.query(for: .network) }, set: { window.searchText[.network] = $0 }),
+                    selection: $selection, showSecurity: { window.show(.security) }
+                ) {
+                    ActionResultContainer(actions: appModel.actions, context: .network) {
+                        detail
+                    }
+                } empty: {
+                    emptyState
+                } contextMenu: { row in
+                    NetworkContextMenu(listener: row.listener, launchedBy: network.launchedBy(row.listener),
+                                       window: window, termination: controls(for: row.listener),
+                                       select: { selection = row.id })
+                }
+                .onChange(of: window.focusedRecordID, initial: true) { _, recordID in
+                    pendingFocus = recordID
+                    applyPendingFocus(proxy)
+                }
+                .onChange(of: network.listeners) { applyPendingFocus(proxy) }
             }
         }
-        .searchable(
-            text: Binding(get: { window.query(for: .network) }, set: { window.searchText[.network] = $0 }),
-            placement: .toolbar, prompt: Text("Dienste durchsuchen")
-        )
+        .instrumentBackground()
         .toolbar {
             ToolbarItem { NetworkFilterMenu(filter: $window.networkFilter) }
         }
         // Verschwindet der ausgewählte Lauscher (beendet), gilt „keine Auswahl“ – auch, falls er später wiederkommt.
         .onChange(of: selectedListener == nil) { _, isGone in if isGone { selection = nil } }
-        // Hinweis bzw. SIGKILL-Angebot zu einem inzwischen wieder gesehenen bzw. verschwundenen Lauscher verfallen.
-        .onChange(of: network.listeners) { _, listeners in termination.reconcile(with: listeners) }
-        .actionConfirmation(for: $termination.pendingStep, confirmation: \.confirmation) { step in
-            Task { await termination.confirm(step) }
-        }
+        .modifier(ListenerTerminationSupport(appModel: appModel))
     }
 
     private var network: NetworkOverview { appModel.presentation?.network ?? .empty }
     private var coverage: AreaCoverage? { appModel.presentation?.coverage[.network] }
 
-    // MARK: - Hinweise
-
-    @ViewBuilder
-    private var hints: some View {
-        switch network.firewallHint {
-        case .firewallOff(let count):
-            DashboardBanner(
-                systemImage: "flame", tint: PresentationTone.warning.color,
-                title: String(localized: "Firewall ist aus"),
-                text: count == 1
-                    ? String(localized: "1 Dienst nimmt Verbindungen aus dem Netz an.")
-                    : String(localized: "\(count) Dienste nehmen Verbindungen aus dem Netz an.")
-            ) {
-                Button("Zur Sicherheitsprüfung") { window.show(.security) }
-            }
-            .padding(8)
-            Divider()
-        case .firewallOn:
-            InfoLabel(text: String(
-                localized: "Die Firewall ist an. Signierte Apps können je nach Einstellung trotzdem eingehende Verbindungen annehmen."
-            ))
-                .font(.callout)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(8)
-            Divider()
-        case nil:
-            EmptyView()
-        }
-    }
-
-    // MARK: - Liste
-
-    private var rows: [NetworkListenerRow] {
-        guard let presentation = appModel.presentation else { return [] }
-        return NetworkListenerPresenter.rows(
-            presentation.network.listeners, severity: presentation.highestSeverity(for:),
-            query: window.query(for: .network), filter: window.networkFilter
-        )
-    }
-
-    private var list: some View {
-        let rows = rows
-        let badges = appModel.presentation?.badges
-        return ScrollViewReader { proxy in
-            List(rows, selection: $selection) { row in
-                NetworkListenerRowView(row: row, badges: badges?.badges(for: row.id) ?? [])
-                    .id(row.id)
-                    .contextMenu {
-                        NetworkContextMenu(listener: row.listener, launchedBy: network.launchedBy(row.listener),
-                                           window: window, termination: controls(for: row.listener),
-                                           select: { selection = row.id })
-                    }
-            }
-            .onChange(of: window.focusedRecordID, initial: true) { _, recordID in
-                pendingFocus = recordID
-                applyPendingFocus(proxy)
-            }
-            .onChange(of: network.listeners) { applyPendingFocus(proxy) }
-        }
-        .overlay {
-            if rows.isEmpty { emptyState }
-        }
+    private var presentation: NetworkServicesPresentation {
+        guard let snapshot = appModel.presentation else { return .empty }
+        return NetworkServicesPresentation(listeners: snapshot.network.listeners, severity: snapshot.highestSeverity(for:),
+                                           query: window.query(for: .network), filter: window.networkFilter)
     }
 
     /// Wählt den vorgemerkten Lauscher aus, sobald er in der Liste steht. Fehlt er in einem vorhandenen Snapshot, ist
@@ -175,16 +131,13 @@ struct NetworkView: View {
             .measuresWhileVisible(start: { appModel.networkActivity.start(for: .listenerDetail) },
                                   stop: { appModel.networkActivity.stop(for: .listenerDetail) })
         } else {
-            NoSelectionView(hint: "Wähle links einen Dienst, um Details zu sehen.")
+            NetworkListenerNoSelection()
         }
     }
 
     /// „Prozess beenden …“ für `listener`; gesperrt laut `ListenerTerminationPolicy`.
     private func controls(for listener: NetworkListener) -> ListenerTerminationControls {
-        ListenerTerminationControls(
-            flow: appModel.processTermination, actions: appModel.actions,
-            availability: Self.terminationPolicy.availability(for: listener, helperState: prerequisites.helperState)
-        )
+        ListenerTerminationControls(for: listener, appModel: appModel, helperState: prerequisites.helperState)
     }
 }
 

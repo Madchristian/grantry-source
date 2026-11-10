@@ -18,6 +18,7 @@ public struct SnapshotDiffer: Sendable {
             + diffRecords(previous.networkListeners, current.networkListeners, rules: rules, at: current, wrap: ChangeSubject.networkListener)
             + diffRecords(previous.mcpServers, current.mcpServers, rules: rules, at: current, wrap: ChangeSubject.mcpServer)
             + diffRecords(previous.agentAutoApprovals, current.agentAutoApprovals, rules: rules, at: current, wrap: ChangeSubject.agentAutoApproval)
+            + diffRecords(previous.extensions, current.extensions, rules: rules, at: current, wrap: ChangeSubject.extensionRecord)
     }
 
     /// Quellenbezogene Regeln eines Vergleichs.

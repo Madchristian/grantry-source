@@ -14,10 +14,18 @@ struct MainWindowRequest: Equatable {
     var observationID: UUID?
     /// Wählt im Bereich „Aufräumen“ dieses Segment; bei „Prozesse“ wird zugleich neu gelesen (#224).
     var cleanupSegment: CleanupSegment?
+    /// Wählt im Bereich „Task-Manager“ diesen Tab (Menüleisten-Anzeige, TM6).
+    var taskManagerTab: TaskManagerTab?
+    /// Wählt im Tab „Leistung“ diese Kachel (Popover eines Menüleisten-Elements, TM17).
+    var performanceMetric: PerformanceMetric?
+    /// Setzt im Wachbuch die Zeitmarke auf diesen Zeitpunkt (Mitteilung zu einem schweren Befund, TM-12.8a).
+    var watchbookMarker: Date?
 
     init(
         section: MainSection, focusedRecordID: String? = nil, opensSelfUninstall: Bool = false,
-        opensObservationStart: Bool = false, observationID: UUID? = nil, cleanupSegment: CleanupSegment? = nil
+        opensObservationStart: Bool = false, observationID: UUID? = nil, cleanupSegment: CleanupSegment? = nil,
+        taskManagerTab: TaskManagerTab? = nil, performanceMetric: PerformanceMetric? = nil,
+        watchbookMarker: Date? = nil
     ) {
         self.section = section
         self.focusedRecordID = focusedRecordID
@@ -25,10 +33,14 @@ struct MainWindowRequest: Equatable {
         self.opensObservationStart = opensObservationStart
         self.observationID = observationID
         self.cleanupSegment = cleanupSegment
+        self.taskManagerTab = taskManagerTab
+        self.performanceMetric = performanceMetric
+        self.watchbookMarker = watchbookMarker
     }
 
     /// Ziel eines Klicks auf eine Benachrichtigung: eine Sicherheitsprüfung, App, ein Lauscher bzw. ein Agenten-Eintrag
-    /// wird in seinem Bereich hervorgehoben; der Hinweis auf verwaiste Agenten-Bäume öffnet Aufräumen → Prozesse.
+    /// wird in seinem Bereich hervorgehoben; der Hinweis auf verwaiste Agenten-Bäume öffnet Aufräumen → Prozesse, ein
+    /// schwerer Befund das Wachbuch an seinem Beginn.
     init(_ destination: NotificationDestination) {
         switch destination {
         case .history:
@@ -45,6 +57,8 @@ struct MainWindowRequest: Equatable {
             self.init(section: .overview)
         case .processes:
             self.init(section: .cleanup, cleanupSegment: .processes)
+        case .watchbook(let time):
+            self.init(section: .taskManager, taskManagerTab: .watchbook, watchbookMarker: time)
         }
     }
 }
@@ -86,6 +100,12 @@ final class MainWindowNavigator {
     /// Öffnet das Hauptfenster bei der Beobachtung `id` (etwa nach dem Beenden aus der Menüleiste).
     func showObservation(_ id: UUID) {
         show(MainWindowRequest(section: .observations, observationID: id))
+    }
+
+    /// Öffnet das Hauptfenster im Task-Manager auf dem Tab `tab` (aus der Menüleisten-Anzeige), in „Leistung“ auf
+    /// der Kachel `metric`.
+    func showTaskManager(_ tab: TaskManagerTab, metric: PerformanceMetric? = nil) {
+        show(MainWindowRequest(section: .taskManager, taskManagerTab: tab, performanceMetric: metric))
     }
 
     private func show(_ request: MainWindowRequest) {

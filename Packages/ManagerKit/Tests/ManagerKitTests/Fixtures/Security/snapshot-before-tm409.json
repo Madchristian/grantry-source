@@ -1,0 +1,98 @@
+{
+  "agentAutoApprovals" : [
+
+  ],
+  "autostartItems" : [
+
+  ],
+  "baselineSources" : [
+    "network.listeners",
+    "security.posture"
+  ],
+  "grants" : [
+
+  ],
+  "hasCompleteListenerBaseline" : true,
+  "installedApps" : [
+
+  ],
+  "lastDeliveryBySource" : [
+
+  ],
+  "lastInterimDeliveryBySource" : [
+
+  ],
+  "mcpServers" : [
+
+  ],
+  "networkListeners" : [
+    {
+      "addresses" : [
+        "0.0.0.0",
+        "::"
+      ],
+      "ancestorPaths" : [
+
+      ],
+      "executablePath" : "\/sbin\/launchd",
+      "firstSeenAt" : 811692800,
+      "lastSeenAt" : 811692800,
+      "port" : 5900,
+      "signing" : {
+        "isNotarized" : false,
+        "kind" : "apple"
+      },
+      "transport" : "tcp",
+      "uid" : 0
+    }
+  ],
+  "securityChecks" : [
+    {
+      "facts" : {
+        "fileVault" : {
+          "_0" : "on"
+        }
+      },
+      "kind" : "fileVault",
+      "state" : "good"
+    },
+    {
+      "facts" : {
+        "firewall" : {
+          "enabled" : true,
+          "stealthMode" : false
+        }
+      },
+      "kind" : "firewall",
+      "state" : "warning"
+    },
+    {
+      "detail" : "csrutil status fehlgeschlagen (Exit 1)",
+      "facts" : {
+        "sip" : {
+          "_0" : "enabled"
+        }
+      },
+      "kind" : "sip",
+      "lastKnownState" : "good",
+      "state" : "unknown"
+    },
+    {
+      "facts" : {
+        "mdmEnrollment" : {
+          "enrolled" : false,
+          "viaDEP" : false
+        }
+      },
+      "kind" : "mdmEnrollment",
+      "state" : "good"
+    }
+  ],
+  "sourceErrors" : [
+
+  ],
+  "sourceLimitations" : [
+
+  ],
+  "takenAt" : 811692800
+}

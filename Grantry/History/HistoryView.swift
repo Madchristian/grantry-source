@@ -11,6 +11,8 @@ struct HistoryView: View {
     @State private var pendingRestore: RestorableChange?
 
     private var history: HistoryModel { appModel.history }
+    /// Grund des Eintrags, zu dem ein Sprung führte.
+    private static let focusOpacity = 0.14
 
     var body: some View {
         @Bindable var window = window
@@ -45,34 +47,45 @@ struct HistoryView: View {
             receipts: history.receipts, changes: history.agentChanges, matches: history.restorablesByEvent,
             filter: filter, now: now
         )
-        return List {
-            if let result = appModel.actions.result(in: .history) {
-                ActionResultBanner(result: result, dismiss: appModel.actions.dismissResult)
-                    .listRowSeparator(.hidden)
-            }
-            if let error = history.loadError {
-                Label(error, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.secondary)
-                    .listRowSeparator(.hidden)
-            }
-            if !restorable.isEmpty {
-                Section("Wiederherstellbar") {
-                    ForEach(restorable) { entry in
-                        RestorableChangeRow(change: entry, actions: appModel.actions) { pendingRestore = entry }
+        return ScrollViewReader { proxy in
+            List {
+                if let result = appModel.actions.result(in: .history) {
+                    ActionResultBanner(result: result, dismiss: appModel.actions.dismissResult)
+                        .listRowSeparator(.hidden)
+                }
+                if let error = history.loadError {
+                    Label(error, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.secondary)
+                        .listRowSeparator(.hidden)
+                }
+                if !restorable.isEmpty {
+                    Section("Wiederherstellbar") {
+                        ForEach(restorable) { entry in
+                            RestorableChangeRow(change: entry, actions: appModel.actions) { pendingRestore = entry }
+                        }
                     }
                 }
-            }
-            Section {
-                ForEach(events) { event in
-                    HistoryEventRow(event: event, restorable: history.restorablesByEvent[event.id], actions: appModel.actions) {
-                        pendingRestore = $0
+                Section {
+                    ForEach(events) { event in
+                        HistoryEventRow(event: event, restorable: history.restorablesByEvent[event.id], actions: appModel.actions) {
+                            pendingRestore = $0
+                        }
+                        .listRowBackground(event.id.uuidString == window.focusedRecordID
+                            ? Color.accentColor.opacity(Self.focusOpacity) : nil)
                     }
+                    if filter.mayFindMoreEvents(hasMore: history.hasMore, olderThan: history.events.last, now: now) {
+                        LoadMoreRow(isLoading: history.isLoading) { Task { await history.loadMore() } }
+                    }
+                } header: {
+                    if !restorable.isEmpty { Text("Änderungen") }
                 }
-                if filter.mayFindMoreEvents(hasMore: history.hasMore, olderThan: history.events.last, now: now) {
-                    LoadMoreRow(isLoading: history.isLoading) { Task { await history.loadMore() } }
-                }
-            } header: {
-                if !restorable.isEmpty { Text("Änderungen") }
+            }
+            // Sprung aus dem Wachbuch (TM-12.6): zum Eintrag scrollen, sobald er geladen ist.
+            .onChange(of: FocusTarget(id: window.focusedRecordID, isLoaded: events.contains {
+                $0.id.uuidString == window.focusedRecordID
+            }), initial: true) { _, target in
+                guard target.isLoaded, let id = target.id.flatMap(UUID.init(uuidString:)) else { return }
+                proxy.scrollTo(id, anchor: .center)
             }
         }
         .overlay {
@@ -99,6 +112,12 @@ struct HistoryView: View {
                                        : String(localized: "Seit dem ersten Scan hat sich nichts geändert.")))
         }
     }
+}
+
+/// Eintrag, zu dem der Verlauf scrollen soll, und ob er schon geladen ist.
+private struct FocusTarget: Equatable {
+    let id: String?
+    let isLoaded: Bool
 }
 
 /// Anlass zum Neuladen: neue oder gelesene Events, Ergebnis einer Aktion.

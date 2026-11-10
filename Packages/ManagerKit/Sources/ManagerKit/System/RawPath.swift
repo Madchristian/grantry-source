@@ -25,6 +25,11 @@ enum RawPath {
         (0...components.count).map { path(of: components.prefix($0)) }
     }
 
+    /// `true`, wenn `path` gleich `ancestor` ist oder darunter liegt (Textvergleich, ohne Symlinks aufzulösen).
+    static func isPath(_ path: String, atOrBelow ancestor: String) -> Bool {
+        path == ancestor || path.hasPrefix(ancestor.hasSuffix("/") ? ancestor : ancestor + "/")
+    }
+
     /// Versteckt im Finder: Der Name beginnt mit dem Byte `.`.
     static func isHidden(_ name: String) -> Bool {
         name.utf8.first == dot

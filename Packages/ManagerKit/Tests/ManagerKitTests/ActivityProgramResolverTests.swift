@@ -277,7 +277,8 @@ import Testing
         let pipeline = ActivityPipeline(
             tracker: TrafficTracker(),
             programs: ActivityProgramResolver(executablePath: { _ in "/usr/bin/curl" },
-                                              inspector: RecordingSigningInspector(result: SigningInfo(kind: .apple)))
+                                              inspector: RecordingSigningInspector(result: SigningInfo(kind: .apple))),
+            interfaces: { nil }
         )
         let sample = NettopSample(processes: [ProcessTraffic(pid: 7, shortName: "curl", bytesIn: 1, bytesOut: 2, connections: [
             ConnectionTraffic(transport: .tcp, ipVersion: .v4, local: ConnectionEndpoint(address: "192.0.2.1", port: 50000),

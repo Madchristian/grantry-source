@@ -19,6 +19,7 @@ public struct ScanCoordinator: Sendable {
     private let sources: [any InventorySource]
     private let securityPolicy: SecurityPolicy
     private let sourceTimeout: Duration
+    private let clock: any Clock<Duration>
     private let currentUID: UInt32
     private let now: @Sendable () -> Date
     /// Indizes der Quellen, deren `collect()` gerade läuft (über Scans hinweg).
@@ -28,18 +29,21 @@ public struct ScanCoordinator: Sendable {
     /// - Parameters:
     ///   - securityPolicy: bewertet die Sicherheitsprüfungen nach dem Carry-Forward neu.
     ///   - sourceTimeout: Frist je Quelle.
+    ///   - clock: misst die Frist (für Tests injizierbar).
     ///   - currentUID: Benutzer der App; trennt bei der Entprellung eigene von fremden Lauschern (für Tests
     ///     injizierbar). Gibt die Lauscher-Quelle `listenersLimitedToUID` mit, hat diese Vorrang.
     public init(
         sources: [any InventorySource],
         securityPolicy: SecurityPolicy = .standard,
         sourceTimeout: Duration = defaultSourceTimeout,
+        clock: any Clock<Duration> = ContinuousClock(),
         currentUID: UInt32 = getuid(),
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         self.sources = sources
         self.securityPolicy = securityPolicy
         self.sourceTimeout = sourceTimeout
+        self.clock = clock
         self.currentUID = currentUID
         self.now = now
     }
@@ -68,7 +72,10 @@ public struct ScanCoordinator: Sendable {
     ///   hat sie vollständig geliefert (alle Benutzer), ist `hasCompleteListenerBaseline` fortan gesetzt. Jede
     ///   Quelle, die ihren vollen Umfang liefert, erhält `startedAt` als Lieferzeitpunkt (`Snapshot.lastDeliveryBySource`);
     ///   eine Zwischenmessung (`InventoryContribution.coversFullScope == false`) nur als
-    ///   `Snapshot.lastInterimDeliveryBySource`, ausgefallene Quellen behalten beides aus `previous`.
+    ///   `Snapshot.lastInterimDeliveryBySource`, ausgefallene Quellen behalten beides aus `previous`. Erweiterungen aus
+    ///   nicht gelesenen Listen oder Pfaden werden fortgeschrieben (`Snapshot.addingExtensions`). Scannt der
+    ///   Koordinator Sicherheit und Netzwerkdienste, leitet er danach die Prüfung „Freigabedienste“ aus den Lauschern ab.
+    ///   Zuletzt ergänzt jede Quelle, die geliefert hat, Bezüge auf andere Quellen (`InventorySource.linkingRecords(in:)`).
     /// - Parameter only: Teilscan; nur diese Quellen werden gefragt, nicht gewählte übernehmen Einträge, Fehler und
     ///   Einschränkungen unverändert aus `previous` (`Snapshot.removingRecords(of:)`). Ohne `previous` wird voll
     ///   gescannt. Die Schritte nach dem Sammeln laufen wie beim Vollscan; mit dem übernommenen Zustand sind sie
@@ -102,15 +109,19 @@ public struct ScanCoordinator: Sendable {
         var incompleteFolders: [String] = []
         var incompletePlistPaths: [String] = []
         var agents = AgentContribution()
+        var extensions = ExtensionContribution()
+        var delivered: [any InventorySource] = []
         var listenerScan: ListenerScanState?
         for (index, outcome) in zip(indices, outcomes) {
             let source = sources[index]
             switch outcome {
             case .success(let contribution):
                 source.accept(contribution)
+                delivered.append(source)
                 incompleteFolders += contribution.incompleteFolders
                 incompletePlistPaths += contribution.incompletePlistPaths
                 agents.append(contribution.agents)
+                extensions.append(contribution.extensions)
                 snapshot.sourceLimitations += contribution.limitations.map { SourceLimitation(source: source.id, message: $0) }
                     + contribution.retryableLimitations.map {
                         SourceLimitation(source: source.id, message: $0, isRetryable: true)
@@ -138,16 +149,31 @@ public struct ScanCoordinator: Sendable {
                 snapshot.sourceErrors.append(SourceError(source: source.id, message: message))
             }
         }
-        let carried = snapshot
+        var carried = snapshot
             .carryingForwardRecords(ofFailedSourcesFrom: previous)
             .carryingForwardApps(inIncompleteFolders: incompleteFolders, from: previous)
             .carryingForwardAutostartItems(inIncompletePlistPaths: incompletePlistPaths, from: previous)
             .addingAgents(agents, carryingForwardFrom: previous)
+            .addingExtensions(extensions, carryingForwardFrom: previous)
             .carryingForwardSecurityState(from: previous, policy: securityPolicy, now: startedAt)
             .carryingForwardAppState(from: previous)
-        guard let listenerScan else { return carried }
-        return carried.carryingForwardListeners(from: previous, currentUID: listenerScan.currentUID,
-                                                isLimited: listenerScan.isLimited, ended: listenerScan.ended)
+        if let listenerScan {
+            carried = carried.carryingForwardListeners(from: previous, currentUID: listenerScan.currentUID,
+                                                       isLimited: listenerScan.isLimited, ended: listenerScan.ended)
+        }
+        if derivesSharingServices {
+            carried = carried.derivingSharingServicesCheck(from: previous, policy: securityPolicy, now: startedAt)
+        }
+        for source in delivered {
+            carried = await source.linkingRecords(in: carried)
+        }
+        return carried
+    }
+
+    /// Die Prüfung „Freigabedienste“ entsteht aus den Lauschern (`Snapshot.derivingSharingServicesCheck`) – nur, wenn
+    /// dieser Koordinator Sicherheit und Netzwerkdienste scannt.
+    private var derivesSharingServices: Bool {
+        sourceIDs.isSuperset(of: [.securityPosture, .networkListeners])
     }
 
     /// Ob die Lauscher-Quelle in diesem Scan geliefert hat, für welchen Benutzer und ob nur eigene Sockets lesbar waren.
@@ -174,7 +200,7 @@ public struct ScanCoordinator: Sendable {
         of indices: [Int], onSourceCompletion: (@Sendable (ScanSourceCompletion) async -> Void)?
     ) async -> [Outcome] {
         let started = ContinuousClock.now
-        let timeout = sourceTimeout, running = running
+        let timeout = sourceTimeout, clock = clock, running = running
         return await withTaskGroup(of: IndexedOutcome.self) { group in
             for (position, index) in indices.enumerated() {
                 let source = sources[index]
@@ -182,9 +208,8 @@ public struct ScanCoordinator: Sendable {
                     guard running.begin(index) else {
                         return IndexedOutcome(index: position, outcome: .failure(Self.stillRunningMessage))
                     }
-                    return IndexedOutcome(index: position, outcome: await Self.outcome(of: source, timeout: timeout) {
-                        running.end(index)
-                    })
+                    let outcome = await Self.outcome(of: source, timeout: timeout, clock: clock) { running.end(index) }
+                    return IndexedOutcome(index: position, outcome: outcome)
                 }
             }
             var outcomes = [Outcome?](repeating: nil, count: indices.count)
@@ -204,7 +229,8 @@ public struct ScanCoordinator: Sendable {
     /// gilt (`OutcomeRace`). Ein Abbruch des Scans beendet das Warten sofort (das Ergebnis zählt dann nicht).
     /// `onCollectEnd` läuft, sobald `collect()` tatsächlich endet – auch lange nach der Frist.
     private static func outcome(
-        of source: any InventorySource, timeout: Duration, onCollectEnd: @escaping @Sendable () -> Void
+        of source: any InventorySource, timeout: Duration, clock: any Clock<Duration>,
+        onCollectEnd: @escaping @Sendable () -> Void
     ) async -> Outcome {
         let race = OutcomeRace()
         return await withTaskCancellationHandler {
@@ -216,7 +242,7 @@ public struct ScanCoordinator: Sendable {
                     catch { race.finish(.failure(error.readableDescription)) }
                 }
                 let deadline = Task {
-                    try? await Task.sleep(for: timeout)
+                    try? await clock.sleep(for: timeout)
                     if race.finish(.failure(timeoutMessage(timeout))) { work.cancel() }
                 }
                 race.onFinish { work.cancel(); deadline.cancel() }

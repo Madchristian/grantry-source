@@ -1,8 +1,9 @@
 import ManagerKit
 import SwiftUI
 
-/// Bereich „Netzwerk“: Umschalter „Dienste | Aktivität“ in der Symbolleiste, darunter die lauschenden Dienste
-/// (`NetworkView`) oder die Live-Aktivität (`NetworkActivityView`). Die Wahl merkt sich `MainWindowModel.networkMode`.
+/// Bereich „Netzwerk“: Umschalter „Verbindungen | Dienste | Aktivität“ in der Symbolleiste, darunter die offenen Sockets
+/// (`NetworkConnectionsView`), die lauschenden Dienste (`NetworkView`) oder die Live-Aktivität (`NetworkActivityView`).
+/// Die Wahl merkt sich `MainWindowModel.networkMode`.
 struct NetworkSectionView: View {
     let appModel: AppModel
     let prerequisites: PrerequisitesModel
@@ -12,6 +13,8 @@ struct NetworkSectionView: View {
         @Bindable var window = window
         Group {
             switch window.networkMode {
+            case .connections:
+                NetworkConnectionsView(appModel: appModel, prerequisites: prerequisites)
             case .services:
                 NetworkView(appModel: appModel, prerequisites: prerequisites)
             case .activity:
@@ -29,7 +32,7 @@ struct NetworkSectionView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
                 .fixedSize()
-                .help("Lauschende Dienste oder aktuelle Netzwerkaktivität zeigen")
+                .help("Offene Verbindungen, lauschende Dienste oder aktuelle Netzwerkaktivität zeigen")
             }
         }
     }

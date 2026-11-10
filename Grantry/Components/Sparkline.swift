@@ -1,3 +1,4 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -28,24 +29,24 @@ struct SparklineShape: Shape {
     }
 }
 
-/// Verlauf von Datenraten: empfangen in der Akzentfarbe, gesendet in Sekundärfarbe, gemeinsame Skala.
+/// Verlauf von Datenraten: empfangen in der Akzentfarbe, gesendet in Sekundärfarbe, gemeinsame Skala; mit `colors`
+/// in festen Farben (Instrumententafel).
 struct TrafficSparkline: View {
     let history: [TrafficRate]
     /// Siehe `SparklineShape.capacity`.
     var capacity: Int?
     let help: LocalizedStringKey
+    var colors: (received: Color, sent: Color)?
 
     var body: some View {
         let maximum = history.map { max($0.download, $0.upload) }.max() ?? 0
         ZStack {
             SparklineShape(values: history.map(\.upload), maximum: maximum, capacity: capacity)
-                .stroke(.secondary, lineWidth: 1)
+                .stroke(colors.map { AnyShapeStyle($0.sent) } ?? AnyShapeStyle(.secondary), lineWidth: colors == nil ? 1 : 1.5)
             SparklineShape(values: history.map(\.download), maximum: maximum, capacity: capacity)
-                .stroke(Color.accentColor, lineWidth: 1.5)
+                .stroke(colors?.received ?? Color.accentColor, lineWidth: 1.5)
         }
         .help(Text(help))
-        .accessibilityElement()
-        .accessibilityLabel(Text(help))
-        .accessibilityValue(Text(verbatim: "Höchstwert \(TrafficFormat.rate(maximum))"))
+        .accessibilityReading(Text(help), value: Text(verbatim: "Höchstwert \(TrafficFormat.rate(maximum))"))
     }
 }

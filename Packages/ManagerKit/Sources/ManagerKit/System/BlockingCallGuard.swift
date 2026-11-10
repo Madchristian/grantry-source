@@ -31,6 +31,8 @@ final class BlockingCallGuard: Sendable {
     static let spotlight = BlockingCallGuard(maximumHanging: 2)
     /// Für App-Symbole (`AppIconLoader`).
     static let icons = BlockingCallGuard(maximumHanging: 2)
+    /// Für Kapazitätsabfragen der Volumes (`VolumeInventorySource`): laufen seriell.
+    static let volumes = BlockingCallGuard(maximumHanging: 1)
 
     let maximumHanging: Int
     private let qualityOfService: QualityOfService
@@ -59,13 +61,8 @@ final class BlockingCallGuard: Sendable {
         }
         thread.qualityOfService = qualityOfService
         thread.start()
-        if done.wait(timeout: .now() + Self.interval(timeout)) == .success { return call.result }
+        if done.wait(timeout: .now() + timeout.dispatchInterval) == .success { return call.result }
         return call.abandon { hanging.withLock { $0 += 1 } }
-    }
-
-    private static func interval(_ duration: Duration) -> DispatchTimeInterval {
-        let (seconds, attoseconds) = duration.components
-        return .nanoseconds(Int(seconds) * 1_000_000_000 + Int(attoseconds / 1_000_000_000))
     }
 
     /// Zustand eines Aufrufs zwischen Thread und wartendem Aufrufer. Beide Seiten entscheiden unter derselben Sperre,
@@ -100,5 +97,13 @@ final class BlockingCallGuard: Sendable {
                 return nil
             }
         }
+    }
+}
+
+extension Duration {
+    /// Für Fristen von Dispatch (`DispatchTime.now() + …`), auf Nanosekunden genau.
+    var dispatchInterval: DispatchTimeInterval {
+        let (seconds, attoseconds) = components
+        return .nanoseconds(Int(seconds) * 1_000_000_000 + Int(attoseconds / 1_000_000_000))
     }
 }

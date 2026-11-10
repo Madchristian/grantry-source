@@ -3,11 +3,11 @@ import SwiftUI
 
 /// Segment im Bereich „Aufräumen“; die Wahl merkt sich `MainWindowModel.cleanupSegment`.
 enum CleanupSegment: Hashable {
-    case leftovers, storage, processes
+    case leftovers, storage, processes, occupancy
 }
 
-/// Bereich „Aufräumen“: Segmente „App-Reste“ (Reste gelöschter Apps), „Speicher“ (Speicherfresser, #215) und
-/// „Prozesse“ (verwaiste Agenten-Prozesse und gebootete Simulatoren, #221).
+/// Bereich „Aufräumen“: Segmente „App-Reste“ (Reste gelöschter Apps), „Speicher“ (Speicherfresser, #215),
+/// „Prozesse“ (verwaiste Agenten-Prozesse und gebootete Simulatoren, #221) und „Belegung“ (wo der Platz liegt, #403).
 struct CleanupView: View {
     let appModel: AppModel
     let prerequisites: PrerequisitesModel
@@ -23,6 +23,7 @@ struct CleanupView: View {
                 Text("App-Reste").tag(CleanupSegment.leftovers)
                 Text("Speicher").tag(CleanupSegment.storage)
                 Text("Prozesse").tag(CleanupSegment.processes)
+                Text("Belegung").tag(CleanupSegment.occupancy)
             }
             .pickerStyle(.segmented)
             .labelsHidden()
@@ -31,21 +32,31 @@ struct CleanupView: View {
             switch window.cleanupSegment {
             case .leftovers: OrphanCleanupView(appModel: appModel)
             case .storage:
-                StorageCleanupView(model: appModel.storageCleanup, openFullDiskAccess: openFullDiskAccess) {
+                StorageCleanupView(model: appModel.storageCleanup, openFullDiskAccess: openFullDiskAccess,
+                                   focusedCategoryID: $window.storageFocusCategoryID) {
                     onboarding.present()
                 }
             case .processes:
                 ProcessCleanupView(model: appModel.processCleanup, openFullDiskAccess: openFullDiskAccess) {
                     onboarding.present()
                 }
+            case .occupancy:
+                // Ohne bestätigten Festplattenvollzugriff lässt der Scan die Orte aus, die sonst eine Rückfrage auslösen.
+                OccupancyView(model: appModel.occupancy, findings: appModel.taskManager.findings,
+                              isFullDiskAccessMissing: prerequisites.fullDiskAccess != true,
+                              openFullDiskAccess: { Task { await prerequisites.perform(.openFullDiskAccessSettings) } }) {
+                    window.storageFocusCategoryID = $0
+                    window.cleanupSegment = .storage
+                }
             }
         }
     }
 }
 
-/// Segment „App-Reste“ (Spec v3 §3/§5): Reste gelöschter Apps auf Knopfdruck, gruppiert mit Auswahl, verwaiste
-/// Autostart-Einträge auswählbar, Berechtigungen entfernter Apps je Dienst mit „Für alle Apps zurücksetzen …“
-/// (`ServiceReset`); „In den Papierkorb legen …“ mit Bestätigung (Return und Escape brechen ab).
+/// Segment „App-Reste“ (Spec v3 §3/§5): Reste gelöschter Apps auf Knopfdruck, gruppiert mit Auswahl, darüber
+/// Erweiterungen ohne App aus dem Inventar (`ExtensionLeftoversBox`), verwaiste Autostart-Einträge auswählbar,
+/// Berechtigungen entfernter Apps je Dienst mit „Für alle Apps zurücksetzen …“ (`ServiceReset`); „In den Papierkorb
+/// legen …“ mit Bestätigung (Return und Escape brechen ab).
 struct OrphanCleanupView: View {
     let appModel: AppModel
     @State private var pendingPlan: RemovalPlan?
@@ -67,6 +78,9 @@ struct OrphanCleanupView: View {
                 }
                 if let presentation = cleanup.presentation {
                     notes(presentation)
+                }
+                if !extensionLeftovers.isEmpty {
+                    ExtensionLeftoversBox(leftovers: extensionLeftovers, appModel: appModel)
                 }
                 Divider()
                 // Volle Restfläche, damit Leerzustände wie in den anderen Bereichen mittig stehen statt oben links.
@@ -104,6 +118,11 @@ struct OrphanCleanupView: View {
     private func startSearch() {
         guard let snapshot = appModel.monitoring.snapshot else { return }
         cleanup.startSearch(in: snapshot)
+    }
+
+    /// Erweiterungen ohne App aus dem Inventar (TM-13.6) – unabhängig von der Suche.
+    private var extensionLeftovers: [ExtensionLeftover] {
+        appModel.presentation?.extensions.leftovers ?? []
     }
 
     /// Installierte Apps haben sich seit der Suche geändert oder das Ergebnis ist zu alt (Review I1).
@@ -171,7 +190,9 @@ struct OrphanCleanupView: View {
         if let presentation = cleanup.presentation {
             if presentation.isEmpty {
                 ContentUnavailableView("Keine Reste gefunden", systemImage: "checkmark.circle",
-                                       description: Text("Grantry hat keine Reste gelöschter Apps gefunden."))
+                                       description: extensionLeftovers.isEmpty
+                                           ? Text("Grantry hat keine Reste gelöschter Apps gefunden.")
+                                           : Text("Außer den Erweiterungen oben hat Grantry keine Reste gelöschter Apps gefunden."))
             } else {
                 CleanupList(presentation: presentation, selection: selection, actions: actions,
                             requestServiceReset: requestServiceReset)

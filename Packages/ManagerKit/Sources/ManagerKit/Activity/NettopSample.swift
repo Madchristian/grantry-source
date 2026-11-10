@@ -96,15 +96,18 @@ public struct ProcessTraffic: Hashable, Sendable {
     /// unterscheidet ihn von einem späteren Prozess mit derselben PID. `nil`: nicht lesbar (Prozess schon beendet)
     /// oder nicht erfasst (Parser).
     public var startTime: UInt64?
+    /// Benutzer, gelesen zusammen mit `startTime`; `nil`, wenn nicht lesbar oder nicht erfasst.
+    public var uid: UInt32?
 
     public init(pid: Int32, shortName: String, bytesIn: UInt64?, bytesOut: UInt64?,
-                connections: [ConnectionTraffic] = [], startTime: UInt64? = nil) {
+                connections: [ConnectionTraffic] = [], startTime: UInt64? = nil, uid: UInt32? = nil) {
         self.pid = pid
         self.shortName = shortName
         self.bytesIn = bytesIn
         self.bytesOut = bytesOut
         self.connections = connections
         self.startTime = startTime
+        self.uid = uid
     }
 }
 
@@ -119,17 +122,18 @@ public struct NettopSample: Hashable, Sendable {
         self.skippedLineCount = skippedLineCount
     }
 
-    /// Dieselbe Messung mit den Startzeiten aus `startTimes` (nach PID); fehlende bleiben `nil`.
-    func identifying(with startTimes: [Int32: UInt64]) -> NettopSample {
+    /// Dieselbe Messung mit Startzeiten und Benutzern aus `identities` (nach PID); fehlende bleiben `nil`.
+    func identifying(with identities: [Int32: NettopProcessIdentity]) -> NettopSample {
         NettopSample(processes: processes.map { process in
             var process = process
-            process.startTime = startTimes[process.pid]
+            process.startTime = identities[process.pid]?.startTime
+            process.uid = identities[process.pid]?.uid
             return process
         }, skippedLineCount: skippedLineCount)
     }
 }
 
-/// Eine Messung mit dem Zeitpunkt, an dem nettop ihren Block begann.
+/// Eine Messung mit ihrem Zeitpunkt in nettops Takt (`NettopSchedule`).
 public struct TimedNettopSample: Hashable, Sendable {
     public let sample: NettopSample
     public let capturedAt: ContinuousClock.Instant

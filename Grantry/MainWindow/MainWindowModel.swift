@@ -24,16 +24,29 @@ final class MainWindowModel {
     var appFilter = AppListFilter()
     /// Filter der Liste „Netzwerk“.
     var networkFilter = NetworkListenerFilter()
-    /// „Dienste | Aktivität“ im Bereich „Netzwerk“; gemerkt über Neustarts.
+    /// „Verbindungen | Dienste | Aktivität“ im Bereich „Netzwerk“; gemerkt über Neustarts.
     var networkMode = NetworkMode.restored() {
         didSet { networkMode.save() }
     }
+    /// Tab im Bereich „Task-Manager“; gemerkt über Neustarts.
+    var taskManagerTab = TaskManagerTab.restored() {
+        didSet { taskManagerTab.save() }
+    }
+    /// Kachel, die „Leistung“ wählen soll (Sprung aus der Menüleiste, TM17); „Leistung“ setzt sie danach zurück.
+    var performanceFocus: PerformanceMetric?
     /// Gruppierung der Berechtigungen.
     var permissionsGrouping: PermissionsGrouping = .byApp
     /// „App-Reste | Speicher | Prozesse“ im Bereich „Aufräumen“; bleibt beim Wechsel des Bereichs erhalten.
     var cleanupSegment = CleanupSegment.leftovers
+    /// Kategorie, die „Speicher“ zeigen soll (Sprung aus „Belegung“, #403); Speicher setzt sie danach zurück.
+    var storageFocusCategoryID: String?
     /// `id` eines `InventoryRecord`, den die Liste des Bereichs auswählen soll.
     var focusedRecordID: String?
+    /// Prozess, den der Tab „Details“ wählen soll (Sprung aus dem Wachbuch, TM-12.6); Details setzt ihn danach zurück.
+    var focusedProcess: ProcessKey?
+    /// Zeitpunkt, an den das Wachbuch die Zeitmarke setzen soll (Mitteilung, TM-12.8a); das Wachbuch setzt ihn danach
+    /// zurück.
+    var watchbookMarker: Date?
     /// Offenes Entfernen-Blatt (`RemovalSheet`).
     var removalRequest: RemovalRequest?
     /// Das Onboarding-Blatt ist offen (von `RootView` nachgeführt).
@@ -81,7 +94,30 @@ final class MainWindowModel {
         if request.section == .network, request.focusedRecordID != nil { networkMode = .services }
         if let observationID = request.observationID { selectedObservationID = observationID }
         if let cleanupSegment = request.cleanupSegment { self.cleanupSegment = cleanupSegment }
+        if let taskManagerTab = request.taskManagerTab { self.taskManagerTab = taskManagerTab }
+        if let performanceMetric = request.performanceMetric { performanceFocus = performanceMetric }
+        watchbookMarker = request.watchbookMarker
         if request.opensObservationStart { isObservationStartPresented = true }
+    }
+
+    /// Sprung aus dem Wachbuch (TM-12.6) in den zuständigen Bereich: Prozess in „Details“, Verlaufseintrag, Autostart,
+    /// Erweiterungen, Netzwerk › Verbindungen.
+    func show(_ target: WatchbookJumpTarget) {
+        switch target {
+        case .process(let key):
+            focusedProcess = key
+            taskManagerTab = .details
+        case .historyEntry(let id):
+            show(.history)
+            focusedRecordID = id.uuidString
+        case .autostart:
+            show(.autostart)
+        case .extensions:
+            show(.extensions)
+        case .networkConnections:
+            show(.network)
+            networkMode = .connections
+        }
     }
 
     /// Zeigt die Beobachtung `id` im Bereich „Beobachtungen“.
@@ -113,6 +149,10 @@ final class MainWindowModel {
             networkMode = .services
         case .mcpServer, .agentAutoApproval:
             show(.agents)
+        case .taskAction:
+            show(.taskManager)
+        case .extensionRecord:
+            show(.extensions)
         }
         focusedRecordID = event.subject.recordID
     }
@@ -134,6 +174,12 @@ final class MainWindowModel {
     func show(_ app: InstalledApp) {
         show(.apps)
         focusedRecordID = app.id
+    }
+
+    /// Zeigt eine Erweiterung im Bereich „Erweiterungen“ mit ihrem Detail (Verweis aus Apps oder Aufräumen).
+    func show(_ reference: ExtensionReference) {
+        show(.extensions)
+        focusedRecordID = reference.id
     }
 
     /// Zeigt einen Lauscher in der Liste „Netzwerk“ (Ansicht „Dienste“).

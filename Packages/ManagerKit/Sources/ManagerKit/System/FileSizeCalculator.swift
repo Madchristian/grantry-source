@@ -123,13 +123,19 @@ public struct FileSizeCalculator: FileSizeMeasuring {
         return callGuard.run(timeout: timeout) { counting(path, deadline, isCancelled) } ?? .unmeasured
     }
 
+    /// Belegter Speicher einer regulären Datei wie bei `du`: allozierte Blöcke, nicht die logische Größe. Gemeinsame Regel
+    /// mit dem Belegungsscanner (`LocalOccupancyFileSystem`).
+    static func allocatedBytes(of status: stat) -> Int64 {
+        Int64(status.st_blocks) * 512
+    }
+
     static func measurement(of path: String, deadline: ContinuousClock.Instant, isCancelled: () -> Bool) -> FileSize {
         summary(of: path, deadline: deadline, isCancelled: isCancelled).size
     }
 
     static func summary(of path: String, deadline: ContinuousClock.Instant, isCancelled: () -> Bool) -> FileTreeSummary {
         guard let info = FileType.linkStatus(of: path) else { return .unmeasured }
-        if FileType.isRegularFile(info) { return FileTreeSummary(.bytes(Int64(info.st_blocks) * 512), newest: info.st_mtimespec) }
+        if FileType.isRegularFile(info) { return FileTreeSummary(.bytes(allocatedBytes(of: info)), newest: info.st_mtimespec) }
         guard FileType.isDirectory(info) else { return FileTreeSummary(.bytes(0), newest: info.st_mtimespec) }
         let root = FileIdentity(info)
         guard let argument = strdup(path) else { return .unmeasured }
@@ -157,7 +163,7 @@ public struct FileSizeCalculator: FileSizeMeasuring {
                 let identity = FileIdentity(status)
                 guard identity.isOnSameVolume(as: root) else { continue }
                 if status.st_nlink > 1, !linked.insert(identity).inserted { continue }
-                total += Int64(status.st_blocks) * 512
+                total += allocatedBytes(of: status)
             default:
                 continue
             }

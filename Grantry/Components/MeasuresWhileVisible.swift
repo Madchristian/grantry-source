@@ -1,4 +1,5 @@
 import AppKit
+import GrantryCharts
 import SwiftUI
 
 /// Sichtbarkeit des Fensters einer Ansicht: `onDisappear` feuert nicht beim Minimieren, ⌘H, Wechsel des Space,
@@ -7,7 +8,7 @@ enum WindowVisibility {
     case visible
     /// Verdeckt, minimiert, ausgeblendet oder auf einem anderen Space.
     case hidden
-    /// Das Fenster schließt bzw. die Ansicht hängt in keinem Fenster mehr.
+    /// Das Fenster schließt.
     case closed
 }
 
@@ -20,6 +21,22 @@ extension View {
         hiddenDelay: Duration = .seconds(20), start: @escaping () -> Void, stop: @escaping () -> Void
     ) -> some View {
         modifier(MeasuresWhileVisible(hiddenDelay: hiddenDelay, start: start, stop: stop))
+    }
+
+    /// Hält die Graphen (GrantryCharts) an, solange das Fenster der Ansicht nicht sichtbar ist (Spec 2026-11-06 §4) –
+    /// sofort, ohne den Nachlauf der Messung: Ein verdecktes Fenster muss nichts zeichnen, die Werte laufen weiter ein.
+    func pausesChartsWhileHidden() -> some View {
+        modifier(ChartRenderingPause())
+    }
+}
+
+private struct ChartRenderingPause: ViewModifier {
+    @State private var visibility = WindowVisibility.visible
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\.chartRenderingPaused, visibility != .visible)
+            .background(WindowVisibilityReader { visibility = $0 })
     }
 }
 
@@ -75,7 +92,8 @@ private struct MeasuresWhileVisible: ViewModifier {
     }
 }
 
-/// Meldet die Sichtbarkeit des Fensters, in dem es hängt (unsichtbarer Hintergrund).
+/// Meldet die Sichtbarkeit des Fensters, in dem es hängt (unsichtbarer Hintergrund). Baut SwiftUI den Leser neu auf
+/// (etwa beim Tabwechsel im Task-Manager), schreiben alter und neuer in denselben Zustand.
 private struct WindowVisibilityReader: NSViewRepresentable {
     let onChange: (WindowVisibility) -> Void
 
@@ -88,7 +106,8 @@ private struct WindowVisibilityReader: NSViewRepresentable {
     }
 }
 
-private final class WindowVisibilityView: NSView {
+/// Intern statt privat für die hostlosen Tests (`WindowVisibilityReaderTests`).
+final class WindowVisibilityView: NSView {
     var onChange: (WindowVisibility) -> Void
     private var observers: [NSObjectProtocol] = []
 
@@ -107,10 +126,10 @@ private final class WindowVisibilityView: NSView {
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         removeObservers()
-        guard let window else {
-            report(.closed)
-            return
-        }
+        // Verlässt die View ihr Fenster, schweigt sie: Beim Neuaufbau hängt SwiftUI den neuen Leser vor dem Entfernen
+        // des alten ein, ein „geschlossen“ des alten überschriebe die Meldung des neuen. Das Verschwinden meldet
+        // `onDisappear`, das Schließen `willCloseNotification`.
+        guard let window else { return }
         let center = NotificationCenter.default
         observers = [
             center.addObserver(forName: NSWindow.didChangeOcclusionStateNotification, object: window, queue: .main) {

@@ -14,9 +14,11 @@ public enum NettopSamplerError: Error, Equatable, Sendable {
 /// Startet `nettop` als langlebigen Unterprozess und liefert jede Messung (Spec §2/§3).
 ///
 /// - Aufruf `nettop -L 0 -s <interval> -n -x -J interface,state,bytes_in,bytes_out -c`.
-/// - Ein Block ist vollständig, sobald die Kopfzeile des nächsten kommt – er erscheint also eine Intervalllänge nach
-///   seinem Beginn; `TimedNettopSample.capturedAt` ist der Zeitpunkt seiner Kopfzeile. Den letzten, womöglich
-///   unvollständigen Block beim Prozessende verwirft der Sampler.
+/// - Ein Block ist vollständig, sobald die Kopfzeile des nächsten kommt; den letzten, womöglich unvollständigen Block
+///   beim Prozessende verwirft der Sampler.
+/// - `TimedNettopSample.capturedAt` stammt aus nettops Takt (`NettopSchedule`), nicht aus dem Eingang der Kopfzeile:
+///   In die Pipe schreibt nettop gepuffert in Stücken von 16 KiB, zwei Kopfzeilen kommen oft im selben Stück an
+///   (Mitschnitt in den Tests, `NettopBufferedOutputTests`). Ihr Abstand wäre dann Mikrosekunden statt eines Intervalls.
 /// - Endet nettop, startet der Sampler ihn nach 1 s, 2 s, 4 s … (höchstens 30 s) neu. Nur ein stabiler Lauf
 ///   (mindestens `stableRunDuration` oder `stableRunSamples` Messungen) setzt den Backoff auf die erste Stufe zurück;
 ///   sonst wächst er mit jedem Neustart.
@@ -37,34 +39,47 @@ public struct NettopSampler: Sendable {
     static let stableRunSamples = 5
 
     private let streamer: any LineStreaming
-    private let interval: Int
-    private let startTime: @Sendable (Int32) -> UInt64?
+    /// Sekunden zwischen zwei Messungen (`-s`).
+    public let interval: Int
+    private let identity: @Sendable (Int32) -> NettopProcessIdentity?
     private let now: @Sendable () -> ContinuousClock.Instant
     private let sleep: @Sendable (Duration) async throws -> Void
 
     /// - Parameters:
     ///   - interval: Sekunden zwischen zwei Messungen (`-s`).
-    ///   - startTime: Startzeit eines Prozesses in µs seit 1970 (`ProcessTraffic.startTime`); `nil`, wenn nicht lesbar.
+    ///   - identity: Startzeit (µs seit 1970) und Benutzer eines Prozesses (`ProcessTraffic.startTime`, `.uid`); `nil`,
+    ///     wenn nicht lesbar.
     ///   - now, sleep: Uhr und Wartezeit, in Tests ersetzbar.
     public init(
         streamer: any LineStreaming = ProcessLineStreamer(),
         interval: Int = 2,
-        startTime: @escaping @Sendable (Int32) -> UInt64? = NettopSampler.libprocStartTime,
+        identity: @escaping @Sendable (Int32) -> NettopProcessIdentity? = NettopSampler.libprocIdentity,
         now: @escaping @Sendable () -> ContinuousClock.Instant = { ContinuousClock.now },
         sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
     ) {
         precondition(interval > 0, "nettop-Intervall muss positiv sein")
         self.streamer = streamer
         self.interval = interval
-        self.startTime = startTime
+        self.identity = identity
         self.now = now
         self.sleep = sleep
     }
 
-    /// Startzeit laut Prozesstabelle (`LibprocProcessInspector.liveness(of:)`), µs seit 1970.
-    public static func libprocStartTime(_ pid: Int32) -> UInt64? {
-        guard case .running(let startTime) = LibprocProcessInspector().liveness(of: pid) else { return nil }
-        return startTime
+    /// Nur mit Startzeit, ohne Benutzer (Tests).
+    public init(
+        streamer: any LineStreaming = ProcessLineStreamer(),
+        interval: Int = 2,
+        startTime: @escaping @Sendable (Int32) -> UInt64?,
+        now: @escaping @Sendable () -> ContinuousClock.Instant = { ContinuousClock.now },
+        sleep: @escaping @Sendable (Duration) async throws -> Void = { try await Task.sleep(for: $0) }
+    ) {
+        self.init(streamer: streamer, interval: interval,
+                  identity: { pid in startTime(pid).map { NettopProcessIdentity(startTime: $0) } }, now: now, sleep: sleep)
+    }
+
+    /// Startzeit und Benutzer laut **einer** Abfrage der Prozesstabelle (`LibprocProcessInspector.identity(of:)`).
+    public static func libprocIdentity(_ pid: Int32) -> NettopProcessIdentity? {
+        LibprocProcessInspector().identity(of: pid).map { NettopProcessIdentity(startTime: $0.startTime, uid: $0.uid) }
     }
 
     public var arguments: [String] {
@@ -83,7 +98,8 @@ public struct NettopSampler: Sendable {
         var emptyRuns = 0
         var restarts = 0
         while true {
-            let assembler = NettopSampleAssembler(startTime: startTime)
+            let schedule = NettopSchedule(start: now(), interval: .seconds(interval))
+            let assembler = NettopSampleAssembler(identity: identity, schedule: schedule)
             do {
                 _ = try await streamer.run(Self.executable, arguments) { line in
                     if let sample = try assembler.consume(line, at: now()) { onSample(sample) }
@@ -108,12 +124,38 @@ public struct NettopSampler: Sendable {
     }
 }
 
-/// Ein Block der nettop-Ausgabe mit dem Zeitpunkt seiner ersten Zeile und den beim Eingang der Prozesszeilen gelesenen
-/// Startzeiten (nach PID).
+/// Messzeitpunkte eines nettop-Laufs: nettop misst ab seinem Start im festen Takt (`-s`, auf macOS 27.2 auf wenige
+/// Millisekunden genau), Messung `n` also zur Zeit `start + n × interval`. Früher als beim Eingang ihrer Kopfzeile kann
+/// sie nicht gemessen sein; das begrenzt den Zeitpunkt, falls nettop schneller liefern sollte.
+struct NettopSchedule: Sendable {
+    /// Unmittelbar vor dem Start von nettop.
+    let start: ContinuousClock.Instant
+    let interval: Duration
+
+    func instant(ofSample index: Int, headerArrivedAt arrival: ContinuousClock.Instant) -> ContinuousClock.Instant {
+        min(start + interval * index, arrival)
+    }
+}
+
+/// Startzeit und Benutzer eines Prozesses, gelesen beim Eingang seiner nettop-Zeile.
+public struct NettopProcessIdentity: Hashable, Sendable {
+    /// µs seit 1970.
+    public let startTime: UInt64
+    /// `nil`, wenn nicht gelesen (Tests).
+    public let uid: UInt32?
+
+    public init(startTime: UInt64, uid: UInt32? = nil) {
+        self.startTime = startTime
+        self.uid = uid
+    }
+}
+
+/// Ein Block der nettop-Ausgabe mit dem Eingang seiner ersten Zeile und den beim Eingang der Prozesszeilen gelesenen
+/// Startzeiten und Benutzern (nach PID).
 struct NettopBlock: Hashable, Sendable {
     let text: String
     let startedAt: ContinuousClock.Instant
-    var startTimes: [Int32: UInt64] = [:]
+    var identities: [Int32: NettopProcessIdentity] = [:]
 }
 
 /// Schneidet nettops Zeilen ausschließlich an der exakten `NettopParser.header` in Blöcke. Zeilen vor der ersten
@@ -124,12 +166,12 @@ struct NettopBlockSplitter {
 
     private var lines: [String] = []
     private var startedAt: ContinuousClock.Instant?
-    private var startTimes: [Int32: UInt64] = [:]
+    private var identities: [Int32: NettopProcessIdentity] = [:]
 
-    /// Nimmt eine Zeile auf – bei einer Prozesszeile mit der Startzeit ihres Prozesses (`process`); liefert den vorigen
-    /// Block, sobald eine Kopfzeile den nächsten beginnt.
+    /// Nimmt eine Zeile auf – bei einer Prozesszeile mit Startzeit und Benutzer ihres Prozesses (`process`); liefert den
+    /// vorigen Block, sobald eine Kopfzeile den nächsten beginnt.
     mutating func append(_ line: String, at instant: ContinuousClock.Instant,
-                         process: (pid: Int32, startTime: UInt64)? = nil) -> NettopBlock? {
+                         process: (pid: Int32, identity: NettopProcessIdentity)? = nil) -> NettopBlock? {
         guard !line.isEmpty else { return nil }
         if line == NettopParser.header {
             let finished = flush()
@@ -139,7 +181,7 @@ struct NettopBlockSplitter {
         }
         if startedAt == nil { startedAt = instant }
         lines.append(line)
-        if let process { startTimes[process.pid] = process.startTime }
+        if let process { identities[process.pid] = process.identity }
         return lines.count > Self.maximumLines ? flush() : nil
     }
 
@@ -147,10 +189,10 @@ struct NettopBlockSplitter {
         defer {
             lines = []
             startedAt = nil
-            startTimes = [:]
+            identities = [:]
         }
         guard let startedAt, !lines.isEmpty else { return nil }
-        return NettopBlock(text: lines.joined(separator: "\n"), startedAt: startedAt, startTimes: startTimes)
+        return NettopBlock(text: lines.joined(separator: "\n"), startedAt: startedAt, identities: identities)
     }
 }
 
@@ -168,21 +210,30 @@ struct NettopRunSummary: Equatable, Sendable {
 
 /// Zerlegt und parst die Zeilen eines nettop-Laufs; merkt sich, was er geliefert hat.
 ///
-/// Die Startzeit eines Prozesses wird beim Eingang seiner Zeile gelesen: Ein Block ist erst mit der nächsten Kopfzeile
+/// Startzeit und Benutzer eines Prozesses werden beim Eingang seiner Zeile gelesen: Ein Block ist erst mit der nächsten Kopfzeile
 /// fertig, ein Intervall später – endet der Prozess dazwischen, wäre sie dann nicht mehr lesbar.
 final class NettopSampleAssembler: Sendable {
     private struct State {
         var splitter = NettopBlockSplitter()
+        /// Gelieferte Messungen – zugleich die Nummer des nächsten Blocks, denn ein unlesbarer Block beendet den Lauf.
         var samples = 0
         var firstLineAt: ContinuousClock.Instant?
         var lastLineAt: ContinuousClock.Instant?
     }
 
-    private let startTime: @Sendable (Int32) -> UInt64?
+    private let identity: @Sendable (Int32) -> NettopProcessIdentity?
+    private let schedule: NettopSchedule
     private let state = Mutex(State())
 
-    init(startTime: @escaping @Sendable (Int32) -> UInt64?) {
-        self.startTime = startTime
+    init(identity: @escaping @Sendable (Int32) -> NettopProcessIdentity?, schedule: NettopSchedule) {
+        self.identity = identity
+        self.schedule = schedule
+    }
+
+    /// Nur mit Startzeit, ohne Benutzer, Takt ab jetzt (Tests).
+    convenience init(startTime: @escaping @Sendable (Int32) -> UInt64?) {
+        self.init(identity: { pid in startTime(pid).map { NettopProcessIdentity(startTime: $0) } },
+                  schedule: NettopSchedule(start: .now, interval: .seconds(2)))
     }
 
     var summary: NettopRunSummary {
@@ -196,7 +247,7 @@ final class NettopSampleAssembler: Sendable {
     func consume(_ line: String, at instant: ContinuousClock.Instant) throws -> TimedNettopSample? {
         guard !line.isEmpty else { return nil }
         let process = NettopParser.processID(ofLine: line[...]).flatMap { pid in
-            startTime(pid).map { (pid: pid, startTime: $0) }
+            identity(pid).map { (pid: pid, identity: $0) }
         }
         let block = try state.withLock { state in
             if state.firstLineAt == nil {
@@ -208,8 +259,12 @@ final class NettopSampleAssembler: Sendable {
             return state.splitter.append(line, at: instant, process: process)
         }
         guard let block else { return nil }
-        let sample = try NettopParser.parse(block: block.text).identifying(with: block.startTimes)
-        state.withLock { $0.samples += 1 }
-        return TimedNettopSample(sample: sample, capturedAt: block.startedAt)
+        let sample = try NettopParser.parse(block: block.text).identifying(with: block.identities)
+        let index = state.withLock { state in
+            defer { state.samples += 1 }
+            return state.samples
+        }
+        return TimedNettopSample(sample: sample,
+                                 capturedAt: schedule.instant(ofSample: index, headerArrivedAt: block.startedAt))
     }
 }

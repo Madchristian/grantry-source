@@ -190,6 +190,44 @@ public actor HelperClient: BTMDumpProviding, PrivilegedAutostartControlling, Pri
         }
     }
 
+    /// Frist der Task-Manager-Aktionen (TM9): über der Lebensdauer im Helper (`HelperService.taskRequestLifetime`, 120 s,
+    /// Kennwortdialog eingeschlossen), damit der Client nie „gescheitert“ meldet, während der Helper noch handeln könnte.
+    static let taskActionTimeout: Duration = .seconds(150)
+
+    /// Frist für `sensorReading()`: ein `powermetrics`-Lauf (Frist 5 s) plus Warten auf einen laufenden.
+    static let sensorTimeout: Duration = .seconds(12)
+
+    /// Beendet einen Prozess eines anderen Benutzers über den Helper (`terminateTaskProcess`, mit Kennwortdialog);
+    /// verlangt mindestens `HelperXPC.taskManagerMinimumVersion`.
+    public func terminateTaskProcess(pid: Int32, executablePath: String, startTime: UInt64, force: Bool,
+                                     authorization: Data) async throws {
+        try await call(timeout: Self.taskActionTimeout, requiring: HelperXPC.taskManagerMinimumVersion) { proxy, done in
+            proxy.terminateTaskProcess(pid: pid, executablePath: executablePath, startTime: startTime, force: force,
+                                       authorization: authorization) { done(Self.result($0)) }
+        }
+    }
+
+    /// Setzt die Priorität über den Helper (`setTaskProcessPriority`, mit Kennwortdialog).
+    public func setTaskProcessPriority(pid: Int32, executablePath: String, startTime: UInt64,
+                                       priority: ProcessPriority, authorization: Data) async throws {
+        try await call(timeout: Self.taskActionTimeout, requiring: HelperXPC.taskManagerMinimumVersion) { proxy, done in
+            proxy.setTaskProcessPriority(pid: pid, executablePath: executablePath, startTime: startTime,
+                                         priority: priority.rawValue, authorization: authorization) { done(Self.result($0)) }
+        }
+    }
+
+    /// Leistungsaufnahme und Takt über den Helper (`readSensors`, ohne Dialog).
+    public func sensorReading() async throws -> SensorReading {
+        let data: Data = try await call(timeout: Self.sensorTimeout, requiring: HelperXPC.taskManagerMinimumVersion) {
+            proxy, done in proxy.readSensors { done(Self.result($0, $1)) }
+        }
+        do {
+            return try JSONDecoder().decode(SensorReading.self, from: data)
+        } catch {
+            throw HelperClientError.rejected("Antwort nicht lesbar: \(error.readableDescription)")
+        }
+    }
+
     public func setEnabled(plistPath: String, enabled: Bool) async throws {
         try await call(timeout: callTimeout) { proxy, done in
             proxy.setEnabled(plistPath: plistPath, enabled: enabled) { done(Self.result($0)) }

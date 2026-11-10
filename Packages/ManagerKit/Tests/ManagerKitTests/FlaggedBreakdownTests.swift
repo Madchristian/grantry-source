@@ -60,8 +60,10 @@ import Testing
         #expect(FlaggedArea.allCases.map { breakdown.count(in: $0, for: .flagged) }.reduce(0, +) == metrics.flaggedCount)
         #expect(FlaggedArea.allCases.map { breakdown.count(in: $0, for: .withFindings) }.reduce(0, +)
             == metrics.flaggedCount + metrics.hintCount)
-        #expect(breakdown.areas(for: .flagged) == FlaggedArea.allCases)
-        #expect(breakdown.areas(for: .withFindings) == FlaggedArea.allCases)
+        // Erweiterungen zählt `ExtensionReferencesTests`; hier haben sie keine Einträge.
+        let areas: [FlaggedArea] = [.permissions, .autostart, .apps, .agents, .network]
+        #expect(breakdown.areas(for: .flagged) == areas)
+        #expect(breakdown.areas(for: .withFindings) == areas)
     }
 
     /// Befunde zu Einträgen, die keine Liste zeigt – ein entfernter Eintrag oder ein nur lokal erreichbarer Lauscher, den

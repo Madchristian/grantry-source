@@ -102,6 +102,9 @@ import Testing
             "bootoutWithPlistPath:reply:", "bootstrapWithPlistPath:reply:", "unloadAndRemovePlistWithPath:expectedFingerprint:reply:",
             "restorePlistWithBackupPath:reply:", "listListeningSocketsWithReply:",
             "terminateProcessWithPid:executablePath:startTime:force:reply:",
+            "terminateTaskProcessWithPid:executablePath:startTime:force:authorization:reply:",
+            "setTaskProcessPriorityWithPid:executablePath:startTime:priority:authorization:reply:",
+            "readSensorsWithReply:",
         ]))
         #expect(Self.selectorNames(of: GrantryHelperXPC.self, isRequired: false).isEmpty)
         #expect(!names.contains { $0.lowercased().contains("disable") || $0.contains("Off") })

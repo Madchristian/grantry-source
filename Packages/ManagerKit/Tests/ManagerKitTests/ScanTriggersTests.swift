@@ -78,6 +78,23 @@ struct ScanTriggersTests {
         #expect(await watcher.firstSubscription() == .init(paths: ["/a"], files: ["/b"], shallowPaths: ["/Applications"]))
     }
 
+    /// Eng beobachtete Ordner (Erweiterungen, #389) zählen nur, wenn sie beim Start bestehen: Ein fehlender würde sonst
+    /// über seinen Elternordner – etwa den Benutzerordner – rekursiv beobachtet (#279).
+    @Test func existingPathsAreWatchedOnlyWhenPresent() async throws {
+        let directory = FileManager.default.temporaryDirectory.appending(path: "scan-triggers-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = directory.appending(path: "file")
+        try Data().write(to: file)
+        let watcher = FakeWatcher()
+        let triggers = ScanTriggers(
+            watcher: watcher, paths: ["/a"], existingPaths: [directory.path, directory.appending(path: "missing").path, file.path],
+            clock: TestClock()
+        )
+        _ = await triggers.reasons()
+        #expect(await watcher.firstSubscription() == .init(paths: ["/a", directory.path], files: [], shallowPaths: []))
+    }
+
     @Test func manualRequestIsEmittedImmediately() async {
         let triggers = makeTriggers()
         var reasons = await triggers.reasons().makeAsyncIterator()

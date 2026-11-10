@@ -255,11 +255,7 @@ public struct LaunchdSource: InventorySource {
     private func parsedOutput<Parsed>(
         of arguments: [String], domain: String, _ parse: (String) -> Parsed?
     ) async throws -> Parsed {
-        let result = try await runner.launchctl(arguments, domain: domain)
-        if result.succeeded, let parsed = parse(result.stdout) { return parsed }
-        throw LaunchdSourceError.failed(
-            result, domain: domain, arguments: arguments, message: result.succeeded ? "unerwartetes Ausgabeformat" : nil
-        )
+        try await runner.launchctl(arguments, domain: domain, parse: parse)
     }
 
     private func item(from entry: Entry, state: DomainState, isLoaded: Bool?, owner: AppIdentity?, volumes: [MountedVolume]) -> AutostartItem {

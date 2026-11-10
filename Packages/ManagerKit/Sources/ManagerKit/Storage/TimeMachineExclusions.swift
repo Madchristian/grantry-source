@@ -28,6 +28,20 @@ public enum TimeMachineBackupState: Hashable, Sendable {
     case included, excluded, unknown
 }
 
+/// Sicherungsstatus eines beliebigen Ordners (Hinweise der Belegung, TM-15.3): `excludedFolder` ist der Ordner, dessen
+/// Ausschluss gilt – er selbst oder ein übergeordneter; `nil`, solange er nicht ausgenommen ist.
+public struct TimeMachineFolderStatus: Hashable, Sendable {
+    public static let unknown = TimeMachineFolderStatus(state: .unknown, excludedFolder: nil)
+
+    public let state: TimeMachineBackupState
+    public let excludedFolder: String?
+
+    public init(state: TimeMachineBackupState, excludedFolder: String?) {
+        self.state = state
+        self.excludedFolder = excludedFolder
+    }
+}
+
 /// Ein vorhandener Vorschlag mit Größe und Sicherungsstatus beim Scan.
 public struct TimeMachineSuggestion: Identifiable, Hashable, Sendable {
     public let candidate: TimeMachineCandidate
@@ -148,6 +162,24 @@ public struct TimeMachineExclusions: Sendable {
         let byPath = Dictionary(refreshed.suggestions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         return TimeMachineReport(suggestions: report.suggestions.compactMap { isAffected($0) ? byPath[$0.id] : $0 },
                                  failure: refreshed.failure ?? report.failure)
+    }
+
+    /// Status eines Ordners der Belegung (TM-15.3), nur lesend: ein `tmutil isexcluded` für ihn und seine übergeordneten
+    /// Ordner, denn ein Ausschluss gilt für alles darunter, `isexcluded` meldet ihn aber nur am ausgenommenen Ordner.
+    /// Gesichert nur, wenn alle Antworten „gesichert“ lauten; scheitert der Aufruf oder fehlt eine, unbekannt. Pfade in
+    /// der Schreibweise des Datenvolumes zählen wie ihr Firmlink (sonst gälte `/System` als übergeordnet).
+    @concurrent
+    public func status(of path: String) async -> TimeMachineFolderStatus {
+        let path = MountedVolume.firmlinkedPath(path)
+        guard RawPath.components(of: path) != nil else { return .unknown }
+        let chain = Self.pathWithAncestors(path)
+        let (states, failure) = await states(of: chain)
+        guard failure == nil else { return .unknown }
+        if let excluded = chain.first(where: { states[$0] == .excluded }) {
+            return TimeMachineFolderStatus(state: .excluded, excludedFolder: excluded)
+        }
+        return chain.allSatisfy { states[$0] == .included } ? TimeMachineFolderStatus(state: .included, excludedFolder: nil)
+            : .unknown
     }
 
     /// Ein `tmutil isexcluded`-Aufruf für alle Pfade; `failure`, wenn er scheitert.

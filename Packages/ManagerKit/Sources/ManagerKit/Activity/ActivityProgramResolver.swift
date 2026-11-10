@@ -232,17 +232,29 @@ public struct ActivityFrame: Hashable, Sendable {
 
 /// Verarbeitet die Messungen eines Laufs nacheinander: `TrafficTracker` und Programmzuordnung. Blockiert nicht –
 /// Signaturprüfungen laufen in `ActivityProgramResolver` auf eigener Queue.
+///
+/// Die Byte-Zähler der Schnittstellen (Plausibilitätsdeckel des `TrafficTracker`) liest sie beim Erzeugen – vor dem
+/// Start von nettop – und zu jeder Messung.
 final class ActivityPipeline: Sendable {
     private let tracker: Mutex<TrafficTracker>
     private let programs: ActivityProgramResolver
+    private let interfaces: @Sendable () -> InterfaceByteReading?
 
-    init(tracker: TrafficTracker, programs: ActivityProgramResolver) {
+    init(tracker: TrafficTracker, programs: ActivityProgramResolver,
+         interfaces: @escaping @Sendable () -> InterfaceByteReading?) {
+        var tracker = tracker
+        if let reading = interfaces() { tracker.record(reading) }
         self.tracker = Mutex(tracker)
         self.programs = programs
+        self.interfaces = interfaces
     }
 
     func frame(for sample: TimedNettopSample) -> ActivityFrame {
-        let report = tracker.withLock { $0.update(with: sample.sample, at: sample.capturedAt) }
+        let reading = interfaces()
+        let report = tracker.withLock { tracker in
+            if let reading { tracker.record(reading) }
+            return tracker.update(with: sample.sample, at: sample.capturedAt)
+        }
         let resolved = programs.programs(for: report.processes.map(\.key),
                                          ended: Set(report.processes.filter(\.isGone).map(\.key)))
         return ActivityFrame(report: report, programs: resolved.programs, pendingSignatures: resolved.pendingSignatures)

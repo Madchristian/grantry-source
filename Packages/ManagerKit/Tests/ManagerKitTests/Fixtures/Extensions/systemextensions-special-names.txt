@@ -1,0 +1,11 @@
+5 extension(s)
+--- com.apple.system_extension.driver_extension (Go to 'System Settings > General > Login Items & Extensions > Driver Extensions' to modify these system extension(s))
+enabled	active	teamID	bundleID (version)	name	[state]
+*	*	ABCDE12345	de.example.treiber (1.0/1)	Grüße – Treiber ☕︎ (Beta)	[activated enabled]
+*	*	ABCDE12345	de.example.bidi (1.0/1)	Apple‮​System Treiber	[activated enabled]
+*	*	ABCDE12345	de.example.long (1.0/1)	Sehr langer Name XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX	[activated enabled]
+--- com.apple.system_extension.future_kind (Go to 'System Settings' to modify these system extension(s))
+enabled	active	teamID	bundleID (version)	name	[state]
+		-	de.example.future (2.0/2)	Zukunft	[validating by category]
+*	*	ABCDE12345	de.example.tabname (1.0/1)	Name	mit Tab	[activated enabled]
+eine kaputte Zeile ohne Tabulatoren

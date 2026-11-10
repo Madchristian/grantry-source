@@ -1,9 +1,12 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Ansicht „Aktivität“ im Bereich Netzwerk: welche Prozesse gerade senden und empfangen, mit Rate und Zielen (live über
-/// nettop). Misst nur, solange sie angezeigt wird und ihr Fenster sichtbar ist (`measuresWhileVisible`); Fehler und
-/// Hinweise stehen in derselben Leiste wie die Scan-Abdeckung (`NoticeBarLayout`).
+/// Ansicht „Aktivität“ im Bereich Netzwerk, Gestaltung „Lagebild“ (#366): welche Prozesse gerade senden und empfangen,
+/// mit Rate und Zielen (live über nettop). Oben die Zustandszeile, darunter der Datenverkehr des Macs mit Kennzahlen,
+/// Suche, Umschalter und die Tabelle (`NetworkActivityBoard`). Misst nur, solange sie angezeigt wird und ihr Fenster
+/// sichtbar ist (`measuresWhileVisible`); Fehler und Hinweise stehen darüber in derselben Leiste wie die Scan-Abdeckung
+/// (`NoticeBarLayout`).
 struct NetworkActivityView: View {
     @Bindable var model: NetworkActivityModel
     /// Lauscher des aktuellen Snapshots („Zum Netzwerkdienst“).
@@ -11,24 +14,25 @@ struct NetworkActivityView: View {
     @Environment(MainWindowModel.self) private var window
 
     var body: some View {
-        let rows = model.rows
+        let overview = NetworkActivityOverview(report: model.frame.report)
+        let verdict = overview.verdict
         VStack(spacing: 0) {
             if let notice = model.notice {
                 NetworkActivityNoticeBar(notice: notice, retry: model.retry)
                 Divider()
             }
-            // Ohne Messung (Fehlerzustand) gibt es weder Summen noch Verlauf.
-            if model.status.failure == nil {
-                NetworkActivityHeader(total: model.frame.report.total, history: model.frame.report.history)
-                Divider()
+            StatusLine(verdict: verdict.title, finding: verdict.hasFinding, items: verdict.statusItems,
+                       facts: verdict.facts)
+                .padding([.horizontal, .top], InstrumentSpacing.page)
+            NetworkActivityBoard(
+                rows: model.rows, overview: overview, history: model.frame.report.history,
+                measures: model.status.failure == nil, filter: $model.filter, query: $model.query,
+                sortOrder: $model.sortOrder, listeners: listeners, showListener: { window.show($0) }
+            ) {
+                emptyState
             }
-            NetworkActivityTable(rows: rows, sortOrder: $model.sortOrder, listeners: listeners,
-                                 showListener: { window.show($0) })
-                .overlay {
-                    if rows.isEmpty { emptyState }
-                }
         }
-        .searchable(text: $model.query, placement: .toolbar, prompt: Text("Name, Ziel oder Port"))
+        .instrumentBackground()
         .toolbar {
             ToolbarItem { NetworkActivityFilterMenu(filter: $model.filter) }
         }
@@ -82,13 +86,20 @@ private struct NetworkActivityPreview: View {
             NetworkActivityView(model: model, listeners: [.preview])
         }
         .environment(MainWindowModel())
-        .frame(width: 710, height: 420)
+        .frame(width: 1240, height: 780)
     }
 }
 
-#Preview("Aktivität") {
+#Preview("Aktivität hell") {
     NetworkActivityPreview(model: .preview(frame: NetworkActivityPreviewData.frame, status: .running,
                                            hostNames: NetworkActivityPreviewData.hostNames))
+        .preferredColorScheme(.light)
+}
+
+#Preview("Aktivität dunkel") {
+    NetworkActivityPreview(model: .preview(frame: NetworkActivityPreviewData.frame, status: .running,
+                                           hostNames: NetworkActivityPreviewData.hostNames))
+        .preferredColorScheme(.dark)
 }
 
 #Preview("Leer") {

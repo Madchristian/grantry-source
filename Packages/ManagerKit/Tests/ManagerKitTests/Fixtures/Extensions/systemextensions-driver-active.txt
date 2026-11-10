@@ -1,0 +1,4 @@
+1 extension(s)
+--- com.apple.system_extension.driver_extension (Go to 'System Settings > General > Login Items & Extensions > Driver Extensions' to modify these system extension(s))
+enabled	active	teamID	bundleID (version)	name	[state]
+*	*	Y93VXCB8Q5	com.corsair.cue.main.VirtualHIDDeviceDriver (1.8.10/1.8.10)	com.corsair.cue.main.VirtualHIDDeviceDriver	[activated enabled]

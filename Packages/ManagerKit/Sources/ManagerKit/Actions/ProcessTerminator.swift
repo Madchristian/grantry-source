@@ -17,7 +17,7 @@ public protocol ProcessListTerminating: Sendable {
 /// Eigene Prozesse (uid = `currentUID`) beendet die App über `OwnProcessSignaling`, fremde der Helper
 /// (`PrivilegedProcessTerminating`), nacheinander in der Reihenfolge des Requests. Danach prüft er alle
 /// `pollInterval`, höchstens `gracePeriod` lang (Spec: 250 ms, 5 s), ob die Prozesse enden. Beendet ist ein Prozess
-/// erst, wenn seine PID fehlt oder neu vergeben ist (andere Startzeit, `isGone`); läuft unter PID und Startzeit noch
+/// erst, wenn seine PID fehlt oder neu vergeben ist (andere Startzeit, `ProcessEndWaiter`); läuft unter PID und Startzeit noch
 /// etwas – auch mit anderem Programm oder Benutzer (exec, setuid) oder mit gerade nicht bestätigter Identität –, läuft
 /// er weiter (#153, Befund 3 und Codex-Runde 3). Diese Prüfung gilt für zugestellte wie für ungewiss zugestellte
 /// Signale gleichermaßen.
@@ -38,12 +38,9 @@ public struct ProcessTerminator: ProcessTerminating, ProcessListTerminating {
 
     private let own: any OwnProcessSignaling
     private let privileged: (any PrivilegedProcessTerminating)?
-    private let inspector: any ProcessInspecting
     private let ledger: ListenerTerminationLedger?
     private let currentUID: UInt32
-    private let clock: any Clock<Duration>
-    private let gracePeriod: Duration
-    private let pollInterval: Duration
+    private let endWaiter: ProcessEndWaiter
     private let now: @Sendable () -> Date
 
     public init(
@@ -59,12 +56,10 @@ public struct ProcessTerminator: ProcessTerminating, ProcessListTerminating {
     ) {
         self.own = own
         self.privileged = privileged
-        self.inspector = inspector
         self.ledger = ledger
         self.currentUID = currentUID
-        self.clock = clock
-        self.gracePeriod = gracePeriod
-        self.pollInterval = pollInterval
+        self.endWaiter = ProcessEndWaiter(inspector: inspector, clock: clock, gracePeriod: gracePeriod,
+                                          pollInterval: pollInterval)
         self.now = now
     }
 
@@ -88,7 +83,7 @@ public struct ProcessTerminator: ProcessTerminating, ProcessListTerminating {
                 if Self.mayHaveSignalled(after: error) { uncertain.append(process) }
             }
         }
-        let running = Set(await waitForEnd(of: signalled + uncertain))
+        let running = Set(await endWaiter.stillRunning(signalled + uncertain))
         let stillRunning = signalled.filter(running.contains)
         // Ein ungewiss zugestelltes Signal hat gewirkt, wenn der Prozess danach beendet ist.
         let remainingFailures = failures.filter { !uncertain.contains($0.process) || running.contains($0.process) }
@@ -110,33 +105,14 @@ public struct ProcessTerminator: ProcessTerminating, ProcessListTerminating {
 
     /// `false` bei nachweislicher Ablehnung vor dem Signal: Prüfung der App (`ProcessTerminationViolation`), kein Helper
     /// (`ProcessTerminationError`), Ablehnung oder veralteter Helper (`HelperClientError.rejected`/`.outdated`). Sonst –
-    /// Helper nicht erreichbar oder Frist abgelaufen (`.unavailable`), unbekannte Fehler – `true`.
+    /// Helper nicht erreichbar oder Frist abgelaufen (`.unavailable`), unbekannte Fehler – `true`. Eine nicht angelegte
+    /// Admin-Bestätigung (`ActionAuthorizationError`, TM9) scheitert vor dem Senden.
     static func mayHaveSignalled(after error: any Error) -> Bool {
         switch error {
-        case is ProcessTerminationViolation, is ProcessTerminationError: false
+        case is ProcessTerminationViolation, is ProcessTerminationError, is ActionAuthorizationError: false
         case let error as HelperClientError:
             if case .unavailable = error { true } else { false }
         default: true
         }
-    }
-
-    /// Prozesse, die nach höchstens `gracePeriod` noch laufen.
-    private func waitForEnd(of processes: [RunningProcess]) async -> [RunningProcess] {
-        var running = processes.filter { !isGone($0) }
-        var polls = Int((gracePeriod / pollInterval).rounded(.up))
-        while !running.isEmpty, polls > 0 {
-            polls -= 1
-            do { try await clock.sleep(for: pollInterval) } catch { break }
-            running = running.filter { !isGone($0) }
-        }
-        return running
-    }
-
-    /// Exitnachweis allein über PID und Startzeit (`ProcessInspecting.hasEnded`): Die PID fehlt oder ist neu vergeben.
-    /// Ein exec oder Benutzerwechsel unter derselben PID und Startzeit gilt nicht als Ende, ebenso wenig eine gerade nicht
-    /// bestätigte Identität (`process(_:)` liefert `nil`, etwa nach einem exec zwischen den Token-Lesungen) oder ein
-    /// nicht feststellbarer Zustand – solche Prozesse werden weiter geprüft.
-    private func isGone(_ process: RunningProcess) -> Bool {
-        inspector.hasEnded(process.pid, startedAt: process.startTime)
     }
 }

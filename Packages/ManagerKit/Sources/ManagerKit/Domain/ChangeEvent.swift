@@ -9,10 +9,15 @@ public enum ChangeSubject: Hashable, Sendable, Codable {
     case networkListener(NetworkListener)
     case mcpServer(MCPServerEntry)
     case agentAutoApproval(AgentAutoApproval)
+    /// Kernel- oder Systemerweiterung, Plug-in in einem Systemdienst (TM-13.3).
+    case extensionRecord(ExtensionRecord)
+    /// Aktion des Task-Managers (TM-9.5); entsteht nicht aus einem Scan, sondern beim Handeln.
+    case taskAction(TaskActionRecord)
 
     /// `id` des betroffenen Eintrags.
     public var recordID: String {
         switch self {
+        case .taskAction(let record): "task:\(record.id.uuidString)"
         case .grant(let grant): grant.id
         case .autostartItem(let item): item.id
         case .securityCheck(let check): check.id
@@ -20,6 +25,7 @@ public enum ChangeSubject: Hashable, Sendable, Codable {
         case .networkListener(let listener): listener.id
         case .mcpServer(let server): server.id
         case .agentAutoApproval(let approval): approval.id
+        case .extensionRecord(let record): record.id
         }
     }
 }

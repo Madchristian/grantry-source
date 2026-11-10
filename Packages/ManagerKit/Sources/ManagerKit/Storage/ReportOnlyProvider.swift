@@ -9,6 +9,8 @@ struct ReportOnlyProvider: StorageCategoryProvider {
     let paths: @Sendable () -> [String]
     let measurer: any FileSizeMeasuring
 
+    var locations: [StorageCategoryLocation] { paths().map { StorageCategoryLocation(path: $0) } }
+
     func scan() async -> StorageCategoryReport {
         let existing = paths().filter { path in
             guard let identity = FileIdentity.of(path) else { return false }
@@ -31,6 +33,8 @@ struct TimeMachineSnapshotsProvider: StorageCategoryProvider {
     static let prefix = "com.apple.TimeMachine."
     static let suffix = ".local"
     static let categoryID = "timeMachine"
+    static let tmutil = "/usr/bin/tmutil"
+    static let listArguments = ["listlocalsnapshots", "/"]
 
     let runner: any CommandRunning
 
@@ -43,20 +47,26 @@ struct TimeMachineSnapshotsProvider: StorageCategoryProvider {
     func scan() async -> StorageCategoryReport {
         let result: CommandResult
         do {
-            result = try await runner.run("/usr/bin/tmutil", ["listlocalsnapshots", "/"])
+            result = try await runner.run(Self.tmutil, Self.listArguments)
         } catch {
             return StorageCategoryReport(category: category, status: .failed(error.localizedDescription), items: [])
         }
         guard result.succeeded else {
             return StorageCategoryReport(category: category, status: .failed(result.failureReason), items: [])
         }
-        let items = result.stdout.split(separator: "\n").compactMap { line -> StorageItem? in
-            guard let token = line.split(whereSeparator: \.isWhitespace).first, let date = Self.snapshotDate(in: token)
-            else { return nil }
-            return StorageItem(id: String(token), title: date, path: nil, size: .unknown, removal: .none,
-                               isPreselected: false, hint: "sudo tmutil deletelocalsnapshots \(date)")
+        let items = Self.snapshotDates(in: result.stdout).map { date in
+            StorageItem(id: Self.prefix + date + Self.suffix, title: date, path: nil, size: .unknown, removal: .none,
+                        isPreselected: false, hint: "sudo tmutil deletelocalsnapshots \(date)")
         }
         return StorageCategoryReport(category: category, status: .available, items: items)
+    }
+
+    /// Daten der Snapshots in der Ausgabe von `tmutil listlocalsnapshots /`, in deren Reihenfolge; Kopfzeile und
+    /// unpassende Zeilen fallen weg. Einziger Parser dieser Ausgabe (Speicher und Datenträger, #400).
+    static func snapshotDates(in output: String) -> [String] {
+        output.split(separator: "\n").compactMap { line in
+            line.split(whereSeparator: \.isWhitespace).first.flatMap(snapshotDate)
+        }
     }
 
     /// Datum aus dem Snapshot-Namen (`com.apple.TimeMachine.<Datum>.local`); Zusätze hinter dem Namen wie

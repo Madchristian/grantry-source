@@ -123,9 +123,9 @@ import TestSupport
         #expect(MountedVolume.containing("/Users/x", in: volumes)?.path == "/")
     }
 
-    /// Die Einhängetabelle des Kernels enthält immer das lokale Wurzel-Volume.
+    /// Die Einhängetabelle des Kernels enthält immer das lokale Wurzel-Volume samt Gerät (#400).
     @Test func currentMountsIncludeLocalRoot() {
-        #expect(MountedVolume.current().contains(MountedVolume(path: "/", isLocal: true)))
+        #expect(MountedVolume.current().contains { $0.path == "/" && $0.isLocal && $0.device?.hasPrefix("disk") == true })
     }
 
     /// autofs-Maps hängen unter dem Firmlink-Ziel (`/System/Volumes/Data/home`); Projektpfade nennen `/home/…`.

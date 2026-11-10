@@ -86,7 +86,8 @@ import Testing
         #expect(!HistoryFilter(category: .autostart).matches(event, now: now))
         #expect(HistoryFilter(category: .security).apply(events(), now: now).isEmpty)
         #expect(HistoryFilter.Category.security.displayName == "Sicherheit")
-        #expect(HistoryFilter.Category.allCases == [.all, .apps, .agents, .permissions, .autostart, .security, .network])
+        #expect(HistoryFilter.Category.allCases == [.all, .apps, .agents, .permissions, .autostart, .extensions, .security,
+                                                    .network, .taskManager])
     }
 
     @Test func appsCategoryMatchesOnlyAppEvents() {

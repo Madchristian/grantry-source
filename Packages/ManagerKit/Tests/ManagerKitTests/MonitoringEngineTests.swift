@@ -418,6 +418,44 @@ struct MonitoringEngineTests {
         await harness.engine.stop()
     }
 
+    /// Wie bei Apps (#390): Akzeptierte Erweiterungen verlassen die Befunde, Updates melden nichts, ein neues Team warnt
+    /// wieder.
+    @Test func acceptedExtensionLeavesFindingsUntilTeamChanges() async throws {
+        let kext = ExtensionRiskRulesTests.record(.kernelExtension, state: .loaded,
+                                                  signing: SigningInfo(kind: .developerID, teamID: "TEAM1"))
+        var update = kext
+        update.version = "2.0"
+        let changed = ExtensionRiskRulesTests.record(.kernelExtension, state: .loaded,
+                                                     signing: SigningInfo(kind: .developerID, teamID: "NEWTEAM"))
+        let source = CountingSource(.extensions, script: [kext, update, changed].map {
+            .success(InventoryContribution(extensions: ExtensionContribution(records: [$0])))
+        })
+        let harness = try Harness(script: [contribution()], extraSources: [source])
+        var states = await harness.engine.states().makeAsyncIterator()
+        await harness.engine.start()
+        let first = try #require(await states.next(where: scanned(at: harness.now)))
+        #expect(first.findings.map(\.rule) == [.kernelExtension])
+        #expect(first.extensionSystemFindings.map(\.kind) == [.extensionRisk])
+        try await harness.engine.setExtensionRiskAccepted(true, extensionID: kext.id)
+        let accepted = try #require(await states.next { $0.acceptedExtensionIDs.contains(kext.id) })
+        #expect(accepted.findings.isEmpty)
+        #expect(accepted.extensionFindings.map(\.rule) == [.kernelExtension])
+        #expect(accepted.extensionSystemFindings.isEmpty)
+        harness.advance(seconds: 60)
+        await harness.engine.scanNow()
+        let updated = try #require(await states.next(where: scanned(at: harness.now)))
+        #expect(updated.acceptedExtensionIDs == [kext.id])
+        #expect(updated.findings.isEmpty)
+        #expect(updated.recentEvents.count == 1)
+        #expect(harness.posted.all.isEmpty)
+        harness.advance(seconds: 60)
+        await harness.engine.scanNow()
+        let newTeam = try #require(await states.next(where: scanned(at: harness.now)))
+        #expect(newTeam.acceptedExtensionIDs.isEmpty)
+        #expect(newTeam.findings.map(\.rule) == [.kernelExtension])
+        await harness.engine.stop()
+    }
+
     @Test func firstScanIsBaselineWithoutEventsOrNotifications() async throws {
         let unsigned = TestData.grant(client: TestData.app("com.example.unsigned", signing: SigningInfo(kind: .unsigned)))
         let harness = try Harness(script: [contribution(grantA, unsigned)])

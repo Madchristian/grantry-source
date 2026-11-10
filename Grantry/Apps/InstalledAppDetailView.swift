@@ -3,7 +3,8 @@ import ManagerKit
 import SwiftUI
 
 /// Eine App im Detail (Spec v3 §5): Angaben aus dem Kit (`InstalledAppDetail`) samt Hinweis zur Signaturprüfung, Pfad
-/// mit „Im Finder zeigen“, Prüfhinweise sowie Berechtigungen und Autostart-Einträge mit Sprung in ihre Bereiche;
+/// mit „Im Finder zeigen“, Prüfhinweise sowie Berechtigungen, Autostart-Einträge und mitgebrachte Erweiterungen mit Sprung
+/// in ihre Bereiche;
 /// „App entfernen …“ und „Reste anzeigen“ öffnen das Entfernen-Blatt.
 struct InstalledAppDetailView: View {
     let detail: InstalledAppDetail
@@ -28,6 +29,9 @@ struct InstalledAppDetailView: View {
             findingsSection
             grantsSection
             autostartSection
+            if !detail.extensions.isEmpty {
+                AppExtensionsSection(extensions: detail.extensions, badges: presentation.badges)
+            }
         }
         .formStyle(.grouped)
     }
@@ -170,6 +174,41 @@ struct InstalledAppDetailView: View {
                     .help("In „Autostart“ zeigen")
                     .accessibilityHint(Text("Zeigt den Eintrag im Bereich „Autostart“."))
                 }
+            }
+        }
+    }
+}
+
+/// Erweiterungen, die die App mitbringt (TM-13.6): Art und Zustand, Prüfhinweise wie in den übrigen Listen; ein Klick
+/// zeigt sie im Bereich „Erweiterungen“ mit Detail.
+private struct AppExtensionsSection: View {
+    let extensions: [ExtensionReference]
+    let badges: RecordBadges
+    @Environment(MainWindowModel.self) private var window
+
+    var body: some View {
+        Section("Erweiterungen") {
+            ForEach(extensions) { reference in
+                Button { window.show(reference) } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: reference.symbol)
+                            .foregroundStyle(.secondary)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(verbatim: reference.title)
+                            Text(verbatim: reference.subtitle)
+                                .font(.callout)
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer(minLength: 8)
+                        RecordBadgesRow(badges: badges.badges(for: reference.id))
+                    }
+                    .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .help("In „Erweiterungen“ zeigen")
+                .accessibilityHint(Text("Zeigt die Erweiterung im Bereich „Erweiterungen“."))
+                .accessibilityIdentifier("appExtensionLink")
             }
         }
     }

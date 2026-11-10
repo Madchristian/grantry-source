@@ -34,11 +34,19 @@ public struct StorageLocation: Hashable, Sendable {
     /// Ergebnisprotokoll des Speicher-Aufräumens (`CleanupLog`).
     public var cleanupLogURL: URL { directory.appending(path: "CleanupLog.jsonl") }
 
+    /// App-Verlauf des Task-Managers (`AppUsageStore`), 30 Tage je App und Stunde.
+    public var appUsageHistoryURL: URL { directory.appending(path: "AppUsageHistory.json") }
+
+    /// Ordner des Wachbuchs (`WatchbookStore`), eine Datei je Tag, 7 Tage.
+    public var watchbookDirectory: URL { directory.appending(path: "Watchbook", directoryHint: .isDirectory) }
+
     public var deepSignatureCacheURL: URL { directory.appending(path: "DeepSignatures.json") }
 
     public var scanDurationsURL: URL { directory.appending(path: "ScanDurations.json") }
 
     public var appRiskAcceptancesURL: URL { directory.appending(path: "AppRiskAcceptances.json") }
+
+    public var extensionRiskAcceptancesURL: URL { directory.appending(path: "ExtensionRiskAcceptances.json") }
 
     /// Backups entfernter Benutzer-LaunchAgents (`PlistBackupStore.user(root:)`).
     public var backupsDirectory: URL { directory.appending(path: "Backups", directoryHint: .isDirectory) }

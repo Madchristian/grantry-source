@@ -233,6 +233,7 @@ struct MetricTile: View {
         .buttonStyle(TileButtonStyle())
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Text(verbatim: "\(title), \(accessibilityCaption ?? caption)"))
+        // ax-value: Knopf (Kachel), behält seine Rolle und damit den Wert
         .accessibilityValue(Text(value, format: .number))
         .accessibilityHint(Text(hint))
     }

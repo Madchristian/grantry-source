@@ -1,0 +1,76 @@
+{
+ "quelle": "nachgebaut nach Apple-Spezifikation (M1: 4 P, 4 E, 8 GPU-Kerne); Gerätebaum-Namen angenommen",
+ "brand": "Apple M1",
+ "memoryBytes": 17179869184,
+ "levels": [
+  {
+   "name": "Performance",
+   "logicalCPUs": 4,
+   "l2CacheBytes": 12582912,
+   "cpusPerL2": 4,
+   "l1InstructionBytes": 196608,
+   "l1DataBytes": 131072
+  },
+  {
+   "name": "Efficiency",
+   "logicalCPUs": 4,
+   "l2CacheBytes": 4194304,
+   "cpusPerL2": 4,
+   "l1InstructionBytes": 131072,
+   "l1DataBytes": 65536
+  }
+ ],
+ "cpus": [
+  {
+   "logicalID": 0,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 1,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 2,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 3,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 4,
+   "clusterID": 1,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 5,
+   "clusterID": 1,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 6,
+   "clusterID": 1,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 7,
+   "clusterID": 1,
+   "clusterType": "P"
+  }
+ ],
+ "gpuCoreCount": 8,
+ "deviceNodes": [
+  "aic",
+  "ave0",
+  "avd0",
+  "ane0",
+  "scaler0",
+  "jpeg0",
+  "sgx",
+  "disp0"
+ ]
+}

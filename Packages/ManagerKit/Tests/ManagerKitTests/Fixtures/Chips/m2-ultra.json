@@ -1,0 +1,166 @@
+{
+ "quelle": "nachgebaut nach Apple-Spezifikation (M2 Ultra: 16 P, 8 E, 76 GPU-Kerne, 4 Encoder, 2 Decoder, 4 ProRes, 32-Kern-Neural-Engine); Kernnummern wie auf Ultra verschränkt",
+ "brand": "Apple M2 Ultra",
+ "memoryBytes": 206158430208,
+ "levels": [
+  {
+   "name": "Performance",
+   "logicalCPUs": 16,
+   "l2CacheBytes": 16777216,
+   "cpusPerL2": 4,
+   "l1InstructionBytes": 196608,
+   "l1DataBytes": 131072
+  },
+  {
+   "name": "Efficiency",
+   "logicalCPUs": 8,
+   "l2CacheBytes": 4194304,
+   "cpusPerL2": 4,
+   "l1InstructionBytes": 131072,
+   "l1DataBytes": 65536
+  }
+ ],
+ "cpus": [
+  {
+   "logicalID": 0,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 1,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 2,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 3,
+   "clusterID": 0,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 4,
+   "clusterID": 1,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 5,
+   "clusterID": 1,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 6,
+   "clusterID": 1,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 7,
+   "clusterID": 1,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 8,
+   "clusterID": 2,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 9,
+   "clusterID": 2,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 10,
+   "clusterID": 2,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 11,
+   "clusterID": 2,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 12,
+   "clusterID": 3,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 13,
+   "clusterID": 3,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 14,
+   "clusterID": 3,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 15,
+   "clusterID": 3,
+   "clusterType": "E"
+  },
+  {
+   "logicalID": 16,
+   "clusterID": 4,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 17,
+   "clusterID": 4,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 18,
+   "clusterID": 4,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 19,
+   "clusterID": 4,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 20,
+   "clusterID": 5,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 21,
+   "clusterID": 5,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 22,
+   "clusterID": 5,
+   "clusterType": "P"
+  },
+  {
+   "logicalID": 23,
+   "clusterID": 5,
+   "clusterType": "P"
+  }
+ ],
+ "gpuCoreCount": 76,
+ "deviceNodes": [
+  "aic",
+  "ave0",
+  "ave1",
+  "ave2",
+  "ave3",
+  "avd0",
+  "avd1",
+  "apr0",
+  "apr1",
+  "apr2",
+  "apr3",
+  "ane0",
+  "ane1",
+  "scaler0",
+  "scaler1",
+  "jpeg0",
+  "jpeg1",
+  "sgx"
+ ]
+}

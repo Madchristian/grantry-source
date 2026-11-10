@@ -1,13 +1,30 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Einstellungen (⌘,): dieselbe Checkliste wie im Onboarding, ohne Nummern, die Update-Prüfung, die Meldungen
-/// neuer Netzwerkdienste und der Hinweis auf verwaiste Agenten-Prozesse.
+/// Einstellungen (⌘,) in zwei Tabs (TM17, E4): „Allgemein“ mit derselben Checkliste wie im Onboarding, ohne Nummern,
+/// der Update-Prüfung, den Meldungen neuer Netzwerkdienste, dem Hinweis auf verwaiste Agenten-Prozesse und dem Wachbuch;
+/// „Menüleiste“ mit den Messanzeigen. Jeder Bereich ist höchstens so hoch, dass das Fenster samt Bereichsleiste in den
+/// sichtbaren Bereich seines Bildschirms passt, und scrollt sonst (#479, #525), auch nach Tab-, Bildschirm- oder
+/// Auflösungswechsel; das Fenster bleibt auf dem Bildschirm (#486).
 struct SettingsView: View {
     let prerequisites: PrerequisitesModel
     let dockVisibility: DockVisibilityModel
+    let menuBarMeters: MenuBarMetersModel
+    let taskManager: TaskManagerModel
+    let watchbook: WatchbookModel
 
     var body: some View {
+        TabView {
+            Tab("Allgemein", systemImage: "gearshape") { ScreenCappedScroll { general } }
+            Tab("Menüleiste", systemImage: "menubar.rectangle") {
+                ScreenCappedScroll { MenuBarSettingsTab(meters: menuBarMeters, taskManager: taskManager) }
+            }
+        }
+        .task { await prerequisites.refresh(showsProgress: false) }
+    }
+
+    private var general: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: 8) {
                 Toggle("Dock-Symbol anzeigen", isOn: Binding(
@@ -28,6 +45,8 @@ struct SettingsView: View {
             Divider()
             NetworkSettingsSection()
             Divider()
+            WatchbookSettingsSection(model: watchbook)
+            Divider()
             ProcessAlertSettingsSection()
             Divider()
             HStack {
@@ -38,7 +57,5 @@ struct SettingsView: View {
             .padding()
         }
         .frame(width: 560)
-        .fixedSize(horizontal: false, vertical: true)
-        .task { await prerequisites.refresh(showsProgress: false) }
     }
 }

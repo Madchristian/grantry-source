@@ -24,7 +24,8 @@ import Testing
         #expect(NettopSampler().arguments == ["-L", "0", "-s", "2", "-n", "-x", "-J", "interface,state,bytes_in,bytes_out", "-c"])
     }
 
-    /// Ein Block endet mit der nächsten Kopfzeile und trägt den Zeitpunkt seiner eigenen Kopfzeile.
+    /// Ein Block endet mit der nächsten Kopfzeile und trägt den Zeitpunkt aus nettops Takt ab dem Start (`now()` vor dem
+    /// Start, Intervall 2 s) – nicht den Eingang seiner Kopfzeile (3 s nach dem ersten Block).
     @Test func splitsOutputAtHeaders() async throws {
         let streamer = ScriptedLineStreamer([.init([
             header, "a.1,,,10,20,", "tcp4 192.0.2.1:50000<->192.0.2.10:443,en0,Established,10,20,",
@@ -44,7 +45,7 @@ import Testing
         #expect(received.map { $0.sample.processes.map(\.shortName) } == [["a"], ["b"]])
         #expect(received[0].sample.processes[0].connections.count == 1)
         #expect(received[0].capturedAt == instants.base)
-        #expect(received[1].capturedAt == instants.base + .seconds(3))
+        #expect(received[1].capturedAt == instants.base + .seconds(2))
         #expect(streamer.terminatedRuns == 1)
         #expect(sleeps.durations.isEmpty)
     }
@@ -62,6 +63,27 @@ import Testing
         running.withLock { $0 = [] }
         let sample = try #require(try assembler.consume(header, at: now + .seconds(2)))
         #expect(sample.sample.processes.map(\.startTime) == [100, nil])
+    }
+
+    /// Benutzer und Startzeit stammen aus derselben Abfrage und landen gemeinsam am Prozess (Ansicht „Verbindungen“).
+    @Test func capturesUserTogetherWithStartTime() throws {
+        let assembler = NettopSampleAssembler(identity: { pid in
+            pid == 7 ? NettopProcessIdentity(startTime: 100, uid: 501) : nil
+        }, schedule: NettopSchedule(start: .now, interval: .seconds(2)))
+        let now = ContinuousClock.now
+        for line in [header, "curl.7,,,1,2,", "weg.8,,,3,4,"] {
+            _ = try assembler.consume(line, at: now)
+        }
+        let sample = try #require(try assembler.consume(header, at: now + .seconds(2)))
+        #expect(sample.sample.processes.map(\.uid) == [501, nil])
+        #expect(sample.sample.processes.map(\.startTime) == [100, nil])
+    }
+
+    /// Die eigene UID kommt aus der Prozesstabelle, ohne zusätzliche Quelle.
+    @Test func libprocIdentityReadsOwnUser() throws {
+        let identity = try #require(NettopSampler.libprocIdentity(getpid()))
+        #expect(identity.uid == getuid())
+        #expect(identity.startTime > 0)
     }
 
     /// Auch täuschende Namen brauchen die beim Zeileneingang erfasste Startzeit für die PID-Zuordnung.

@@ -316,13 +316,14 @@ import TestSupport
         let overview = CoverageOverview(snapshot: snapshot)
 
         #expect(overview.areas.map(\.area) == InventoryArea.allCases)
-        // Netzwerk und Sicherheit ohne Liefernachweis: nicht geprüft, schlechtester Zustand zuerst.
-        #expect(overview.incomplete.map(\.area) == [.network, .security, .autostart, .agents, .apps])
+        // Erweiterungen, Netzwerk und Sicherheit ohne Liefernachweis: nicht geprüft, schlechtester Zustand zuerst.
+        #expect(overview.incomplete.map(\.area) == [.extensions, .network, .security, .autostart, .agents, .apps])
         #expect(overview[.autostart]?.summaryLine(now: Self.now) == "Autostart: Letzter bekannter Stand · Stand unbekannt")
     }
 
     @Test func everySourceBelongsToExactlyOneArea() {
-        let sources: [SourceID] = [.tccUser, .tccSystem, .launchd, .btm, .securityPosture, .apps, .networkListeners, .agents]
+        let sources: [SourceID] = [.tccUser, .tccSystem, .launchd, .btm, .securityPosture, .apps, .networkListeners, .agents,
+                                   .extensions]
         for source in sources {
             #expect(InventoryArea.allCases.count { $0.sources.contains(source) } == 1, "\(source)")
         }

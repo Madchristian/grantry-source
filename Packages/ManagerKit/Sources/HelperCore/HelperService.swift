@@ -36,9 +36,9 @@ public final class HelperService: NSObject, GrantryHelperXPC, Sendable {
     static let sfltool = "/usr/bin/sfltool"
     /// Einzige launchctl-Domain des Helpers.
     static let systemDomain = PrivilegedOperationPolicy.systemLaunchctlDomain
-    private static let logger = Logger(subsystem: GrantryIdentity.logSubsystem, category: "helper")
+    static let logger = Logger(subsystem: GrantryIdentity.logSubsystem, category: "helper")
 
-    private let runner: any CommandRunning
+    let runner: any CommandRunning
     private let backups: PlistBackupStore
     private let launchDaemonsDirectory: String
     /// Alle Verzeichnisse, deren Plists Labels der Domain `system` belegen: `launchDaemonsDirectory` voran.
@@ -48,16 +48,32 @@ public final class HelperService: NSObject, GrantryHelperXPC, Sendable {
     private let terminationQueue: SerialOperationQueue
     private let socketEnumerator: any ListeningSocketEnumerating
     private let terminationPolicy: ProcessTerminationPolicy
-    private let processSignaler: any ProcessSignaling
+    let processSignaler: any ProcessSignaling
     /// PID des Aufrufers der laufenden XPC-Nachricht; nur synchron im Aufruf gültig.
-    private let callerPID: @Sendable () -> pid_t?
+    let callerPID: @Sendable () -> pid_t?
     /// Startet eine Stoppuhr auf der Uhr des Helpers; das Ergebnis liefert die seither vergangene Zeit.
-    private let startStopwatch: @Sendable () -> @Sendable () -> Duration
+    let startStopwatch: @Sendable () -> @Sendable () -> Duration
     private let idleMonitor: IdleMonitor?
+    // Task-Manager (TM9, `HelperService+TaskManager.swift`).
+    let taskPolicy: ProcessTerminationPolicy
+    let authorizer: any ActionAuthorizing
+    let prioritySetter: any ProcessPrioritySetting
+    /// EUID des Aufrufers der laufenden XPC-Nachricht; nur synchron im Aufruf gültig.
+    let callerUID: @Sendable () -> uid_t?
+    /// Kurzname eines Benutzers für den Dialogtext.
+    let userName: @Sendable (UInt32) -> String
+    /// Task-Manager-Aktionen nacheinander: nie zwei Kennwortdialoge zugleich, unabhängig von `queue`.
+    let taskQueue: SerialOperationQueue
+    /// Höchstens ein `powermetrics` zur Zeit.
+    let sensorQueue: SerialOperationQueue
 
     /// Aufrufer laut `NSXPCConnection.current()` – das Audit-Token ist keine öffentliche API. Liefert nur im Kontext
     /// eines Aufrufs am exportierten Objekt einen Wert, sonst `nil`.
     public static let currentCallerPID: @Sendable () -> pid_t? = { NSXPCConnection.current()?.processIdentifier }
+
+    /// EUID des Aufrufers laut `NSXPCConnection.current()`; wie `currentCallerPID` nur im Aufruf gültig.
+    public static let currentCallerUID: @Sendable () -> uid_t? = { NSXPCConnection.current()?.effectiveUserIdentifier }
+
 
     /// - Parameter launchDaemonsDirectory: Verzeichnis, auf dessen Plists launchctl-Operationen erlaubt sind;
     ///   nur in Tests abweichend vom Systemverzeichnis.
@@ -70,6 +86,11 @@ public final class HelperService: NSObject, GrantryHelperXPC, Sendable {
     /// - Parameter clock: Uhr für die Ablauffrist von `terminateProcess` (`terminationRequestLifetime`); nur in Tests
     ///   abweichend.
     /// - Parameter idleMonitor: erfährt Beginn und Ende jeder Operation (Idle-Exit des Helpers).
+    /// - Parameter taskPolicy: Prüfregeln der Task-Manager-Befehle (`terminateTaskProcess`, `setTaskProcessPriority`).
+    /// - Parameter authorizer: Admin-Bestätigung je Task-Manager-Aktion; in Tests ein Fake ohne Dialog.
+    /// - Parameter prioritySetter: setzt die Priorität; in Tests ein Fake.
+    /// - Parameter callerUID: liest die EUID des Aufrufers, synchron im XPC-Aufruf.
+    /// - Parameter userName: Kurzname eines Benutzers für den Dialogtext.
     public init(
         runner: any CommandRunning = ProcessCommandRunner(),
         backups: PlistBackupStore = .system,
@@ -80,8 +101,20 @@ public final class HelperService: NSObject, GrantryHelperXPC, Sendable {
         processSignaler: any ProcessSignaling = PosixProcessSignaler(),
         callerPID: @escaping @Sendable () -> pid_t? = HelperService.currentCallerPID,
         clock: some Clock<Duration> = ContinuousClock(),
-        idleMonitor: IdleMonitor? = nil
+        idleMonitor: IdleMonitor? = nil,
+        taskPolicy: ProcessTerminationPolicy = .taskManagerHelper(),
+        authorizer: any ActionAuthorizing = AdminRightAuthorizer(),
+        prioritySetter: any ProcessPrioritySetting = PosixPrioritySetter(),
+        callerUID: @escaping @Sendable () -> uid_t? = HelperService.currentCallerUID,
+        userName: @escaping @Sendable (UInt32) -> String = UserAccount.shortName(of:)
     ) {
+        self.taskPolicy = taskPolicy
+        self.authorizer = authorizer
+        self.prioritySetter = prioritySetter
+        self.callerUID = callerUID
+        self.userName = userName
+        taskQueue = SerialOperationQueue(idleMonitor: idleMonitor)
+        sensorQueue = SerialOperationQueue(idleMonitor: idleMonitor)
         self.runner = runner
         self.backups = backups
         self.launchDaemonsDirectory = launchDaemonsDirectory
@@ -455,7 +488,7 @@ public final class HelperService: NSObject, GrantryHelperXPC, Sendable {
     /// Höchstlänge einer Befehlsausgabe in Fehlermeldungen, damit sie in der App lesbar bleiben.
     static let maximumDetailLength = 1_024
 
-    private static func failure(_ command: String, _ result: CommandResult) -> String {
+    static func failure(_ command: String, _ result: CommandResult) -> String {
         let detail = shortened(result.stderr.trimmingCharacters(in: .whitespacesAndNewlines))
         return "\(command) fehlgeschlagen (Exit \(result.exitCode))" + (detail.isEmpty ? "" : ": \(detail)")
     }

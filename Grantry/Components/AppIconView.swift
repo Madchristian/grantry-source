@@ -1,4 +1,5 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 import UniformTypeIdentifiers
@@ -128,17 +129,19 @@ final class AppIconCache {
     }
 }
 
-/// Symbol einer App; bis es geladen ist bzw. ohne Datei ein neutrales Platzhaltersymbol.
+/// Symbol einer App; bis es geladen ist bzw. ohne Datei ein neutrales Platzhaltersymbol. Im Snapshot
+/// (`chartSnapshotRendering`) immer der Platzhalter: Das Symbol käme je nach Zeitpunkt und Mac von der Platte.
 struct AppIconView: View {
     let app: AppIdentity
     var size: CGFloat = 24
     @State private var loadedIcon: NSImage?
+    @Environment(\.chartSnapshotRendering) private var snapshot
 
     private var cache: AppIconCache { .shared }
 
     var body: some View {
         Group {
-            if let icon = cache.cachedIcon(for: app) ?? loadedIcon {
+            if !snapshot, let icon = cache.cachedIcon(for: app) ?? loadedIcon {
                 Image(nsImage: icon).resizable().interpolation(.high)
             } else {
                 Image(systemName: "app.dashed")
@@ -151,6 +154,7 @@ struct AppIconView: View {
         .frame(width: size, height: size)
         .accessibilityHidden(true)
         .task(id: LoadKey(path: app.path, presence: app.presence, generation: cache.generation)) {
+            guard !snapshot else { return }
             loadedIcon = await cache.loadIcon(for: app)
         }
     }

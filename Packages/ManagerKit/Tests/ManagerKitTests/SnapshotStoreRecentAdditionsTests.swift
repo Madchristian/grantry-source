@@ -32,6 +32,18 @@ struct SnapshotStoreRecentAdditionsTests {
         #expect(offsets(try await store.additions(since: TestData.date)) == [3, 0])
     }
 
+    /// Alle Arten ab `date` (Nachtrag ins Wachbuch, #382), neueste zuerst.
+    @Test func eventsSinceIncludeEveryKind() async throws {
+        let store = try SwiftDataSnapshotStore.inMemory()
+        _ = try await store.record(TestData.snapshot(), events: [
+            event(.added, label: "old", at: -1),
+            event(.added, label: "boundary", at: 0),
+            event(.removed, label: "removed", at: 1),
+            event(.modified, label: "modified", at: 2),
+        ])
+        #expect(offsets(try await store.events(since: TestData.date)) == [2, 1, 0])
+    }
+
     @Test func pagesBeyondOnePage() async throws {
         let store = try SwiftDataSnapshotStore.inMemory()
         let count = SwiftDataSnapshotStore.additionsPageSize * 2 + 5
