@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "version": "2026.11.10",
-  "build": 1572,
-  "source_commit": "edb8c1e3189a00dde21f1dbf4e6d1037383b817b",
-  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.11.10.dmg",
-  "dmg_sha256": "d66a616b5eba2b2c9121c920476a325e0a4a850356812df9c8188e003406a235",
+  "version": "2026.11.11",
+  "build": 1599,
+  "source_commit": "cbd0e38edbc6e48b4fb127c33ced726acfb7a92c",
+  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.11.11.dmg",
+  "dmg_sha256": "8626a794515d5b418a74c69852269e507d8966cf9d11d2823b5a44d5aff76d17",
   "source_files": [
     {
       "path": "Grantry/Agents/AgentApprovalDetailView.swift",
@@ -503,8 +503,8 @@
     },
     {
       "path": "Grantry/MenuBar/MenuBarMeterStatusItems.swift",
-      "sha256": "164226e9d368674c45ac8a835d0e1601457e74d04109e510f7e4dbcd4bd97886",
-      "source_blob": "73a4336d0f0b86e68a9e41d85dfe1f74c0304598"
+      "sha256": "84083002c2ce5497ecd297b01aa4f9d066f84e5040dbf125b0b901faddac2885",
+      "source_blob": "e935d41eb53bd321b5faae658bb10c62a35d8b73"
     },
     {
       "path": "Grantry/MenuBar/MenuBarMeterViews.swift",
@@ -918,8 +918,8 @@
     },
     {
       "path": "Grantry/Updates/ReleaseHighlights.json",
-      "sha256": "6d77ca91edc94b7c95781b0aacc23249632b0c9b12a3ee795c8c0a685e2a8ddd",
-      "source_blob": "217c0f7ccc6504583afb709461b275b418770e83"
+      "sha256": "f6a6d75a332696ec5834383e73526c88f9c4f5ca58ab513fecbe116cd2cbf9bd",
+      "source_blob": "2eb11c69c23ebfef62dac447156317926111c481"
     },
     {
       "path": "Grantry/Updates/SparkleUpdateService.swift",
@@ -1242,6 +1242,11 @@
       "source_blob": "0c6913244bb50521bf54d7a5454dab0b2617cc95"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/MenuBarRaster.swift",
+      "sha256": "0e6da6f969f2bca5db37816b7fb6b5a3564c7238bc6b8f693ab2ad65a1c20258",
+      "source_blob": "9f3e7bda4b443affe9b2eac976a8d7fb4db6f9a4"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/MeterPopoverPanel.swift",
       "sha256": "9990698843a12b013c85ed36c4ba06cef70397633b233033b30415820beb26a5",
       "source_blob": "adc9fdad0a559f55dfd397e941d470368adffcf0"
@@ -1323,18 +1328,28 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/DemoSnapshots.swift",
-      "sha256": "fd346a9c3537e36159eb85cd7a832d47cbbd60354c35fdb3b3fbf5b7762cc9df",
-      "source_blob": "23b0d8bb7ace4b846297a179e016b4e39a687baa"
+      "sha256": "9a3ec8ce6616094c591c8c432599442537368590eccfb3488bde7b78a1be815f",
+      "source_blob": "1c2edaff842197a6c67bdb23899bbf9b73262783"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/DesignGallery.swift",
-      "sha256": "cd167c6b9686e46874c51a02c3ee329f1bb7e701bb0d3a2f5da21968b9e23414",
-      "source_blob": "d924c39df8af4c7e700a4b9f47523250a8e1bf16"
+      "sha256": "bc4f35abd99d5a92b9aedf19cc84500338f6dabbbd8e8c0ba681cbab5a64b9d8",
+      "source_blob": "3c109127ca83340fddceb71382b73459146f8fa8"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/GrantryChartsDemoApp.swift",
       "sha256": "e3c68c06744e9d017b0a0f818da12238d0be9afb373618c4630b4c585e31300d",
       "source_blob": "9f1736519d07d1b46e82103db14a29fdd54429bf"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildDrafts.swift",
+      "sha256": "e26bc626ce5792eff17f877d1443ecbaeaddff2a5c63cdf765309e4902168bd9",
+      "source_blob": "c2d534a7b26969f906eca2794581b2e62dd02768"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildGallery.swift",
+      "sha256": "57f7cf4e13051dc45dd44435564fc0f6babaf0886918b1523f42a7cd0aee6f20",
+      "source_blob": "a71716bd8b0a6805bfee77685b336b3c3ee4d53c"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/AccessControlList.swift",
@@ -4105,6 +4120,11 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/MenuBarMeterSnapshotTests.swift",
       "sha256": "31265b68bf95e7a22d192c5571ce1c0facddad1a679431bc528f5b27ce314acc",
       "source_blob": "8d2ba36cfaa63cd19d008f232409f615059b783e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/MenuBarRasterTests.swift",
+      "sha256": "5ed451e393fe75b640cc185999519d288fffa791143a5dd49cec346afdda33a8",
+      "source_blob": "043e03dd99f7f489024c739cfb97cac0d91a1401"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/MonotoneCurveTests.swift",

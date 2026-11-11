@@ -7,6 +7,17 @@ import SwiftUI
 struct DesignGallery: View {
     enum Page: String, CaseIterable, Sendable {
         case tokens, components
+        /// Entwurf LB-1.1 (#535): Bausteine und Liste-Detail-Gerüst für die übrigen Ansichten.
+        case lagebildDraft
+
+        /// Dateiname der Bilder in `docs/design/galerie` (ohne Erscheinungsbild).
+        var fileName: String {
+            switch self {
+            case .tokens: "tokens"
+            case .components: "bausteine"
+            case .lagebildDraft: "lb-bausteine"
+            }
+        }
     }
 
     let page: Page
@@ -16,6 +27,7 @@ struct DesignGallery: View {
             switch page {
             case .tokens: TokenBoard()
             case .components: ComponentBoard()
+            case .lagebildDraft: LagebildDraftBoard()
             }
         }
         .padding(InstrumentSpacing.page)

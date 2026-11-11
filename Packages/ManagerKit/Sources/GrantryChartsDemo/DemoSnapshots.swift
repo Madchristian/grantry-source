@@ -39,15 +39,40 @@ extension DemoSnapshots {
                     .environment(\._colorSchemeContrast, contrast)
                     .environment(\.chartSnapshotRendering, true)
                     .environment(\.chartRenderingPaused, true)
-                let renderer = ImageRenderer(content: content)
-                renderer.scale = 2
-                guard let image = renderer.cgImage,
-                      let png = NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:]) else { continue }
-                let file = page == .tokens ? "tokens" : "bausteine"
-                try? png.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(file)-\(name).png"))
+                // Der Entwurf LB-1.1 enthält native Knöpfe und Leerzustände, die `ImageRenderer` nicht zeichnet.
+                let png = page == .lagebildDraft ? offscreenPNG(content, scheme: scheme) : rendererPNG(content)
+                try? png?.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(page.fileName)-\(name).png"))
             }
         }
         exit(0)
+    }
+
+    private static func rendererPNG(_ content: some View) -> Data? {
+        let renderer = ImageRenderer(content: content)
+        renderer.scale = 2
+        guard let image = renderer.cgImage else { return nil }
+        return NSBitmapImageRep(cgImage: image).representation(using: .png, properties: [:])
+    }
+
+    /// Zeichnet die Ansicht in doppelter Auflösung in ein Fenster, das nie auf den Bildschirm kommt
+    /// (`NSHostingView.cacheDisplay`, wie die Bilder zu #366).
+    private static func offscreenPNG(_ content: some View, scheme: ColorScheme) -> Data? {
+        let host = NSHostingView(rootView: content)
+        host.appearance = NSAppearance(named: scheme == .dark ? .darkAqua : .aqua)
+        let size = host.fittingSize
+        let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: .borderless,
+                              backing: .buffered, defer: false)
+        window.contentView = host
+        host.frame = CGRect(origin: .zero, size: size)
+        host.layoutSubtreeIfNeeded()
+        let scale: CGFloat = 2
+        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int(size.width * scale),
+                                            pixelsHigh: Int(size.height * scale), bitsPerSample: 8,
+                                            samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
+                                            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0) else { return nil }
+        bitmap.size = size
+        host.cacheDisplay(in: host.bounds, to: bitmap)
+        return bitmap.representation(using: .png, properties: [:])
     }
 }
 

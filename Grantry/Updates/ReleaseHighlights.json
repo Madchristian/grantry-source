@@ -1,6 +1,6 @@
 {
-  "version": "2026.11.10",
-  "intro": "Der Task-Manager ist da.",
+  "version": "2026.11.11",
+  "intro": "Der Task-Manager ist da – jetzt mit Menüleisten-Anzeigen in voller Größe.",
   "highlights": [
     {
       "symbol": "gauge.with.dots.needle.67percent",
@@ -15,7 +15,7 @@
     {
       "symbol": "menubar.rectangle",
       "title": "Werte in der Menüleiste",
-      "body": "CPU, GPU, Speicher, Netz, Datenträger, Thermik und Akku als eigene Anzeigen – und die Übersicht mit allen Werten im Popover."
+      "body": "CPU, GPU, Speicher, Netz, Datenträger, Thermik und Akku als eigene Anzeigen, auf Retina-Bildschirmen jetzt in voller Größe – und die Übersicht im Popover."
     },
     {
       "symbol": "lock.shield",

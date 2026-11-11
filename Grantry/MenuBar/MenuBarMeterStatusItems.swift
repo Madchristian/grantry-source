@@ -1,4 +1,5 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -20,7 +21,7 @@ final class MenuBarMeterStatusItems {
     private let content: Content
     private var board = MenuBarMeterBoard()
     private var items: [MenuBarMeterKind: MenuBarMeterStatusItem] = [:]
-    private var contrastObserver: NSObjectProtocol?
+    private var observers: [(NotificationCenter, NSObjectProtocol)] = []
 
     init(meters: MenuBarMetersModel, model: TaskManagerModel, content: @escaping Content) {
         self.meters = meters
@@ -29,19 +30,25 @@ final class MenuBarMeterStatusItems {
     }
 
     isolated deinit {
-        contrastObserver.map(NSWorkspace.shared.notificationCenter.removeObserver)
+        for (center, observer) in observers { center.removeObserver(observer) }
     }
 
-    /// Ab dem App-Start: folgt den Einstellungen und jedem Takt.
+    /// Ab dem App-Start: folgt den Einstellungen und jedem Takt. „Kontrast erhöhen“ und geänderte Bildschirme (Skalierung
+    /// der Bilder, #570) zeichnen alle Elemente neu.
     func activate() {
-        contrastObserver = NSWorkspace.shared.notificationCenter.addObserver(
-            forName: NSWorkspace.accessibilityDisplayOptionsDidChangeNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated {
-                self?.board.invalidate()
-                self?.refresh()
-            }
+        observers = [
+            (NSWorkspace.shared.notificationCenter, NSWorkspace.accessibilityDisplayOptionsDidChangeNotification),
+            (NotificationCenter.default, NSApplication.didChangeScreenParametersNotification),
+        ].map { center, name in
+            (center, center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.redrawAll() }
+            })
         }
+        refresh()
+    }
+
+    private func redrawAll() {
+        board.invalidate()
         refresh()
     }
 
@@ -119,7 +126,7 @@ private final class MenuBarMeterStatusItem: NSObject, NSPopoverDelegate {
         let button = statusItem.button
         let image = MenuBarMeterImage.image(reading: entry.reading, style: entry.style, showsTags: entry.showsTags,
                                             increasedContrast: increasedContrast)
-        button?.image = image.rasterized(scale: button?.window?.backingScaleFactor ?? 2)
+        button?.image = image.rasterized(scale: NSImage.menuBarRasterScale())
         button?.setAccessibilityLabel(entry.reading.spokenText)
     }
 
@@ -155,26 +162,5 @@ private final class MenuBarMeterStatusItem: NSObject, NSPopoverDelegate {
         // Der Inhalt endet mit dem Popover: Geschlossen wertet er keinen Takt mehr aus.
         popover.contentViewController = nil
         statusItem.button?.highlight(false)
-    }
-}
-
-private extension NSImage {
-    /// Dasselbe Vorlagenbild als Bitmap mit `scale` Pixeln je Punkt; ohne Grafikkontext unverändert.
-    func rasterized(scale: CGFloat) -> NSImage {
-        guard let bitmap = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: Int((size.width * scale).rounded(.up)),
-                                            pixelsHigh: Int((size.height * scale).rounded(.up)), bitsPerSample: 8,
-                                            samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                                            colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0),
-              let context = NSGraphicsContext(bitmapImageRep: bitmap) else { return self }
-        bitmap.size = size
-        NSGraphicsContext.saveGraphicsState()
-        NSGraphicsContext.current = context
-        draw(in: NSRect(origin: .zero, size: size))
-        NSGraphicsContext.restoreGraphicsState()
-        let image = NSImage(size: size)
-        image.addRepresentation(bitmap)
-        image.isTemplate = isTemplate
-        image.accessibilityDescription = accessibilityDescription
-        return image
     }
 }
