@@ -6,7 +6,8 @@ import Foundation
 public enum WatchbookMetric: Int, CaseIterable, Hashable, Sendable {
     /// CPU gesamt als Anteil aller Kerne (0…1).
     case cpuTotal
-    /// Mittlere Auslastung der Leistungs- bzw. Effizienzkerne (0…1); leer ohne solche Kerne (Intel).
+    /// Mittlere Auslastung der Leistungs- bzw. Effizienzkerne (0…1); leer ohne solche Kerne (Intel). Klasse nach
+    /// `CoreKind`, Super-Kerne in `cpuSuper` (#593).
     case cpuPerformance
     case cpuEfficiency
     /// Arbeitsspeicher belegt (wie „Benutzter Speicher“), davon komprimiert, und Swap in Byte.
@@ -35,12 +36,25 @@ public enum WatchbookMetric: Int, CaseIterable, Hashable, Sendable {
     case cpuPower
     case gpuPower
     case neuralEnginePower
+    /// Mittlere Auslastung der Super-Kerne (0…1, ab M5, #593); leer ohne Super-Kerne und in Zeilen von davor.
+    case cpuSuper
+
+    /// Messgröße der mittleren Last einer Kernklasse (`CoreKind`, #593); `nil` für Klassen ohne eigenen Wert
+    /// (unbekannte Klassen künftiger Chips, Kerne ohne Klasse).
+    init?(averageOf kind: CoreKind) {
+        switch kind {
+        case .super: self = .cpuSuper
+        case .performance: self = .cpuPerformance
+        case .efficiency: self = .cpuEfficiency
+        case .other, .unknown: return nil
+        }
+    }
 
     /// Raster der Datei: Sie speichert ganze Schritte (0,1 % CPU, 1 MiB Speicher, 100 B/s, 0,1 W gesamt, 0,01 W je
     /// Block – die Neural Engine braucht oft nur Hundertstel).
     var quantum: WatchbookQuantum {
         switch self {
-        case .cpuTotal, .cpuPerformance, .cpuEfficiency, .gpu, .batteryCharge: .fraction(1_000)
+        case .cpuTotal, .cpuPerformance, .cpuEfficiency, .cpuSuper, .gpu, .batteryCharge: .fraction(1_000)
         case .memoryUsed, .memoryCompressed, .swapUsed: .multiple(1_048_576)
         case .diskRead, .diskWrite, .networkReceived, .networkSent: .multiple(100)
         case .memoryPressure, .thermalState, .externalPower: .multiple(1)

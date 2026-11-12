@@ -129,11 +129,18 @@ struct OverviewCoresCard: View {
                                                            value: ring.accessibilityValue)
                                     })
             })
-            HStack(spacing: InstrumentSpacing.bar) {
-                ForEach(cores.averages) { average in
-                    LegendValue(title: averageTitle(average), value: average.value, hue: average.kind.hue)
-                }
+            // Drei Kernklassen (Super-, Leistungs-, Effizienzkerne, #589) passen nicht in eine Zeile der Karte:
+            // dann untereinander statt abgeschnitten, die Breite bleibt.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: InstrumentSpacing.bar) { averages }
+                VStack(alignment: .leading, spacing: InstrumentSpacing.inline) { averages }
             }
+        }
+    }
+
+    private var averages: some View {
+        ForEach(cores.averages) { average in
+            LegendValue(title: averageTitle(average), value: average.value, hue: average.kind.hue)
         }
     }
 
@@ -141,7 +148,7 @@ struct OverviewCoresCard: View {
         cores.averages.first { $0.kind == kind }?.tag
     }
 
-    /// „Leistungskerne (P)“: das Kürzel verbindet den Mittelwert mit den Gruppen darüber, auch ohne Farbe.
+    /// „Super-Kerne (S)“, „Leistungskerne (P)“: das Kürzel verbindet den Mittelwert mit den Gruppen darüber, auch ohne Farbe.
     private func averageTitle(_ average: MenuBarOverview.CoreAverage) -> String {
         average.tag.map { "\(average.title) (\($0))" } ?? average.title
     }
@@ -384,12 +391,3 @@ struct OverviewSummaryRow: View {
     }
 }
 
-extension CoreKind {
-    /// Farbe der Kernart (§2.3): Leistungskerne in der Farbe der CPU, Effizienzkerne Lila.
-    var hue: InstrumentHue {
-        switch self {
-        case .performance, .unknown: .cpu
-        case .efficiency: .efficiencyCores
-        }
-    }
-}

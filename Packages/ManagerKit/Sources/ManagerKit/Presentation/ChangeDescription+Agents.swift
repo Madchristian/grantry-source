@@ -29,7 +29,7 @@ extension ChangeDescription {
     }
 
     /// „npx pkg → npx pkg@2.0.0, deaktiviert“.
-    private static func change(from previous: MCPServerEntry?, to server: MCPServerEntry) -> String {
+    static func change(from previous: MCPServerEntry?, to server: MCPServerEntry) -> String {
         guard let previous else { return server.summary }
         var parts: [String] = []
         if server.transportDiffers(from: previous) { parts.append(transportChange(from: previous, to: server)) }

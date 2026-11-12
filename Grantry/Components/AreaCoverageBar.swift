@@ -1,4 +1,5 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -57,8 +58,8 @@ struct AreaCoverageBar: View {
         let step = steps.flatMap { coverage.nextStep(missingSetupSteps: $0.missingSetupSteps) }
         let report = coverage.diagnosticReport(now: now)
         ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) { actionButtons(step, report: report) }
-            VStack(alignment: .leading, spacing: 4) { actionButtons(step, report: report) }
+            HStack(spacing: InstrumentSpacing.panel) { actionButtons(step, report: report) }
+            VStack(alignment: .leading, spacing: InstrumentSpacing.inline) { actionButtons(step, report: report) }
         }
         .buttonStyle(.link)
     }
@@ -92,13 +93,13 @@ private struct CoverageDetailsView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Scan-Abdeckung").font(.headline)
+        VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
+            Text("Scan-Abdeckung").font(InstrumentFont.title)
             ScrollView {
                 Text(verbatim: report)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(4)
+                    .padding(InstrumentSpacing.inline)
             }
             HStack {
                 CoverageCopyButton(report: report)
@@ -107,7 +108,7 @@ private struct CoverageDetailsView: View {
                     .keyboardShortcut(.cancelAction)
             }
         }
-        .padding(20)
+        .padding(InstrumentSpacing.empty)
         .frame(width: 560, height: 420)
     }
 }
@@ -149,10 +150,11 @@ struct CoverageAwareUnavailableView: View {
             ContentUnavailableView {
                 Label(title, systemImage: coverage.systemImage)
             } description: {
-                VStack(spacing: 6) {
+                VStack(spacing: InstrumentSpacing.item) {
                     if let description { Text(description) }
                     Text(verbatim: caveat)
                 }
+                .foregroundStyle(.instrumentSecondary)
             }
         } else {
             ContentUnavailableView(title, systemImage: systemImage, description: description.map { Text($0) })

@@ -126,7 +126,7 @@ extension ChangeDescription {
     /// Die gemeldeten Unterschiede in fester Reihenfolge; ein unbekannter Ladezustand und unbekannte Argumente zählen
     /// nicht. Den Befehl selbst nennt der Text nicht – Benachrichtigungen bleiben kurz, Vorher/Nachher zeigt
     /// `ChangeEvent.commandChange`.
-    private static func changeTexts(from old: AutostartItem, to new: AutostartItem) -> [String] {
+    static func changeTexts(from old: AutostartItem, to new: AutostartItem) -> [String] {
         var texts: [String] = []
         if old.isEnabled != new.isEnabled {
             texts.append(new.isEnabled ? "aktiviert" : "deaktiviert")
@@ -263,7 +263,7 @@ extension ChangeDescription {
     }
 
     /// Die signifikanten Unterschiede in fester Reihenfolge (wie `InstalledApp.hasSignificantChanges`).
-    private static func appChangeTexts(from old: InstalledApp, to new: InstalledApp) -> [String] {
+    static func appChangeTexts(from old: InstalledApp, to new: InstalledApp) -> [String] {
         var texts: [String] = []
         if old.versionText != new.versionText {
             texts.append("Version \(old.versionText ?? "unbekannt") → \(new.versionText ?? "unbekannt")")

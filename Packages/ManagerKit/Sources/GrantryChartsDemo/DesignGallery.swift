@@ -7,17 +7,46 @@ import SwiftUI
 struct DesignGallery: View {
     enum Page: String, CaseIterable, Sendable {
         case tokens, components
-        /// Entwurf LB-1.1 (#535): Bausteine und Liste-Detail-Gerüst für die übrigen Ansichten.
-        case lagebildDraft
+        /// Bausteine und Liste-Detail-Gerüst für die übrigen Ansichten (Entwurf LB-1.1 #535, zentral seit LB-1.2 #536).
+        case lagebild
+        /// Entwurf LB-2.1 (#538): Berechtigungen, Autostart, Agenten und Apps im Lagebild.
+        case permissionsDraft, autostartDraft, agentsDraft, appsDraft
+        /// Entwurf LB-3.1 (#543): Übersicht, Verlauf und Beobachtungen im Lagebild.
+        case overviewDraft, historyDraft, observationsDraft
+        /// Entwurf LB-4.1 (#547): Aufräumen (App-Reste, Speicher, Prozesse) und Blatt App entfernen im Lagebild.
+        case leftoversDraft, storageDraft, processesDraft, removalDraft
+        /// Entwurf LB-5.1 (#552): Einstellungen, Onboarding, Was ist neu und Menüleisten-Menü im Lagebild.
+        case settingsDraft, onboardingDraft, whatsNewDraft, menuDraft
+        /// Abschluss LB-5.5 (#556): Hauptzustand aller umgebauten Ansichten auf einer Seite.
+        case allViews
 
         /// Dateiname der Bilder in `docs/design/galerie` (ohne Erscheinungsbild).
         var fileName: String {
             switch self {
             case .tokens: "tokens"
             case .components: "bausteine"
-            case .lagebildDraft: "lb-bausteine"
+            case .lagebild: "lb-bausteine"
+            case .permissionsDraft: "berechtigungen"
+            case .autostartDraft: "autostart"
+            case .agentsDraft: "agenten"
+            case .appsDraft: "apps"
+            case .overviewDraft: "uebersicht"
+            case .historyDraft: "verlauf"
+            case .observationsDraft: "beobachtungen"
+            case .leftoversDraft: "aufraeumen-reste"
+            case .storageDraft: "aufraeumen-speicher"
+            case .processesDraft: "aufraeumen-prozesse"
+            case .removalDraft: "app-entfernen"
+            case .settingsDraft: "einstellungen"
+            case .onboardingDraft: "onboarding"
+            case .whatsNewDraft: "neuigkeiten"
+            case .menuDraft: "menueleiste-menue"
+            case .allViews: "alle-ansichten"
             }
         }
+
+        /// Seiten mit nativen Knöpfen und Leerzuständen, die `ImageRenderer` nicht zeichnet: offscreen rendern.
+        var rendersOffscreen: Bool { self != .tokens && self != .components }
     }
 
     let page: Page
@@ -27,7 +56,23 @@ struct DesignGallery: View {
             switch page {
             case .tokens: TokenBoard()
             case .components: ComponentBoard()
-            case .lagebildDraft: LagebildDraftBoard()
+            case .lagebild: LagebildBoard()
+            case .permissionsDraft: PermissionsDraftBoard()
+            case .autostartDraft: AutostartDraftBoard()
+            case .agentsDraft: AgentsDraftBoard()
+            case .appsDraft: AppsDraftBoard()
+            case .overviewDraft: OverviewDraftBoard()
+            case .historyDraft: HistoryDraftBoard()
+            case .observationsDraft: ObservationsDraftBoard()
+            case .leftoversDraft: LeftoversDraftBoard()
+            case .storageDraft: StorageDraftBoard()
+            case .processesDraft: ProcessesDraftBoard()
+            case .removalDraft: RemovalDraftBoard()
+            case .settingsDraft: SettingsDraftBoard()
+            case .onboardingDraft: OnboardingDraftBoard()
+            case .whatsNewDraft: WhatsNewDraftBoard()
+            case .menuDraft: MenuDraftBoard()
+            case .allViews: AllViewsBoard()
             }
         }
         .padding(InstrumentSpacing.page)

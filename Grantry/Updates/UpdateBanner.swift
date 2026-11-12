@@ -1,3 +1,4 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -7,9 +8,10 @@ struct UpdateBanner: View {
     let updates: UpdateModel
 
     var body: some View {
-        DashboardBanner(
-            systemImage: UpdateBanner.systemImage, tint: .accentColor, title: UpdateTexts.availableTitle,
-            text: updates.installationError ?? updates.installationStatus ?? "\(item.availabilityText) \(updates.supportsInstallation ? "" : UpdateTexts.installHint)"
+        InstrumentBanner(
+            UpdateTexts.availableTitle,
+            message: updates.installationError ?? updates.installationStatus ?? "\(item.availabilityText) \(updates.supportsInstallation ? "" : UpdateTexts.installHint)",
+            tone: .info
         ) {
             UpdateChecksumView(item: item)
             if item.hasReleaseNotes {

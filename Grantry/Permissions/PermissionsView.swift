@@ -1,8 +1,11 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Berechtigungen (Spec §6): umschaltbar nach App oder nach Berechtigung, Liste links mit Scan-Abdeckung darüber (#142),
-/// Detail rechts; Suche und Filter in der Symbolleiste. Liest nur aus `AppModel.presentation`.
+/// Berechtigungen im Lagebild (Spec §6; LB-2.2, #539, Entwurf LB-2.1): Zustandszeile mit Urteil, Umschalter „Nach App ·
+/// Nach Berechtigung“ und Scan-Abdeckung (#142), links die Auswahlliste in den Gruppen „Mit Befund“ und „Übrige“, rechts
+/// das Detail; Suche und Filter in der Symbolleiste. Liest nur aus `AppModel.presentation`; zeichnet nur bei Scan, Suche,
+/// Filter, Auswahl und Aktion.
 struct PermissionsView: View {
     let appModel: AppModel
     @Environment(MainWindowModel.self) private var window
@@ -11,138 +14,112 @@ struct PermissionsView: View {
 
     var body: some View {
         @Bindable var window = window
-        ListDetailSplit {
-            VStack(spacing: 0) {
-                SectionCoverageHeader(coverage: coverage)
-                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .permissions,
-                                 filter: window.filter(for: .permissions).findings)
-                Picker("Gruppierung", selection: $window.permissionsGrouping) {
-                    ForEach(PermissionsGrouping.allCases, id: \.self) { grouping in
-                        Text(grouping.title).tag(grouping)
-                    }
+        let presentation = appModel.presentation
+        InventoryBoard(head: PermissionsBoardMapping.head(presentation, scannedAt: appModel.monitoring.snapshot?.takenAt)) {
+            HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
+                InstrumentSegments(String(localized: "Gruppierung"), selection: $window.permissionsGrouping,
+                                   options: PermissionsGrouping.allCases.map { ($0, $0.title) })
+                    .frame(width: InstrumentSize.columnNarrow)
+                VStack(alignment: .leading, spacing: 0) {
+                    if let coverage { AreaCoverageBar(coverage: coverage) }
+                    FlaggedNoticeBar(breakdown: presentation?.metrics.flagged, area: .permissions,
+                                     filter: window.filter(for: .permissions).findings)
                 }
-                .pickerStyle(.segmented)
-                .labelsHidden()
-                .padding(8)
-                Divider()
-                switch window.permissionsGrouping {
-                case .byApp: appList
-                case .byService: serviceList
-                }
+            }
+        } list: {
+            switch window.permissionsGrouping {
+            case .byApp: appList(presentation)
+            case .byService: serviceList(presentation)
             }
         } detail: {
             ActionResultContainer(actions: appModel.actions, context: .permissions) {
-                detail
+                detail(presentation)
             }
         }
         .inventorySearch(for: .permissions, prompt: String(localized: "Apps und Dienste durchsuchen"))
+        .onChange(of: window.focusedRecordID, initial: true) { _, recordID in
+            guard let recordID, let group = presentation?.appGroups.first(where: {
+                $0.grants.contains { $0.id == recordID }
+            }) else { return }
+            selectedAppID = group.id
+        }
     }
 
     // MARK: - Listen
 
-    private var appList: some View {
+    @ViewBuilder
+    private func appList(_ presentation: PresentationSnapshot?) -> some View {
         let groups = InventoryPresenter.filter(
-            appModel.presentation?.appGroups ?? [], query: window.query(for: .permissions),
-            filter: window.filter(for: .permissions)
+            presentation?.appGroups ?? [], query: window.query(for: .permissions), filter: window.filter(for: .permissions)
         ).filter { !$0.grants.isEmpty }
-        return ScrollViewReader { proxy in
-            List(groups, selection: $selectedAppID) { group in
-                GroupRow(
-                    title: group.app.displayName, subtitle: group.grants.map(\.serviceName).joined(separator: ", "),
-                    badges: badges(for: group.grants)
-                ) {
-                    AppIconView(app: group.app, size: 28)
-                }
-                .id(group.id)
+        if let presentation, !groups.isEmpty {
+            let apps = Dictionary(groups.map { ($0.id, $0.app) }, uniquingKeysWith: { first, _ in first })
+            InstrumentList(String(localized: "Apps"), count: "\(groups.count)",
+                           sections: PermissionsBoardMapping.sections(groups, isFlagged: \.isFlagged) {
+                               PermissionsBoardMapping.appItem($0, presentation: presentation)
+                           },
+                           selection: $selectedAppID) { item in
+                if let app = apps[item.id] { AppIconView(app: app, size: InstrumentSize.rowIconTall) }
             }
-            .onChange(of: window.focusedRecordID, initial: true) { _, recordID in
-                guard let recordID, let group = groups.first(where: { $0.grants.contains { $0.id == recordID } }) else { return }
-                selectedAppID = group.id
-                proxy.scrollTo(group.id, anchor: .center)
-            }
+        } else {
+            emptyState
         }
-        .overlay { emptyState(isEmpty: groups.isEmpty) }
     }
 
-    private var serviceList: some View {
+    @ViewBuilder
+    private func serviceList(_ presentation: PresentationSnapshot?) -> some View {
         let groups = InventoryPresenter.filter(
-            appModel.presentation?.serviceGroups ?? [], query: window.query(for: .permissions),
+            presentation?.serviceGroups ?? [], query: window.query(for: .permissions),
             filter: window.filter(for: .permissions)
         )
-        return List(groups, selection: $selectedServiceID) { group in
-            GroupRow(
-                title: group.service.displayName,
-                subtitle: group.grants.map(\.client.displayName).joined(separator: ", "),
-                badges: badges(for: group.grants)
-            ) {
-                ServiceIconView(service: group.service, size: 28)
+        if let presentation, !groups.isEmpty {
+            let services = Dictionary(groups.map { ($0.id, $0.service) }, uniquingKeysWith: { first, _ in first })
+            InstrumentList(String(localized: "Berechtigungen"), count: "\(groups.count)",
+                           sections: PermissionsBoardMapping.sections(groups, isFlagged: \.isFlagged) {
+                               PermissionsBoardMapping.serviceItem($0, presentation: presentation)
+                           },
+                           selection: $selectedServiceID) { item in
+                if let service = services[item.id] {
+                    ServiceIconView(service: service, size: InstrumentSize.rowIconTall)
+                }
             }
+        } else {
+            emptyState
         }
-        .overlay { emptyState(isEmpty: groups.isEmpty) }
     }
 
     private var coverage: AreaCoverage? { appModel.presentation?.coverage[.permissions] }
 
-    private func badges(for grants: [PermissionGrant]) -> [RecordBadge] {
-        appModel.presentation?.badges.badges(forAll: grants.map(\.id)) ?? []
-    }
-
-    @ViewBuilder
-    private func emptyState(isEmpty: Bool) -> some View {
-        if isEmpty {
-            InventoryEmptyState(section: .permissions, coverage: coverage, hasSnapshot: appModel.presentation != nil)
-        }
+    /// Leerzustand im Panel (Spec §11.1 e): noch kein Scan, keine Treffer, keine Einträge – ohne Entwarnung bei Lücken.
+    private var emptyState: some View {
+        InventoryEmptyState(section: .permissions, coverage: coverage, hasSnapshot: appModel.presentation != nil)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .instrumentPanel()
     }
 
     // MARK: - Detail
 
     /// Detail zur Auswahl – immer mit **allen** Einträgen der App bzw. des Dienstes, unabhängig vom Filter.
     @ViewBuilder
-    private var detail: some View {
+    private func detail(_ presentation: PresentationSnapshot?) -> some View {
         switch window.permissionsGrouping {
         case .byApp:
-            if let group = appModel.presentation?.appGroups.first(where: { $0.id == selectedAppID }) {
-                AppDetailView(group: group, appModel: appModel)
+            if let presentation, let group = presentation.appGroups.first(where: { $0.id == selectedAppID }) {
+                AppDetailView(group: group, appModel: appModel, presentation: presentation)
             } else {
-                noSelection("Wähle links eine App, um ihre Berechtigungen zu sehen.")
+                noSelection(String(localized: "Wähle links eine App, um ihre Berechtigungen zu sehen."))
             }
         case .byService:
-            if let group = appModel.presentation?.serviceGroups.first(where: { $0.id == selectedServiceID }) {
-                ServiceDetailView(group: group, appModel: appModel)
+            if let presentation, let group = presentation.serviceGroups.first(where: { $0.id == selectedServiceID }) {
+                ServiceDetailView(group: group, appModel: appModel, presentation: presentation)
             } else {
-                noSelection("Wähle links eine Berechtigung, um die Apps damit zu sehen.")
+                noSelection(String(localized: "Wähle links eine Berechtigung, um die Apps damit zu sehen."))
             }
         }
     }
 
-    private func noSelection(_ text: LocalizedStringKey) -> some View {
-        NoSelectionView(hint: text)
-    }
-}
-
-/// Zeile einer Gruppe (App bzw. Dienst): Symbol, Name, die Gegenseite ihrer Berechtigungen und zusammengefasste
-/// Badges.
-private struct GroupRow<Icon: View>: View {
-    let title: String
-    let subtitle: String
-    let badges: [RecordBadge]
-    @ViewBuilder let icon: Icon
-
-    var body: some View {
-        HStack(spacing: 10) {
-            icon
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: title)
-                    .lineLimit(1)
-                Text(verbatim: subtitle)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 8)
-            RecordBadgesRow(badges: badges)
-        }
-        .padding(.vertical, 2)
-        .accessibilityElement(children: .combine)
+    private func noSelection(_ message: String) -> some View {
+        InstrumentEmptyState(symbol: "hand.raised", title: String(localized: "Nichts gewählt"), message: message)
+            .instrumentPanel()
     }
 }

@@ -195,7 +195,7 @@ public enum StoragePresentation {
         }
     }
 
-    private static func isTimeMachine(_ method: StorageCleanOutcome.Method) -> Bool {
+    static func isTimeMachine(_ method: StorageCleanOutcome.Method) -> Bool {
         method == .timeMachineExclude || method == .timeMachineInclude
     }
 

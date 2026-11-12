@@ -1,9 +1,12 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Segment „Prozesse“ (#221): Speicherstatus, verwaiste Agenten-Bäume und gebootete Simulatoren auf Knopfdruck,
-/// Auswahl, Sammeldialog vor dem Beenden und – für Überlebende des SIGTERM – eine zweite Bestätigung für SIGKILL. Fehlt
-/// der Festplattenvollzugriff, sagt `PrerequisitesBanner`, dass die Prozessliste davon nicht betroffen ist (#226).
+/// Segment „Prozesse“ (#221) im Lagebild (LB-4.4, #550; Entwurf LB-4.1, #547, Spec 2026-11-10 § 11.4): Zustandszeile mit
+/// Speicherstand, Umschalter mit Stand des Scans, Banner (fehlender Festplattenvollzugriff, Prozesse nicht lesbar, Ergebnis
+/// des letzten Beendens), verwaiste Agenten-Bäume (aufklappbar) und gebootete Simulatoren als Häkchenzeilen, Aktionsleiste
+/// unten. Sammeldialog vor dem Beenden und – für Überlebende des SIGTERM – eine zweite Bestätigung für SIGKILL. Fehlt der
+/// Festplattenvollzugriff, sagt `PrerequisitesBanner`, dass die Prozessliste davon nicht betroffen ist (#226).
 struct ProcessCleanupView: View {
     @Bindable var model: ProcessCleanupModel
     /// Öffnet die Einstellungen zum Festplattenvollzugriff; `nil`, wenn er nicht fehlt.
@@ -11,28 +14,18 @@ struct ProcessCleanupView: View {
     let showSetup: () -> Void
     @State private var isConfirming: Bool?
     @State private var isConfirmingForce: Bool?
+    /// Aufgeklappte Agenten-Bäume (`AgentProcessTree.id`); zu Beginn alle zu.
+    @State private var expandedTrees: Set<String> = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            if openFullDiskAccess != nil {
-                PrerequisitesBanner(
-                    text: String(localized: "Festplattenvollzugriff fehlt. Die Prozessliste ist davon nicht betroffen, unter „Speicher“ bleiben geschützte Ordner aber unerfasst."),
-                    openFullDiskAccess: openFullDiskAccess, showSetup: showSetup
-                )
-                .padding([.horizontal, .bottom], 12)
-            }
-            if let overview = model.overview {
-                Text(verbatim: ProcessCleanupPresentation.statusLine(overview.memory))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .padding([.horizontal, .bottom], 12)
-            }
-            notices
-            Divider()
+        CleanupBoard(head: ProcessCleanupBoardMapping.head(model), progress: ProcessCleanupBoardMapping.progress(model)) {
+            CleanupSegmentSwitcher()
+        } banner: {
+            banners
+        } content: {
             content
-                .scanProgressAboveTable(model.scanProgress)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } bar: {
+            actionBar
         }
         .actionConfirmation(for: $isConfirming, confirmation: { _ in
             ProcessCleanupPresentation.confirmation(trees: model.selectedTrees, simulators: model.selectedSimulators)
@@ -44,16 +37,104 @@ struct ProcessCleanupView: View {
 
     private var isBusy: Bool { model.phase == .scanning || model.phase == .cleaning }
 
-    private var header: some View {
-        HStack(spacing: 12) {
+    // MARK: - Banner
+
+    @ViewBuilder
+    private var banners: some View {
+        if openFullDiskAccess != nil {
+            PrerequisitesBanner(
+                text: String(localized: "Festplattenvollzugriff fehlt. Die Prozessliste ist davon nicht betroffen, unter „Speicher“ bleiben geschützte Ordner aber unerfasst."),
+                openFullDiskAccess: openFullDiskAccess, showSetup: showSetup
+            )
+        }
+        if let error = model.scanError {
+            InstrumentBanner(String(localized: "Prozesse nicht lesbar"), message: error, tone: .critical)
+        }
+        if let result = ProcessCleanupBoardMapping.result(model.lastOutcomes) {
+            InstrumentBanner(result.title, message: result.message, tone: result.tone)
+        }
+    }
+
+    // MARK: - Funde
+
+    @ViewBuilder
+    private var content: some View {
+        if let overview = model.overview, showsList(overview) {
+            CleanupFindingList {
+                outcomes
+                findings(overview)
+            }
+        } else if model.overview != nil {
+            InstrumentEmptyState(symbol: "checkmark.circle", title: String(localized: "Nichts gefunden"),
+                                 message: String(localized: "Keine verwaisten Agenten-Prozesse und keine gebooteten Simulatoren."))
+        } else if model.phase == .scanning {
+            InstrumentEmptyState(symbol: "magnifyingglass", title: String(localized: "Prozesse werden gelesen"),
+                                 message: String(localized: "Grantry liest Prozesse und gebootete Simulatoren – beendet nichts."))
+        } else {
+            InstrumentEmptyState(symbol: "memorychip", title: String(localized: "Noch nicht gescannt"),
+                                 message: String(localized: "Der Scan startet nur, wenn du ihn anstößt. Beendet wird erst nach deiner Bestätigung."))
+        }
+    }
+
+    /// Liste statt „Nichts gefunden“, sobald es Posten, Ausgänge oder Hinweise gibt.
+    private func showsList(_ overview: ProcessOverview) -> Bool {
+        !overview.agentTrees.orphans.isEmpty || !overview.simulators.isEmpty || overview.simulatorError != nil
+            || overview.agentTrees.inUseCount > 0 || !model.lastOutcomes.isEmpty
+    }
+
+    /// Ausgänge des letzten Beendens je Posten (§ 11.4 d).
+    @ViewBuilder
+    private var outcomes: some View {
+        if !model.lastOutcomes.isEmpty {
+            SelectionGroupHeader(title: String(localized: "Details"), count: model.lastOutcomes.count)
+            ForEach(Array(model.lastOutcomes.enumerated()), id: \.offset) { _, outcome in
+                OutcomeRow(ProcessCleanupBoardMapping.outcomeStatus(outcome), target: outcome.title,
+                           reason: ProcessCleanupPresentation.outcomeReason(outcome))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func findings(_ overview: ProcessOverview) -> some View {
+        if let error = overview.simulatorError {
+            InstrumentNote(String(localized: "Simulatoren nicht lesbar: \(error)"), kind: .critical)
+        }
+        let trees = overview.agentTrees.orphans
+        if !trees.isEmpty {
+            SelectionGroupHeader(title: String(localized: "Verwaiste Agenten-Prozesse"), count: trees.count,
+                                 size: ProcessCleanupPresentation.memoryText(of: trees), finding: true)
+            ForEach(trees) { tree in
+                AgentTreeSection(tree: tree, isSelected: binding(ProcessCleanupModel.treeSelectionID(tree)),
+                                 isExpanded: expansion(tree.id), isLocked: isBusy)
+            }
+        }
+        if let note = ProcessCleanupPresentation.inUseNote(overview.agentTrees.inUseCount) {
+            InstrumentNote(note)
+        }
+        if !overview.simulators.isEmpty {
+            SelectionGroupHeader(title: String(localized: "Gebootete Simulatoren"), count: overview.simulators.count,
+                                 size: ProcessCleanupPresentation.memoryText(of: [], simulators: overview.simulators))
+            ForEach(overview.simulators) { simulator in
+                SelectionCheckRow(simulator.title, detail: ProcessCleanupPresentation.detail(simulator, now: .now),
+                                  size: ProcessCleanupPresentation.sizeText(simulator),
+                                  isOn: binding(ProcessCleanupModel.simulatorSelectionID(simulator)))
+                    .disabled(isBusy)
+            }
+        }
+    }
+
+    // MARK: - Aktionsleiste
+
+    private var actionBar: some View {
+        InstrumentActionBar(
+            scope: ProcessCleanupPresentation.selectionScope(trees: model.selectedTrees,
+                                                             simulators: model.selectedSimulators),
+            runningText: model.phase == .cleaning ? String(localized: "Wird beendet …") : nil
+        ) {
             Button("Scannen", action: model.scan)
                 .disabled(model.scanProgress.isRunning || model.phase == .cleaning)
                 .help("Liest nur – beendet nichts")
-            if isBusy {
-                ProgressView().controlSize(.small)
-                    .accessibilityLabel(model.phase == .scanning ? "Scan läuft" : "Beenden läuft")
-            }
-            Spacer(minLength: 8)
+        } trailing: {
             if !model.forceOffer.isEmpty {
                 Button("Sofort beenden (SIGKILL) …") { isConfirmingForce = true }
                     .disabled(model.phase != .scanned)
@@ -61,131 +142,39 @@ struct ProcessCleanupView: View {
             Button(role: .destructive) { isConfirming = true } label: { Text("Beenden …") }
                 .disabled(model.phase != .scanned || (model.selectedTrees.isEmpty && model.selectedSimulators.isEmpty))
         }
-        .padding(12)
     }
 
-    @ViewBuilder
-    private var notices: some View {
-        let texts = [
-            model.scanError.map { "Prozesse nicht lesbar: \($0)" },
-            model.overview?.simulatorError.map { "Simulatoren nicht lesbar: \($0)" },
-            model.overview.flatMap { ProcessCleanupPresentation.inUseNote($0.agentTrees.inUseCount) },
-            model.lastOutcomes.isEmpty ? nil : ProcessCleanupPresentation.summary(model.lastOutcomes),
-        ].compactMap(\.self)
-        if !texts.isEmpty || !model.lastOutcomes.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                NoticeList(notices: texts)
-                if !model.lastOutcomes.isEmpty { OutcomeList(outcomes: model.lastOutcomes) }
-            }
-            .padding([.horizontal, .bottom], 12)
-        }
-    }
-
-    @ViewBuilder
-    private var content: some View {
-        if let overview = model.overview {
-            if overview.agentTrees.orphans.isEmpty, overview.simulators.isEmpty {
-                ContentUnavailableView("Nichts gefunden", systemImage: "checkmark.circle",
-                                       description: Text("Keine verwaisten Agenten-Prozesse und keine gebooteten Simulatoren."))
-            } else {
-                List {
-                    if !overview.agentTrees.orphans.isEmpty {
-                        Section("Verwaiste Agenten-Prozesse") {
-                            ForEach(overview.agentTrees.orphans) { tree in
-                                AgentTreeRow(tree: tree, isSelected: binding(ProcessCleanupModel.treeSelectionID(tree)),
-                                             isLocked: isBusy)
-                            }
-                        }
-                    }
-                    if !overview.simulators.isEmpty {
-                        Section("Gebootete Simulatoren") {
-                            ForEach(overview.simulators) { simulator in
-                                Toggle(isOn: binding(ProcessCleanupModel.simulatorSelectionID(simulator))) {
-                                    VStack(alignment: .leading) {
-                                        Text(verbatim: simulator.title)
-                                        Text(verbatim: ProcessCleanupPresentation.subtitle(simulator, now: .now))
-                                            .font(.caption).foregroundStyle(.secondary)
-                                    }
-                                }
-                                .disabled(isBusy)
-                            }
-                        }
-                    }
-                }
-                .listStyle(.inset)
-            }
-        } else if model.phase == .scanning {
-            Spacer()
-        } else {
-            ContentUnavailableView(
-                "Noch nicht gescannt", systemImage: "memorychip",
-                description: Text("Der Scan startet nur, wenn du ihn anstößt. Beendet wird erst nach deiner Bestätigung.")
-            )
-        }
-    }
+    // MARK: - Bindungen
 
     private func binding(_ id: String) -> Binding<Bool> {
         Binding(get: { model.selection.contains(id) },
                 set: { if $0 { model.selection.insert(id) } else { model.selection.remove(id) } })
     }
+
+    private func expansion(_ id: String) -> Binding<Bool> {
+        Binding(get: { expandedTrees.contains(id) },
+                set: { if $0 { expandedTrees.insert(id) } else { expandedTrees.remove(id) } })
+    }
 }
 
-/// Ein Agenten-Baum: Auswahl mit Name, Arbeitsordner, Alter, Prozesszahl und Speicher; aufgeklappt die Prozesse (nur
-/// Programm- und Skriptname, nie die Befehlszeile).
-private struct AgentTreeRow: View {
+/// Ein Agenten-Baum (§ 11.4 g): Häkchenzeile mit Name, Arbeitsordner, Alter, Prozesszahl und Speicher; aufgeklappt die
+/// Prozesse eingerückt (nur Programm- und Skriptname, nie die Befehlszeile).
+private struct AgentTreeSection: View {
     let tree: AgentProcessTree
     let isSelected: Binding<Bool>
+    let isExpanded: Binding<Bool>
     let isLocked: Bool
 
     var body: some View {
-        DisclosureGroup {
+        let memory = ProcessCleanupPresentation.memoryText(tree.memoryBytes)
+        DisclosureSection(tree.title, value: memory, isExpanded: isExpanded) {
+            SelectionCheckRow(tree.title, detail: ProcessCleanupPresentation.detail(tree, now: .now), size: memory,
+                              isOn: isSelected)
+                .disabled(isLocked)
+        } content: {
             ForEach(tree.members, id: \.pid) { member in
-                HStack {
-                    Text(verbatim: member.label)
-                    Spacer()
-                    Text(verbatim: "PID \(member.pid)").foregroundStyle(.secondary).monospacedDigit()
-                    Text(verbatim: member.memoryBytes.map(ProcessCleanupPresentation.memoryText) ?? "–")
-                        .foregroundStyle(.secondary).monospacedDigit()
-                }
-                .font(.caption)
+                DisclosureMemberRow(member.label, value: ProcessCleanupPresentation.memberValue(member))
             }
-        } label: {
-            Toggle(isOn: isSelected) {
-                VStack(alignment: .leading) {
-                    Text(verbatim: tree.title)
-                    Text(verbatim: ProcessCleanupPresentation.subtitle(tree, now: .now))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            .disabled(isLocked)
         }
     }
-}
-
-/// Ausgänge des letzten Beendens je Posten.
-private struct OutcomeList: View {
-    let outcomes: [ProcessCleanupOutcome]
-
-    var body: some View {
-        DisclosureGroup("Details") {
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(outcomes.enumerated()), id: \.offset) { _, outcome in
-                    Text(verbatim: "\(outcome.title): \(StoragePresentation.resultText(outcome.logEntry))")
-                        .textSelection(.enabled)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .font(.caption)
-    }
-}
-
-#Preview("Prozesse – Leiste über der Liste, kurzer Scan") {
-    List {
-        Section("Verwaiste Agenten-Prozesse") { Text(verbatim: "node – ~/Projects/demo – 3 Prozesse") }
-        Section("Gebootete Simulatoren") { Text(verbatim: "iPhone 17 Pro – iOS 27.0") }
-    }
-    .listStyle(.inset)
-    .scanProgressAboveTable(.preview(ScanProgress(isIndeterminate: true)))
-    .frame(width: 720, height: 220)
 }

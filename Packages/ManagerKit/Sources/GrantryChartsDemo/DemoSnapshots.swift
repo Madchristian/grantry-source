@@ -39,8 +39,7 @@ extension DemoSnapshots {
                     .environment(\._colorSchemeContrast, contrast)
                     .environment(\.chartSnapshotRendering, true)
                     .environment(\.chartRenderingPaused, true)
-                // Der Entwurf LB-1.1 enthält native Knöpfe und Leerzustände, die `ImageRenderer` nicht zeichnet.
-                let png = page == .lagebildDraft ? offscreenPNG(content, scheme: scheme) : rendererPNG(content)
+                let png = page.rendersOffscreen ? offscreenPNG(content, scheme: scheme) : rendererPNG(content)
                 try? png?.write(to: URL(fileURLWithPath: directory).appendingPathComponent("\(page.fileName)-\(name).png"))
             }
         }

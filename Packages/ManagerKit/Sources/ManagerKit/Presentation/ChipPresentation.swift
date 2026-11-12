@@ -160,7 +160,7 @@ public enum ChipPresentation {
         return ChipPage.Level(
             id: index,
             kind: profile.kind(ofLevel: index),
-            title: title(of: level, index: index),
+            title: profile.kind(ofLevel: index).title,
             detail: detail(of: level),
             value: PerformancePresentation.percent(loads.isEmpty ? nil : loads.reduce(0, +) / Double(loads.count)),
             facts: [ChipPage.Fact("Takt max.", maximum.map(PerformancePresentation.frequency) ?? missing),
@@ -173,15 +173,6 @@ public enum ChipPresentation {
         )
     }
 
-    /// „Performance“ → „Leistungskerne“; unbekannte Namen künftiger Chips mit Rückfall.
-    static func title(of level: ChipProfile.Level, index: Int) -> String {
-        switch level.name {
-        case "Performance": "Leistungskerne"
-        case "Efficiency": "Effizienzkerne"
-        case let name?: "\(name)-Kerne"
-        case nil: "Kerne der Stufe \(index + 1)"
-        }
-    }
 
     /// „12 Kerne · 2 Cluster à 6 Kerne · je 16 MB L2“.
     private static func detail(of level: ChipProfile.Level) -> String {

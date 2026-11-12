@@ -1,4 +1,5 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -6,7 +7,7 @@ import SwiftUI
 struct CodeText: View {
     let text: String
     var alignment: TextAlignment = .trailing
-    var font: Font = .body.monospaced()
+    var font: Font = InstrumentFont.code
 
     var body: some View {
         Text(verbatim: text)
@@ -18,45 +19,32 @@ struct CodeText: View {
 }
 
 /// Kopiert einen Befehl in die Zwischenablage und kündigt das für VoiceOver an.
+enum CommandClipboard {
+    static func copy(_ command: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(command, forType: .string)
+        AccessibilityNotification.Announcement(String(localized: "Befehl kopiert")).post()
+    }
+}
+
+/// Knopf, der einen Befehl kopiert (`CommandClipboard`).
 struct CopyCommandButton: View {
     let command: String
     var title: LocalizedStringKey = "Befehl kopieren"
 
     var body: some View {
-        Button(title) {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(command, forType: .string)
-            AccessibilityNotification.Announcement(String(localized: "Befehl kopiert")).post()
-        }
+        Button(title) { CommandClipboard.copy(command) }
     }
 }
 
-/// Befehl vor und nach einer Änderung (#137): aufklappbar, beide Zeilen auswählbar und einzeln kopierbar. Geheimnisse
-/// sind bereits maskiert (`CommandChange`).
+/// Befehl vor und nach einer Änderung (#137) zum Aufklappen, im Lagebild auf der Mulde (`CommandChangeWell`, LB-3.3):
+/// beide Zeilen auswählbar und einzeln kopierbar. Geheimnisse sind bereits maskiert (`CommandChange`).
 struct CommandChangeDisclosure: View {
     let change: CommandChange
+    @State private var isExpanded = false
 
     var body: some View {
-        DisclosureGroup("Befehl vorher/nachher") {
-            VStack(alignment: .leading, spacing: 8) {
-                line(title: "Vorher", copyLabel: "Befehl vorher kopieren", command: change.before)
-                line(title: "Nachher", copyLabel: "Befehl nachher kopieren", command: change.after)
-            }
-            .padding(.top, 4)
-        }
-        .font(.callout)
-    }
-
-    private func line(title: LocalizedStringKey, copyLabel: LocalizedStringKey, command: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack {
-                Text(title).foregroundStyle(.secondary)
-                Spacer(minLength: 8)
-                CopyCommandButton(command: command, title: "Kopieren")
-                    .controlSize(.small)
-                    .accessibilityLabel(Text(copyLabel))
-            }
-            CodeText(text: command, alignment: .leading, font: .callout.monospaced())
-        }
+        CommandChangeWell(before: change.before, after: change.after, isExpanded: $isExpanded,
+                          copy: CommandClipboard.copy)
     }
 }

@@ -16,6 +16,15 @@ public enum UpdateTexts {
     public static func failed(_ reason: String) -> String {
         "Update-Prüfung fehlgeschlagen: \(reason)"
     }
+
+    /// Detailzeile im Kopf der Gruppe „Updates“ der Einstellungen (#553): laufende Prüfung, gefundenes Update, sonst die
+    /// Zustimmung mit der installierten Version.
+    public static func settingsDetail(isEnabled: Bool, isChecking: Bool, availableVersion: String?,
+                                      installedVersion: String) -> String {
+        if isChecking { return "Prüfung läuft" }
+        if let availableVersion { return "Grantry \(availableVersion) verfügbar" }
+        return isEnabled ? "täglich · Grantry \(installedVersion)" : "aus"
+    }
 }
 
 extension AppcastItem {

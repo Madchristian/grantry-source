@@ -1,7 +1,8 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Signatur mit farbigem Symbol, bei bekanntem Team ergänzt um die Team-ID. `compact` zeigt für schmale Spalten nur die
+/// Signatur mit Symbol im Zustandston, bei bekanntem Team ergänzt um die Team-ID. `compact` zeigt für schmale Spalten nur die
 /// Kurzform („Developer ID“, „Ad hoc“); der volle Text steht dann im Tooltip und für VoiceOver.
 struct SigningLabel: View {
     enum Style {
@@ -10,19 +11,16 @@ struct SigningLabel: View {
 
     let signing: SigningInfo
     var style = Style.full
-
-    private var fullText: String {
-        signing.teamID.map { "\(signing.displayName) · Team \($0)" } ?? signing.displayName
-    }
+    @Environment(\.self) private var environment
 
     var body: some View {
         switch style {
         case .full:
-            label(fullText)
+            label(signing.fullText)
         case .compact:
             label(signing.shortName)
-                .help(Text(verbatim: fullText))
-                .accessibilityLabel(Text(verbatim: fullText))
+                .help(Text(verbatim: signing.fullText))
+                .accessibilityLabel(Text(verbatim: signing.fullText))
         }
     }
 
@@ -30,7 +28,14 @@ struct SigningLabel: View {
         Label {
             Text(verbatim: text)
         } icon: {
-            Image(systemName: signing.tone.systemImage).foregroundStyle(signing.tone.color)
+            Image(systemName: signing.tone.systemImage).foregroundStyle(environment.statusColor(signing.tone.statusTone))
         }
+    }
+}
+
+extension SigningInfo {
+    /// Signatur mit Team-ID, sofern bekannt („Developer ID · Team A1B2C3D4E5“).
+    var fullText: String {
+        teamID.map { "\(displayName) · Team \($0)" } ?? displayName
     }
 }

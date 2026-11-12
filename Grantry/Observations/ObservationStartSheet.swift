@@ -1,8 +1,9 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Blatt „Installation beobachten“ (#127): Name (Pflicht) und Notiz; „Beobachtung starten“ erfasst sofort den
-/// Ausgangsstand. Konnte der Scan Quellen nicht lesen, fragt das Blatt nach („Trotzdem starten“).
+/// Blatt „Installation beobachten“ (#127) im Lagebild (LB-3.4, #546, Spec §11.3 h): Name (Pflicht) und Notiz;
+/// „Beobachtung starten“ erfasst sofort den Ausgangsstand. Konnte der Scan Quellen nicht lesen, fragt das Blatt nach („Trotzdem starten“).
 struct ObservationStartSheet: View {
     let observations: ObservationModel
     var scanProgress = ScanProgress()
@@ -17,43 +18,20 @@ struct ObservationStartSheet: View {
     private var trimmedName: String { name.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     var body: some View {
-        @Bindable var observations = observations
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Installation beobachten")
-                .font(.title2.weight(.semibold))
-                .accessibilityAddTraits(.isHeader)
-            Text("Grantry hält jetzt fest, was auf dem Mac eingerichtet ist. Installiere danach das Tool und starte es einmal; beim Beenden der Beobachtung zeigt Grantry, was seitdem hinzugekommen ist – und räumt es auf Wunsch wieder auf.")
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Form {
-                TextField("Name", text: $name, prompt: Text("z. B. Cursor"))
-                TextField("Notiz (optional)", text: $note, axis: .vertical)
-                    .lineLimit(2...4)
-            }
-            .formStyle(.grouped)
-            .disabled(observations.isBusy)
-            if let active = observations.active {
-                NoticeList(notices: [String(localized: "Die Beobachtung „\(active.name)“ läuft bereits – es kann nur eine gleichzeitig laufen.")])
-            }
-            if let error = observations.errorMessage {
-                NoticeList(notices: [error])
-            }
-            HStack {
-                if observations.phase == .starting {
-                    ScanProgressView(progress: scanProgress).frame(width: 160)
-                    Text("Ausgangsstand wird erfasst …").foregroundStyle(.secondary)
+        ObservationStartForm(
+            name: $name, note: $note, notes: notes, isBusy: observations.isBusy,
+            canStart: !trimmedName.isEmpty && !observations.isBusy && observations.active == nil && observations.isAvailable,
+            cancel: cancel, start: start
+        ) {
+            if observations.phase == .starting {
+                ScanProgressText(progress: scanProgress) { text in
+                    ProgressSpur(title: String(localized: "Ausgangsstand wird erfasst …"), detail: text,
+                                 fraction: scanProgress.isIndeterminate ? nil : scanProgress.fraction, tone: .info)
                 }
-                Spacer()
-                Button("Abbrechen", role: .cancel) { cancel() }
-                    .keyboardShortcut(.cancelAction)
-                Button("Beobachtung starten") { start() }
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(trimmedName.isEmpty || observations.isBusy || observations.active != nil
-                              || !observations.isAvailable)
             }
         }
-        .padding(20)
         .frame(width: 480)
+        .instrumentBackground()
         .onAppear { observations.errorMessage = nil }
         // Schließt das Blatt auf anderem Weg, gilt das wie „Abbrechen“: kein Start, keine hängende Rückfrage.
         .onDisappear {
@@ -76,6 +54,17 @@ struct ObservationStartSheet: View {
             Text(verbatim: ObservationTexts.incompleteStartMessage(pending.baseline.failedSources.sorted { $0.rawValue < $1.rawValue }
                 .map(\.displayName)))
         }
+    }
+
+    /// Hinweise im Blatt: laufende Beobachtung (Befund) und Fehler (wie bisher als Hinweis).
+    private var notes: [DetailNoteContent] {
+        var notes: [DetailNoteContent] = []
+        if let active = observations.active {
+            notes.append(DetailNoteContent(String(localized: "Die Beobachtung „\(active.name)“ läuft bereits – es kann nur eine gleichzeitig laufen."),
+                                           kind: .finding))
+        }
+        if let error = observations.errorMessage { notes.append(DetailNoteContent(error, kind: .critical)) }
+        return notes
     }
 
     private func start() {

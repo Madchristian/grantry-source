@@ -54,13 +54,7 @@ public struct CoreCluster: Hashable, Sendable, Identifiable {
         self.load = load
     }
 
-    public var title: String {
-        switch kind {
-        case .performance: "Leistungskerne"
-        case .efficiency: "Effizienzkerne"
-        case .unknown: "Kerne"
-        }
-    }
+    public var title: String { kind.title }
 
     /// „12 Kerne · CPU 4–15“; die Spanne nur bei lückenlosen Nummern.
     public var detail: String {
@@ -203,13 +197,11 @@ public enum PerformancePresentation {
         tiles.contains { $0.metric == selection } ? selection : tiles.first?.metric
     }
 
-    /// Kerncluster für die Ansicht „Pro Kern“ (Optik 2026-11-07, Runde 2): Leistungskerne, dann Effizienzkerne, ohne
-    /// Kerntypen (Intel, virtuelle Maschine) ein gemeinsames Panel. Innerhalb eines Clusters bleiben Reihenfolge und
-    /// Nummern von macOS (`host_processor_info`); leere Cluster fallen weg.
+    /// Kerncluster für die Ansicht „Pro Kern“ (Optik 2026-11-07, Runde 2): je Kernklasse ein Panel, schnellste zuerst
+    /// (Super-, Leistungs-, Effizienzkerne, #589), ohne Kerntypen (Intel, virtuelle Maschine) ein gemeinsames Panel.
+    /// Innerhalb eines Clusters bleiben Reihenfolge und Nummern von macOS (`host_processor_info`).
     public static func coreClusters(_ cores: [CoreLoad]) -> [CoreCluster] {
-        [CoreKind.performance, .efficiency, .unknown].compactMap { kind in
-            let indices = cores.indices.filter { cores[$0].kind == kind }
-            guard !indices.isEmpty else { return nil }
+        Dictionary(grouping: cores.indices, by: { cores[$0].kind }).sorted { $0.key < $1.key }.map { kind, indices in
             let loads = indices.compactMap { cores[$0].load }
             return CoreCluster(kind: kind, cores: indices, load: loads.isEmpty ? nil : loads.reduce(0, +) / Double(loads.count))
         }
@@ -240,11 +232,13 @@ public enum PerformancePresentation {
         return total == 0 ? "kein Swap" : "\(bytes(used)) von \(bytes(total))"
     }
 
-    /// „12 P · 4 E“: Leistungs- und Effizienzkerne, kurz wie im Kernraster.
+    /// „12 P · 4 E“, „6 S · 12 P“: Kerne je Klasse mit Kürzel, schnellste zuerst, kurz wie im Kernraster. Mit nur einer
+    /// Klasse oder einer ohne Kürzel nur die Gesamtzahl.
     private static func coreKindsText(_ cores: [CoreLoad]) -> String {
-        let performance = cores.count { $0.kind == .performance }, efficiency = cores.count { $0.kind == .efficiency }
-        guard efficiency > 0, performance + efficiency == cores.count else { return "\(cores.count)" }
-        return "\(performance) P · \(efficiency) E"
+        let clusters = coreClusters(cores)
+        let parts = clusters.compactMap { cluster in cluster.kind.tag.map { "\(cluster.cores.count) \($0)" } }
+        guard parts.count > 1, parts.count == clusters.count else { return "\(cores.count)" }
+        return parts.joined(separator: " · ")
     }
 
     /// Ohne Prozessquelle (TM3) aus dem Speicherstand, der alle Prozesse zählt.

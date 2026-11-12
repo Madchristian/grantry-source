@@ -123,7 +123,7 @@ private struct FirewallNote: View {
         switch hint {
         case .firewallOff:
             HStack(spacing: InstrumentSpacing.group) {
-                NetworkNote(text: exposedCount == 1
+                InstrumentNote(exposedCount == 1
                     ? String(localized: "Firewall ist aus: 1 Dienst nimmt Verbindungen aus dem Netz an.")
                     : String(localized: "Firewall ist aus: \(exposedCount) Dienste nehmen Verbindungen aus dem Netz an."),
                     kind: .finding)
@@ -136,7 +136,7 @@ private struct FirewallNote: View {
                 }
             }
         case .firewallOn:
-            NetworkNote(text: String(
+            InstrumentNote(String(
                 localized: "Die Firewall ist an. Signierte Apps können je nach Einstellung trotzdem eingehende Verbindungen annehmen."
             ))
         }

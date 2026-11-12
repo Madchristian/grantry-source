@@ -66,6 +66,25 @@ import Testing
         #expect(breakdown.areas(for: .withFindings) == areas)
     }
 
+    /// Kritisch sind auffällige Einträge mit hohem Befund (Chip „kritisch“ der Lagezeile, Spec § 11.3 b).
+    @Test func criticalCountsEntriesWithHighFinding() {
+        let breakdown = make(findings).metrics.flagged
+        #expect(breakdown.criticalCount == 2)
+        #expect(breakdown.flaggedCount - breakdown.criticalCount == 4)
+        #expect(make(findings + [finding("/Applications/Entfernt.app", .high)]).metrics.flagged.criticalCount == 2)
+    }
+
+    /// Grund der Lagezeile: der schwerste Befund eines gezeigten Eintrags, bei Gleichstand der erste; Hinweise und
+    /// Einträge ohne Zeile nie.
+    @Test func leadingFindingIsTheMostSevereVisibleOne() {
+        let lead = RiskFinding(rule: .orphan, severity: .high, recordID: item.id, message: "Autostart ohne Programm")
+        let later = RiskFinding(rule: .orphan, severity: .high, recordID: changed.id, message: "Team gewechselt")
+        let invisible = RiskFinding(rule: .orphan, severity: .high, recordID: "weg", message: "unsichtbar")
+        #expect(make([invisible, finding(camera.id, .medium), lead, later]).leadingFinding == lead)
+        #expect(make([finding(camera.id, .low)]).leadingFinding == nil)
+        #expect(make([invisible]).leadingFinding == nil)
+    }
+
     /// Befunde zu Einträgen, die keine Liste zeigt – ein entfernter Eintrag oder ein nur lokal erreichbarer Lauscher, den
     /// „Von außen erreichbar“ ausblendet –, wären über die Kachel nicht erreichbar und zählen deshalb nicht.
     @Test func findingsWithoutVisibleRecordDoNotCount() {

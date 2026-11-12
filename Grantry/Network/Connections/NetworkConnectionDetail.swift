@@ -14,17 +14,11 @@ struct NetworkConnectionDetail: View {
     let showListener: ((NetworkListener) -> Void)?
 
     var body: some View {
-        ChartScrollView(showsIndicators: true) {
-            VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
-                header
-                Divider()
-                NetworkConnectionDetailContent(row: row)
-                serviceSection
-            }
-            .padding(InstrumentSpacing.bar)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        DetailPanel {
+            header
+            NetworkConnectionDetailContent(row: row)
+            serviceSection
         }
-        .instrumentPanel(padding: 0)
     }
 
     private var header: some View {
@@ -48,7 +42,7 @@ struct NetworkConnectionDetail: View {
     @ViewBuilder
     private var serviceSection: some View {
         if let listener {
-            DetailGroup(title: String(localized: "Netzwerkdienst")) {
+            DetailGroup(String(localized: "Netzwerkdienst")) {
                 if let termination {
                     ListenerTerminationActions(listener: listener, termination: termination) {
                         if let showListener {
@@ -69,69 +63,33 @@ struct NetworkConnectionDetailContent: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
-            DetailGroup(title: String(localized: "Socket")) {
-                DetailField(title: String(localized: "Art"),
+            DetailGroup(String(localized: "Socket")) {
+                DetailEntry(String(localized: "Art"),
                             value: "\(row.protocolText) · \(row.ipVersionText) · \(SocketStateStyle.title(for: row.kind))")
-                DetailField(title: String(localized: "Zustand"), value: row.stateText,
-                            tone: SocketStateStyle.tone(for: row))
+                DetailEntry(String(localized: "Zustand"), value: row.stateText,
+                            tone: SocketStateStyle.tone(for: row), isCode: true)
                 if let service = row.service {
-                    DetailField(title: String(localized: "Dienst"), value: service)
+                    DetailEntry(String(localized: "Dienst"), value: service, isCode: true)
                 }
-                DetailField(title: String(localized: "Erreichbar"), value: row.exposure.title)
+                DetailEntry(String(localized: "Erreichbar"), value: row.exposure.title)
             }
-            DetailGroup(title: String(localized: "Adressen")) {
-                DetailField(title: String(localized: "Lokal"), value: row.localText)
-                DetailField(title: String(localized: "Gegenstelle"), value: row.remoteText)
+            DetailGroup(String(localized: "Adressen")) {
+                DetailEntry(String(localized: "Lokal"), value: row.localText, isCode: true)
+                DetailEntry(String(localized: "Gegenstelle"), value: row.remoteText, isCode: true)
             }
             if row.kind != .listening {
-                DetailGroup(title: String(localized: "Verkehr seit Messbeginn")) {
-                    DetailField(title: String(localized: "Empfangen"),
+                DetailGroup(String(localized: "Verkehr seit Messbeginn")) {
+                    DetailEntry(String(localized: "Empfangen"),
                                 value: "\(TrafficFormat.rate(row.rate.download)) · \(TrafficFormat.bytes(row.transferred.received))")
-                    DetailField(title: String(localized: "Gesendet"),
+                    DetailEntry(String(localized: "Gesendet"),
                                 value: "\(TrafficFormat.rate(row.rate.upload)) · \(TrafficFormat.bytes(row.transferred.sent))")
                 }
             }
             if let program = row.program {
-                DetailGroup(title: String(localized: "Programm")) {
+                DetailGroup(String(localized: "Programm")) {
                     ProgramDetailEntries(program: program)
                 }
             }
-        }
-    }
-}
-
-/// Gruppe im Detail: Überschrift, darunter die Felder.
-struct DetailGroup<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: InstrumentSpacing.cell) {
-            Text(verbatim: title)
-                .font(InstrumentFont.title)
-                .accessibilityAddTraits(.isHeader)
-            content
-        }
-    }
-}
-
-/// Feld im Detail: Titel klein, Wert in Festbreitenschrift, auswählbar; mit Ton farbig.
-private struct DetailField: View {
-    let title: String
-    let value: String
-    var tone: StatusTone?
-
-    @Environment(\.self) private var environment
-
-    var body: some View {
-        DetailEntry(title: title) {
-            Text(verbatim: value)
-                .font(InstrumentFont.code)
-                .foregroundStyle(tone.flatMap { $0 == .neutral ? nil : AnyShapeStyle(environment.statusTextColor($0)) }
-                    ?? AnyShapeStyle(.primary))
-                .textSelection(.enabled)
-                .lineLimit(2)
-                .truncationMode(.middle)
         }
     }
 }

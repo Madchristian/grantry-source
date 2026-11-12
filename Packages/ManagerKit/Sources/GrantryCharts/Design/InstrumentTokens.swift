@@ -145,9 +145,15 @@ public enum InstrumentSize {
     public static let peilPoint: CGFloat = 3.5
     /// Mindestbreite eines Messfelds; schmaler bricht die Reihe um.
     public static let measureField: CGFloat = 124
+    /// Mindestbreite einer Zählkachel in einer Reihe (Übersicht): schmaler stehen die Kacheln in drei Spalten.
+    public static let countTile: CGFloat = 210
     public static let columnNarrow: CGFloat = 270
     public static let columnWide: CGFloat = 360
     public static let columnRadar: CGFloat = 400
+    /// Liste-Detail-Gerüst (`InstrumentSplit`): Mindestbreite der Auswahlliste und des Details; die Liste steht mit Platz
+    /// in `columnWide`, das Detail füllt den Rest. `WindowLayout` der App rechnet mit denselben Werten.
+    public static let listMin: CGFloat = 240
+    public static let detailMin: CGFloat = 320
     /// Höhe des Erreichbarkeitsradars.
     public static let radar: CGFloat = 280
     /// Höhe des Belegungsbands.

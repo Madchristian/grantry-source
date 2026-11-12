@@ -20,6 +20,8 @@ public struct HelperStatePresentation: Hashable, Sendable {
     }
 
     public let text: String
+    /// Zustand in wenigen Worten für einen Zustandschip; der volle `text` steht dann daneben (Prüfzeile, #553).
+    public let shortText: String
     public let tone: PresentationTone
     /// `nil`, wenn keine Aktion sinnvoll ist (bereit, fehlt im Bundle, keine Administratorrechte).
     public let action: Action?
@@ -43,6 +45,12 @@ public struct HelperStatePresentation: Hashable, Sendable {
             (text, tone, action) = ("Fehlt im App-Bundle", .critical, nil)
         case .requiresAdministrator:
             (text, tone, action) = ("Administratorrechte erforderlich", .critical, nil)
+        }
+        shortText = switch state {
+        case .awaitingApproval: "Wartet auf Genehmigung"
+        case .outdated: "Veraltet"
+        case .unreachable: "Nicht erreichbar"
+        case .ready, .notInstalled, .missingFromBundle, .requiresAdministrator: text
         }
     }
 }

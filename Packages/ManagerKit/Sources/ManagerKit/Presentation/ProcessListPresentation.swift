@@ -260,12 +260,14 @@ public enum ProcessListPresenter {
 
     /// Spaltenköpfe: CPU und Speicher systemweit, sobald gemessen (TM4), sonst Summe der gemessenen Prozesse.
     static func totals(_ snapshot: TaskManagerSnapshot, measured all: ProcessFigures) -> ProcessFigures {
-        // Summen über Kerne hinweg können durch Messabstände knapp über 100 % liegen.
-        ProcessFigures(cpuLoad: snapshot.cpu?.total ?? all.cpuLoad.map { min($0, 1) },
+        ProcessFigures(cpuLoad: snapshot.cpu?.total ?? cappedLoad(all.cpuLoad),
                        memoryBytes: snapshot.memory?.usedBytes ?? all.memoryBytes,
                        diskPerSecond: all.diskPerSecond, networkPerSecond: all.networkPerSecond,
                        energyMilliwatts: all.energyMilliwatts, energyTrendMilliwatts: all.energyTrendMilliwatts)
     }
+
+    /// Summe von CPU-Anteilen, höchstens alle Kerne: Über Kerne hinweg kann sie durch Messabstände knapp über 100 % liegen.
+    static func cappedLoad(_ load: Double?) -> Double? { load.map { min($0, 1) } }
 
     static func title(_ name: String, pid: Int32) -> String { name.isEmpty ? "Prozess \(pid)" : name }
 

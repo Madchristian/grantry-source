@@ -1,34 +1,35 @@
 import GrantryCharts
 import SwiftUI
 
-/// Galerieseite des Entwurfs LB-1.1 (#535): Liste-Detail-Gerüst am Beispiel Berechtigungen und die neuen Bausteine für
-/// die alten Ansichten, mit festen Beispieldaten ohne persönliche Angaben (erfundene Apps, `com.example`).
-struct LagebildDraftBoard: View {
+/// Galerieseite der Bausteine für die übrigen Ansichten: Entwurf LB-1.1 (#535), von Christian am 11.11.2026 abgenommen;
+/// seit LB-1.2 (#536) aus den zentralen Bausteinen in GrantryCharts gezeichnet. Liste-Detail-Gerüst am Beispiel
+/// Berechtigungen, mit festen Beispieldaten ohne persönliche Angaben (erfundene Apps, `com.example`).
+struct LagebildBoard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
             VStack(alignment: .leading, spacing: InstrumentSpacing.inline) {
                 Text(verbatim: "Lagebild · Bausteine für die übrigen Ansichten").font(InstrumentFont.display)
-                Text(verbatim: "Entwurf LB-1.1: Liste und Detail, Hinweise, Banner, Häkchenzeilen, Aktionsleiste, "
-                    + "Abdeckung und Fortschritt – feste Beispieldaten")
+                Text(verbatim: "LB-1.2, zentral in GrantryCharts: Liste und Detail, Hinweise, Banner, Häkchenzeilen, "
+                    + "Aktionsleiste, Abdeckung und Fortschritt – feste Beispieldaten")
                     .font(InstrumentFont.body).foregroundStyle(.instrumentSecondary)
             }
-            DraftCaption(text: "1 · Liste-Detail-Gerüst mit Zustandszeile (Beispiel Berechtigungen, nach App)")
-            PermissionsDraftScreen()
+            GalleryCaption(text: "1 · Liste-Detail-Gerüst mit Zustandszeile (Beispiel Berechtigungen, nach App)")
+            PermissionsScreen()
             HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
                 VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
-                    DraftCaption(text: "2 · Banner oben im Bereich")
+                    GalleryCaption(text: "2 · Banner oben im Bereich")
                     BannerSamples()
-                    DraftCaption(text: "3 · Hinweiszeilen und Badges")
+                    GalleryCaption(text: "3 · Hinweiszeilen und Badges")
                     NoteSamples()
                 }
                 VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
-                    DraftCaption(text: "4 · Häkchenzeilen mit Aktionsleiste")
+                    GalleryCaption(text: "4 · Häkchenzeilen mit Aktionsleiste")
                     CheckSamples()
-                    DraftCaption(text: "5 · Abdeckung und Scan-Fortschritt als Spur")
+                    GalleryCaption(text: "5 · Abdeckung und Scan-Fortschritt als Spur")
                     ProgressSamples()
                 }
             }
-            DraftCaption(text: "6 · Leerzustände im Panel und Detail nach Berechtigung")
+            GalleryCaption(text: "6 · Leerzustände im Panel und Detail nach Berechtigung")
             HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
                 EmptySamples()
                 ServiceDetailSample().frame(width: 560)
@@ -38,7 +39,7 @@ struct LagebildDraftBoard: View {
 }
 
 /// Nummerierte Beschriftung eines Abschnitts der Galerie.
-private struct DraftCaption: View {
+private struct GalleryCaption: View {
     let text: String
 
     var body: some View {
@@ -47,32 +48,43 @@ private struct DraftCaption: View {
     }
 }
 
+private extension InstrumentBadge {
+    static let review = InstrumentBadge("prüfen", tone: .finding, spoken: "prüfen, mittlerer Schweregrad")
+    static let reviewHigh = InstrumentBadge("prüfen", tone: .critical, spoken: "prüfen, hoher Schweregrad")
+    static let new = InstrumentBadge("neu", tone: .neutral)
+    static let cleanup = InstrumentBadge("aufräumen", tone: .neutral)
+}
+
 // MARK: - 1 Gerüst
 
 private enum PermissionSamples {
+    static func item(_ id: String, _ symbol: String, _ title: String, _ detail: String,
+                     badges: [InstrumentBadge] = [], finding: Bool = false) -> InstrumentListItem<String> {
+        InstrumentListItem(id: id, content: InstrumentRowContent(symbol: symbol, title: title, detail: detail,
+                                                                 badges: badges, finding: finding))
+    }
+
     static let sections = [
-        DraftListSection(id: "befund", title: "Mit Befund", finding: true, items: [
-            DraftListItem(id: "recorder", symbol: "record.circle", title: "Bildschirmrekorder",
-                          detail: "Bildschirmaufnahme, Mikrofon, Bedienungshilfen",
-                          badges: [.review, .new], finding: true),
-            DraftListItem(id: "sync", symbol: "arrow.triangle.2.circlepath", title: "Ordner-Sync",
-                          detail: "Festplattenvollzugriff", badges: [.review], finding: true),
+        InstrumentListSection(id: "befund", title: "Mit Befund", finding: true, items: [
+            item("recorder", "record.circle", "Bildschirmrekorder", "Bildschirmaufnahme, Mikrofon, Bedienungshilfen",
+                 badges: [.review, .new], finding: true),
+            item("sync", "arrow.triangle.2.circlepath", "Ordner-Sync", "Festplattenvollzugriff", badges: [.review],
+                 finding: true),
         ]),
-        DraftListSection(id: "uebrige", title: "Übrige", items: [
-            DraftListItem(id: "meeting", symbol: "video", title: "Videokonferenz",
-                          detail: "Kamera, Mikrofon, Bildschirmaufnahme"),
-            DraftListItem(id: "notes", symbol: "note.text", title: "Notizblock", detail: "Erinnerungen, Kalender"),
-            DraftListItem(id: "terminal", symbol: "terminal", title: "Terminal", detail: "Festplattenvollzugriff",
-                          badges: [.new]),
-            DraftListItem(id: "old", symbol: "questionmark.app.dashed", title: "Alter Scanner",
-                          detail: "Kamera · App nicht mehr vorhanden", badges: [.cleanup]),
+        InstrumentListSection(id: "uebrige", title: "Übrige", items: [
+            item("meeting", "video", "Videokonferenz", "Kamera, Mikrofon, Bildschirmaufnahme"),
+            item("notes", "note.text", "Notizblock", "Erinnerungen, Kalender"),
+            item("terminal", "terminal", "Terminal", "Festplattenvollzugriff", badges: [.new]),
+            item("old", "questionmark.app.dashed", "Alter Scanner", "Kamera · App nicht mehr vorhanden",
+                 badges: [.cleanup]),
         ]),
     ]
 }
 
 /// Berechtigungen im Lagebild: Zustandszeile, Umschalter im Inhalt, Auswahlliste links, Detail-Panel rechts.
-private struct PermissionsDraftScreen: View {
+private struct PermissionsScreen: View {
     @State private var grouping = "app"
+    @State private var selection: String? = "recorder"
 
     var body: some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
@@ -83,12 +95,12 @@ private struct PermissionsDraftScreen: View {
                 InstrumentSegments("Gruppierung", selection: $grouping,
                                    options: [("app", "Nach App"), ("service", "Nach Berechtigung")])
                     .frame(width: InstrumentSize.columnNarrow)
-                DraftProgressSpur(title: "Abdeckung vollständig", detail: "alle 3 Quellen gelesen · 14:32",
-                                  fraction: 1, tone: .positive)
+                ProgressSpur(title: "Abdeckung vollständig", detail: "alle 3 Quellen gelesen · 14:32", fraction: 1,
+                             tone: .positive)
             }
-            HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
-                DraftList(title: "Apps", count: "6", sections: PermissionSamples.sections, selection: "recorder")
-                    .frame(width: InstrumentSize.columnWide)
+            InstrumentSplit {
+                InstrumentList("Apps", count: "6", sections: PermissionSamples.sections, selection: $selection)
+            } detail: {
                 AppDetailSample()
             }
             .frame(height: 560)
@@ -104,52 +116,47 @@ private struct PermissionsDraftScreen: View {
     }
 }
 
-/// Detail einer App: Kopf, Angaben, Berechtigungen mit Aktionen, Autostart als Sprungzeile.
+/// Detail einer App: Kopf, Angaben, Berechtigungen mit Aktionen.
 private struct AppDetailSample: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
-            DraftDetailHead(symbol: "record.circle", title: "Bildschirmrekorder", subtitle: "com.example.recorder",
-                            items: [StatusItem("prüfen", tone: .finding), StatusItem("neu", tone: .neutral)],
-                            finding: true)
-            DraftNote(text: "Darf den Bildschirm aufnehmen und den Mac fernsteuern – seit 3 Tagen installiert.",
-                      kind: .finding)
-            DraftDetailGroup(title: "Angaben") {
-                DraftDetailEntry(key: "Signatur", value: "Developer ID · Beispiel GmbH (A1B2C3D4E5)",
-                                 tone: .positive)
-                DraftDetailEntry(key: "Pfad", value: "/Applications/Bildschirmrekorder.app", isCode: true)
-                DraftDetailEntry(key: "Auf dem Mac", value: "vorhanden")
+        DetailPanel {
+            DetailHead(symbol: "record.circle", title: "Bildschirmrekorder", subtitle: "com.example.recorder",
+                       items: [StatusItem("prüfen", tone: .finding), StatusItem("neu", tone: .neutral)], finding: true)
+            InstrumentNote("Darf den Bildschirm aufnehmen und den Mac fernsteuern – seit 3 Tagen installiert.",
+                           kind: .finding)
+            DetailGroup("Angaben") {
+                DetailEntry("Signatur", value: "Developer ID · Beispiel GmbH (A1B2C3D4E5)", tone: .positive)
+                DetailEntry("Pfad", value: "/Applications/Bildschirmrekorder.app", isCode: true)
+                DetailEntry("Auf dem Mac", value: "vorhanden")
             }
-            DraftDetailGroup(title: "Berechtigungen", count: 3) {
-                DraftDetailItem(head: DraftRowHead(symbol: "rectangle.dashed.badge.record", title: "Bildschirmaufnahme",
-                                                   detail: "Benutzer · geändert am 8. Nov. 2026",
-                                                   status: StatusItem("erlaubt", tone: .positive))) {
+            DetailGroup("Berechtigungen", count: 3) {
+                DetailItem(InstrumentRowContent(symbol: "rectangle.dashed.badge.record", title: "Bildschirmaufnahme",
+                                                detail: "Benutzer · geändert am 8. Nov. 2026",
+                                                status: StatusItem("erlaubt", tone: .positive))) {
                     EmptyView()
                 } actions: {
                     Button("Zurücksetzen …") {}
                     Button("In Systemeinstellungen öffnen") {}
                 }
-                DraftDetailItem(head: DraftRowHead(symbol: "accessibility", title: "Bedienungshilfen",
-                                                   detail: "Benutzer · geändert am 8. Nov. 2026", badges: [.review],
-                                                   status: StatusItem("erlaubt", tone: .positive), finding: true),
-                                isRunning: true) {
-                    DraftNote(text: "Steuert andere Apps – nur erlauben, wenn du die App dafür brauchst.",
-                              kind: .finding)
+                DetailItem(InstrumentRowContent(symbol: "accessibility", title: "Bedienungshilfen",
+                                                detail: "Benutzer · geändert am 8. Nov. 2026", badges: [.review],
+                                                status: StatusItem("erlaubt", tone: .positive), finding: true),
+                           runningText: "Wird zurückgesetzt …") {
+                    InstrumentNote("Steuert andere Apps – nur erlauben, wenn du die App dafür brauchst.",
+                                   kind: .finding)
                 } actions: {
                     Button("Zurücksetzen …") {}.disabled(true)
                     Button("In Systemeinstellungen öffnen") {}
                 }
-                DraftDetailItem(head: DraftRowHead(symbol: "mic", title: "Mikrofon",
-                                                   detail: "System · geändert am 2. Nov. 2026",
-                                                   status: StatusItem("abgelehnt", tone: .neutral))) {
-                    DraftNote(text: "Systemweiter Eintrag – Zurücksetzen nur mit Helper.", kind: .locked)
+                DetailItem(InstrumentRowContent(symbol: "mic", title: "Mikrofon",
+                                                detail: "System · geändert am 2. Nov. 2026",
+                                                status: StatusItem("abgelehnt", tone: .neutral))) {
+                    InstrumentNote("Systemweiter Eintrag – Zurücksetzen nur mit Helper.", kind: .locked)
                 } actions: {
                     Button("In Systemeinstellungen öffnen") {}
                 }
             }
-            Spacer(minLength: 0)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .instrumentPanel()
     }
 }
 
@@ -158,23 +165,23 @@ private struct AppDetailSample: View {
 private struct BannerSamples: View {
     var body: some View {
         VStack(spacing: InstrumentSpacing.group) {
-            DraftBanner(title: "Festplattenvollzugriff fehlt",
-                        message: "Ohne ihn bleiben Berechtigungen anderer Benutzer und einige Ordner ungeprüft.",
-                        tone: .finding) {
+            InstrumentBanner("Festplattenvollzugriff fehlt",
+                             message: "Ohne ihn bleiben Berechtigungen anderer Benutzer und einige Ordner ungeprüft.",
+                             tone: .finding) {
                 Button("Systemeinstellungen öffnen") {}
             }
-            DraftBanner(title: "Update verfügbar: 2026.11.12",
-                        message: "Prüfsumme und Signatur sind bestätigt; die Installation startet Grantry neu.",
-                        tone: .info) {
+            InstrumentBanner("Update verfügbar: 2026.11.12",
+                             message: "Prüfsumme und Signatur sind bestätigt; die Installation startet Grantry neu.",
+                             tone: .info) {
                 Button("Später") {}
                 Button("Installieren …") {}
             }
-            DraftBanner(title: "3 Einträge in den Papierkorb gelegt",
-                        message: "1,4 GB frei. Im Papierkorb lässt sich alles wiederherstellen.", tone: .positive) {
+            InstrumentBanner("3 Einträge in den Papierkorb gelegt",
+                             message: "1,4 GB frei. Im Papierkorb lässt sich alles wiederherstellen.", tone: .positive) {
                 Button("Papierkorb zeigen") {}
             }
-            DraftBanner(title: "Zurücksetzen fehlgeschlagen",
-                        message: "Der Helper hat nicht geantwortet. Es wurde nichts geändert.", tone: .critical) {
+            InstrumentBanner("Zurücksetzen fehlgeschlagen",
+                             message: "Der Helper hat nicht geantwortet. Es wurde nichts geändert.", tone: .critical) {
                 Button("Erneut versuchen") {}
             }
         }
@@ -186,14 +193,14 @@ private struct BannerSamples: View {
 private struct NoteSamples: View {
     var body: some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.cell) {
-            DraftNote(text: "Einträge aus dem Systemordner zeigt Grantry nur an; ändern lassen sie sich mit dem Helper.")
-            DraftNote(text: "Schreibgeschützt: Eintrag eines Profils (MDM).", kind: .locked)
-            DraftNote(text: "Lädt bei jedem Start ein Skript aus dem Benutzerordner nach.", kind: .finding)
-            DraftNote(text: "Die Datei ist beschädigt und ließ sich nicht lesen.", kind: .critical)
+            InstrumentNote("Einträge aus dem Systemordner zeigt Grantry nur an; ändern lassen sie sich mit dem Helper.")
+            InstrumentNote("Schreibgeschützt: Eintrag eines Profils (MDM).", kind: .locked)
+            InstrumentNote("Lädt bei jedem Start ein Skript aus dem Benutzerordner nach.", kind: .finding)
+            InstrumentNote("Die Datei ist beschädigt und ließ sich nicht lesen.", kind: .critical)
             Divider()
             HStack(spacing: InstrumentSpacing.cell) {
                 Text(verbatim: "Badges").font(InstrumentFont.label).foregroundStyle(.instrumentSecondary)
-                DraftBadgeChips(badges: [.reviewHigh, .review, .new, .cleanup])
+                BadgeChips([.reviewHigh, .review, .new, .cleanup])
                 Spacer()
                 Text(verbatim: "Zustände").font(InstrumentFont.label).foregroundStyle(.instrumentSecondary)
                 StatusChip("erlaubt", tone: .positive)
@@ -207,18 +214,23 @@ private struct NoteSamples: View {
 // MARK: - 4 Häkchenzeilen
 
 private struct CheckSamples: View {
+    @State private var preferences = true
+    @State private var caches = true
+    @State private var support = false
+    @State private var daemon = false
+
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
                 InstrumentSectionHeader(title: "Reste von Alter Scanner", count: 3)
-                DraftCheckRow(title: "Einstellungen", detail: "~/Library/Preferences/com.example.scanner.plist",
-                              size: "12 KB", isOn: true)
-                DraftCheckRow(title: "Caches", detail: "~/Library/Caches/com.example.scanner", size: "1,4 GB",
-                              isOn: true, hint: StatusItem("groß", tone: .finding))
-                DraftCheckRow(title: "Programmunterstützung", detail: "~/Library/Application Support/Scanner",
-                              size: "86 MB", isOn: false, hint: StatusItem("enthält Dokumente", tone: .info))
-                DraftCheckRow(title: "Hintergrunddienst", detail: "/Library/LaunchDaemons/com.example.scanner.plist",
-                              size: "4 KB", isOn: false, lockedReason: "Systemordner – nur mit Helper")
+                SelectionCheckRow("Einstellungen", detail: "~/Library/Preferences/com.example.scanner.plist",
+                                  size: "12 KB", isOn: $preferences)
+                SelectionCheckRow("Caches", detail: "~/Library/Caches/com.example.scanner", size: "1,4 GB",
+                                  isOn: $caches, hint: StatusItem("groß", tone: .finding))
+                SelectionCheckRow("Programmunterstützung", detail: "~/Library/Application Support/Scanner",
+                                  size: "86 MB", isOn: $support, hint: StatusItem("enthält Dokumente", tone: .info))
+                SelectionCheckRow("Hintergrunddienst", detail: "/Library/LaunchDaemons/com.example.scanner.plist",
+                                  size: "4 KB", isOn: $daemon, lockedReason: "Systemordner – nur mit Helper")
             }
             .padding(InstrumentSpacing.item)
             HStack(spacing: InstrumentSpacing.group) {
@@ -239,15 +251,15 @@ private struct CheckSamples: View {
 private struct ProgressSamples: View {
     var body: some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
-            DraftProgressSpur(title: "Abdeckung unvollständig", detail: "2 von 3 Quellen gelesen · 14:32",
-                              fraction: 2.0 / 3, tone: .finding) {
+            ProgressSpur(title: "Abdeckung unvollständig", detail: "2 von 3 Quellen gelesen · 14:32",
+                         fraction: 2.0 / 3, tone: .finding) {
                 Button("Details anzeigen …") {}.buttonStyle(.link).font(InstrumentFont.label)
             }
-            DraftProgressSpur(title: "Scan läuft", detail: "Berechtigungen · 142 von 340 Einträgen · noch etwa 20 s",
-                              fraction: 0.42, tone: .info)
-            DraftProgressSpur(title: "Erster Scan", detail: "Dauer noch unbekannt", fraction: nil, tone: .info)
-            DraftProgressSpur(title: "Noch nicht geprüft", detail: "kein Scan seit dem Start", fraction: 0,
-                              tone: .neutral) {
+            ProgressSpur(title: "Scan läuft", detail: "Berechtigungen · 142 von 340 Einträgen · noch etwa 20 s",
+                         fraction: 0.42, tone: .info)
+            ProgressSpur(title: "Erster Scan", detail: "Dauer noch unbekannt", fraction: nil, tone: .info)
+            ProgressSpur(title: "Noch nicht geprüft", detail: "kein Scan seit dem Start", fraction: 0,
+                         tone: .neutral) {
                 Button("Jetzt scannen") {}.controlSize(.small)
             }
         }
@@ -260,14 +272,12 @@ private struct ProgressSamples: View {
 private struct EmptySamples: View {
     var body: some View {
         HStack(spacing: InstrumentSpacing.panel) {
-            DraftEmptyState(symbol: "hand.raised", title: "Nichts gewählt",
-                            message: "Wähle links eine App.")
+            InstrumentEmptyState(symbol: "hand.raised", title: "Nichts gewählt", message: "Wähle links eine App.")
                 .instrumentPanel()
-            DraftEmptyState(symbol: "magnifyingglass", title: "Keine Treffer",
-                            message: "Nichts passt zu Suche und Filter.")
+            InstrumentEmptyState(symbol: "magnifyingglass", title: "Keine Treffer",
+                                 message: "Nichts passt zu Suche und Filter.")
                 .instrumentPanel()
-            DraftEmptyState(symbol: "clock", title: "Noch kein Scan",
-                            message: "Der erste Scan liest alles ein.")
+            InstrumentEmptyState(symbol: "clock", title: "Noch kein Scan", message: "Der erste Scan liest alles ein.")
                 .instrumentPanel()
         }
         .frame(height: 260)
@@ -276,32 +286,31 @@ private struct EmptySamples: View {
 
 private struct ServiceDetailSample: View {
     var body: some View {
-        VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
-            DraftDetailHead(symbol: "camera", title: "Kamera", subtitle: "kTCCServiceCamera",
-                            items: [StatusItem("3 Apps", tone: .neutral)])
-            DraftDetailGroup(title: "Apps", count: 3) {
-                DraftDetailItem(head: DraftRowHead(symbol: "video", title: "Videokonferenz",
-                                                   detail: "Benutzer · geändert am 1. Nov. 2026",
-                                                   status: StatusItem("erlaubt", tone: .positive))) {
+        DetailPanel {
+            DetailHead(symbol: "camera", title: "Kamera", subtitle: "kTCCServiceCamera",
+                       items: [StatusItem("3 Apps", tone: .neutral)])
+            DetailGroup("Apps", count: 3) {
+                DetailItem(InstrumentRowContent(symbol: "video", title: "Videokonferenz",
+                                                detail: "Benutzer · geändert am 1. Nov. 2026",
+                                                status: StatusItem("erlaubt", tone: .positive))) {
                     EmptyView()
                 } actions: {
                     Button("Zurücksetzen …") {}
                 }
-                DraftDetailItem(head: DraftRowHead(symbol: "questionmark.app.dashed", title: "Alter Scanner",
-                                                   detail: "Benutzer · App nicht mehr vorhanden", badges: [.cleanup],
-                                                   status: StatusItem("erlaubt", tone: .positive))) {
-                    DraftNote(text: "Die App fehlt; der Eintrag lässt sich nur für alle Apps zurücksetzen.",
-                              kind: .locked)
+                DetailItem(InstrumentRowContent(symbol: "questionmark.app.dashed", title: "Alter Scanner",
+                                                detail: "Benutzer · App nicht mehr vorhanden", badges: [.cleanup],
+                                                status: StatusItem("erlaubt", tone: .positive))) {
+                    InstrumentNote("Die App fehlt; der Eintrag lässt sich nur für alle Apps zurücksetzen.",
+                                   kind: .locked)
                 } actions: {
                     Button("Für alle Apps zurücksetzen …") {}
                 }
             }
         }
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .instrumentPanel()
+        .fixedSize(horizontal: false, vertical: true)
     }
 }
 
-#Preview("LB-1.1 Bausteine") {
-    ScrollView { DesignGallery(page: .lagebildDraft) }
+#Preview("LB-1.2 Bausteine") {
+    ScrollView { DesignGallery(page: .lagebild) }
 }

@@ -97,15 +97,12 @@ struct InstrumentRowHead: View {
 
     var body: some View {
         HStack(spacing: InstrumentSpacing.cell) {
-            Image(systemName: symbol)
-                .font(InstrumentFont.rowIcon)
-                .foregroundStyle(.instrumentSecondary)
-                .frame(width: InstrumentSize.rowIconTall, height: InstrumentSize.rowIconTall)
-                .background(Circle().fill(.quaternary))
-                .accessibilityHidden(true)
+            InstrumentRowIcon(symbol: symbol)
             VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
                 Text(verbatim: title).font(InstrumentFont.body.weight(.semibold)).lineLimit(1)
+                // Zwei Zeilen auch neben einem breiten Chip, sonst kürzt das Layout den Grund auf eine (#553).
                 Text(verbatim: reason).font(InstrumentFont.label).foregroundStyle(.instrumentSecondary).lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: InstrumentSpacing.group)
             if let status { StatusChip(status) }
@@ -165,16 +162,36 @@ public struct CheckPanel<Actions: View>: View {
                     .font(InstrumentFont.label)
                     .foregroundStyle(.instrumentSecondary)
             }
-            VStack(spacing: InstrumentSpacing.stack) {
-                ForEach(items) { item in
-                    CheckRow(item: item, isSelected: selection == item.id,
-                             onSelect: { selection = selection == item.id ? nil : item.id }) {
-                        actions(item)
-                    }
-                    .id(item.id)
-                }
-            }
+            CheckRows(items: items, selection: $selection, actions: actions)
         }
         .instrumentPanel()
+    }
+}
+
+/// Prüfzeilen untereinander (§3.10a), etwa im Prüfpanel oder in der Einrichtung der Einstellungen und des Onboardings:
+/// höchstens eine Zeile ist gewählt und aufgeklappt; ein Klick auf die gewählte klappt sie zu. Jede Zeile trägt ihre
+/// Kennung als `id` (Sprung und Rollen).
+public struct CheckRows<Actions: View>: View {
+    let items: [CheckItem]
+    @Binding var selection: CheckItem.ID?
+    let actions: (CheckItem) -> Actions
+
+    public init(items: [CheckItem], selection: Binding<CheckItem.ID?>,
+                @ViewBuilder actions: @escaping (CheckItem) -> Actions) {
+        self.items = items
+        _selection = selection
+        self.actions = actions
+    }
+
+    public var body: some View {
+        VStack(spacing: InstrumentSpacing.stack) {
+            ForEach(items) { item in
+                CheckRow(item: item, isSelected: selection == item.id,
+                         onSelect: { selection = selection == item.id ? nil : item.id }) {
+                    actions(item)
+                }
+                .id(item.id)
+            }
+        }
     }
 }

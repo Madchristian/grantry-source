@@ -34,7 +34,7 @@ extension ChangeDescription {
     }
 
     /// Die gemeldeten Unterschiede in fester Reihenfolge (wie `ExtensionRecord.hasSignificantChanges`).
-    private static func extensionChangeTexts(from old: ExtensionRecord, to new: ExtensionRecord) -> [String] {
+    static func extensionChangeTexts(from old: ExtensionRecord, to new: ExtensionRecord) -> [String] {
         var texts: [String] = []
         if old.versionText != new.versionText {
             texts.append("Version \(old.versionText ?? "unbekannt") → \(new.versionText ?? "unbekannt")")

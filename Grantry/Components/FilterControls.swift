@@ -1,3 +1,4 @@
+import GrantryCharts
 import SwiftUI
 
 /// Filtermenü der Symbolleiste: die Auswahl aus `content`, darunter „Filter zurücksetzen“; das Symbol zeigt, ob ein
@@ -31,7 +32,7 @@ struct NoFilterMatchesView: View {
         ContentUnavailableView {
             Label("Keine Treffer", systemImage: "line.3.horizontal.decrease.circle")
         } description: {
-            Text(description)
+            Text(description).foregroundStyle(.instrumentSecondary)
         } actions: {
             Button("Filter zurücksetzen", action: reset)
         }

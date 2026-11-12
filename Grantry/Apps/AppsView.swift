@@ -1,8 +1,11 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Bereich „Apps“ (Spec v3 §5): Liste links, Detail rechts; Suche, Filter und Sortierung in der Symbolleiste, die
-/// Scan-Abdeckung der App-Quelle (z. B. unlesbarer Ordner, #142) über der Liste. Liest aus `AppModel.presentation` und `AppModel.appDetails`.
+/// Apps im Lagebild (Spec v3 §5; LB-2.5, #542, Entwurf LB-2.1): Zustandszeile mit Urteil, Scan-Abdeckung der App-Quelle
+/// (z. B. unlesbarer Ordner, #142), links die Auswahlliste, rechts das Detail; Suche, Filter und Sortierung in der
+/// Symbolleiste. Liest aus `AppModel.presentation` und `AppModel.appDetails`; zeichnet nur bei Scan, Angaben, Suche,
+/// Filter, Auswahl und Aktion.
 struct AppsView: View {
     let appModel: AppModel
     @Environment(MainWindowModel.self) private var window
@@ -12,13 +15,16 @@ struct AppsView: View {
 
     var body: some View {
         @Bindable var window = window
-        ListDetailSplit {
-            VStack(spacing: 0) {
-                SectionCoverageHeader(coverage: coverage)
-                FlaggedNoticeBar(breakdown: appModel.presentation?.metrics.flagged, area: .apps,
+        let presentation = appModel.presentation
+        InventoryBoard(head: AppsBoardMapping.head(presentation, acceptedCount: appModel.monitoring.acceptedAppIDs.count,
+                                                   scannedAt: appModel.monitoring.snapshot?.takenAt)) {
+            VStack(alignment: .leading, spacing: 0) {
+                if let coverage { AreaCoverageBar(coverage: coverage) }
+                FlaggedNoticeBar(breakdown: presentation?.metrics.flagged, area: .apps,
                                  filter: window.appFilter.findings)
-                list
             }
+        } list: {
+            list
         } detail: {
             ActionResultContainer(actions: appModel.actions, context: .apps) {
                 detail
@@ -33,6 +39,10 @@ struct AppsView: View {
         }
         // Verschwindet die ausgewählte App (entfernt), gilt „keine Auswahl“ – auch, falls sie später wiederkommt.
         .onChange(of: selectedApp == nil) { _, isGone in if isGone { selection = nil } }
+        // Sprung aus einem anderen Bereich wählt die App; ins Bild rollt sie die Liste.
+        .onChange(of: window.focusedRecordID, initial: true) { _, recordID in
+            if let recordID { selection = recordID }
+        }
         .onAppear { appDetails.refreshUsage() }
         .onChange(of: window.appFilter.sort, initial: true) { _, sort in appDetails.setLoadsAll(sort != .name) }
         .onDisappear { appDetails.setLoadsAll(false) }
@@ -42,28 +52,30 @@ struct AppsView: View {
 
     private var coverage: AreaCoverage? { appModel.presentation?.coverage[.apps] }
 
+    @ViewBuilder
     private var list: some View {
         let rows = rows
-        let badges = appModel.presentation?.badges
-        return ScrollViewReader { proxy in
-            List(rows, selection: $selection) { row in
-                InstalledAppRowView(row: row, badges: badges?.badges(for: row.id) ?? [],
-                                    isLoading: appDetails.details[row.id] == nil,
-                                    isRiskAccepted: appModel.monitoring.acceptedAppIDs.contains(row.id))
-                    .id(row.id)
-                    .onAppear { appDetails.request(row.id) }
-                    .onDisappear { appDetails.withdraw(row.id) }
-                    .contextMenu { AppContextMenu(app: row.app, window: window) }
+        if let presentation = appModel.presentation, !rows.isEmpty {
+            let apps = Dictionary(rows.map { ($0.id, $0.app) }, uniquingKeysWith: { first, _ in first })
+            let accepted = appModel.monitoring.acceptedAppIDs
+            InstrumentList(String(localized: "Apps"), count: "\(rows.count)",
+                           sections: AppsBoardMapping.sections(rows, sort: window.appFilter.sort) { row in
+                               AppsBoardMapping.item(row, badges: presentation.badges.badges(for: row.id),
+                                                     isLoading: appDetails.details[row.id] == nil,
+                                                     isRiskAccepted: accepted.contains(row.id))
+                           },
+                           selection: $selection) { item in
+                if let app = apps[item.id] { AppListIcon(app: app, appDetails: appDetails) }
+            } contextMenu: { id in
+                if let app = apps[id] { AppContextMenu(app: app, window: window) }
             }
+            .accessibilityElement(children: .contain)
+            .accessibilityIdentifier(AppsBoardMapping.listIdentifier)
             .focusedValue(\.removeSelectedApp, removeAction)
-            .onChange(of: window.focusedRecordID, initial: true) { _, recordID in
-                guard let recordID else { return }
-                selection = recordID
-                proxy.scrollTo(recordID, anchor: .center)
-            }
-        }
-        .overlay {
-            if rows.isEmpty { emptyState }
+        } else {
+            emptyState
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .instrumentPanel()
         }
     }
 
@@ -75,6 +87,8 @@ struct AppsView: View {
         )
     }
 
+    /// Leerzustand im Panel (Spec §11.1 e): noch kein Scan, keine Treffer, nichts Auffälliges, keine Apps – ohne
+    /// Entwarnung bei Lücken.
     @ViewBuilder
     private var emptyState: some View {
         if appModel.presentation == nil {
@@ -116,7 +130,8 @@ struct AppsView: View {
                 detail: InstalledAppDetail(
                     app: app, details: appDetails.details[app.id],
                     findings: appModel.monitoring.appFindings.filter { $0.recordID == app.id },
-                    links: presentation.links(for: app), now: .now
+                    links: presentation.links(for: app),
+                    extensions: presentation.extensions.owned(byAppAt: app.path), now: .now
                 ),
                 presentation: presentation, actions: appModel.actions,
                 isRiskAccepted: appModel.monitoring.acceptedAppIDs.contains(app.id),
@@ -127,8 +142,23 @@ struct AppsView: View {
             .onAppear { appDetails.request(app.id) }
             .onDisappear { appDetails.withdraw(app.id) }
         } else {
-            NoSelectionView(hint: "Wähle links eine App, um Details zu sehen.")
+            InstrumentEmptyState(symbol: "hand.raised", title: String(localized: "Nichts gewählt"),
+                                 message: String(localized: "Wähle links eine App, um Details und Aktionen zu sehen."))
+                .instrumentPanel()
         }
+    }
+}
+
+/// Symbol einer Zeile der App-Liste. Lädt Größe und Nutzung der App, solange die Zeile gezeichnet ist: Die Liste ist
+/// lazy, das Symbol erscheint und verschwindet mit seiner Zeile (wie zuvor die Zeile der nativen Liste).
+private struct AppListIcon: View {
+    let app: InstalledApp
+    let appDetails: AppDetailsModel
+
+    var body: some View {
+        AppIconView(app: app.identity, size: InstrumentSize.rowIconTall)
+            .onAppear { appDetails.request(app.id) }
+            .onDisappear { appDetails.withdraw(app.id) }
     }
 }
 

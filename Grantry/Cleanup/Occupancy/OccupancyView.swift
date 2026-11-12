@@ -30,7 +30,9 @@ struct OccupancyView: View {
                     guard let category = presentation.detail?.categoryID else { return }
                     openCategory(category)
                 },
-                openFullDiskAccess: openFullDiskAccess))
+                openFullDiskAccess: openFullDiskAccess)) {
+            CleanupSegmentSwitcher()
+        }
         .onAppear(perform: model.appear)
         .onDisappear(perform: model.disappear)
         .onChange(of: isFullDiskAccessMissing, initial: true) { _, isMissing in

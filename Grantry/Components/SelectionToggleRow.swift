@@ -1,65 +1,51 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Ein auswählbarer Eintrag beim Entfernen und Aufräumen: Kästchen, Titel, Angaben, Kennzeichen „Zuordnung unsicher“ (als Text,
-/// nicht nur als Farbe) und Hinweis. Nicht veränderbare Einträge sind gesperrt und nennen den Grund.
+/// Ein auswählbarer Eintrag beim Entfernen und Aufräumen als Häkchenzeile im Lagebild (`SelectionCheckRow`, Spec
+/// §11.1 d): Häkchen im Grantry-Verlauf, Name und Ort, Kennzeichen „Zuordnung unsicher“ als Chip im Ton info (Text, nicht
+/// nur Farbe; Bernstein nur für Befunde, § 11.4 b), rechts die Größe, darunter ein Hinweis. Nicht veränderbare Einträge
+/// sind gesperrt und nennen den Grund. Der Zustand kommt gebunden herein; die Vorauswahl bleibt Sache des Modells.
 struct SelectionToggleRow: View {
     let title: String
-    var detail: String?
+    var detail = ""
+    var size = ""
     var badge: String?
     /// Erklärung zum Kennzeichen (Tooltip).
     var badgeHelp: String?
     var note: String?
     var disabledReason: String?
-    let accessibilityLabel: String
     @Binding var isSelected: Bool
 
     var body: some View {
-        Toggle(isOn: $isSelected) {
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(verbatim: title)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .help(Text(verbatim: title))
-                    if let badge {
-                        Text(verbatim: badge)
-                            .font(.caption2.weight(.semibold))
-                            .foregroundStyle(PresentationTone.warning.color)
-                            .help(badgeHelp.map { Text(verbatim: $0) } ?? Text(verbatim: badge))
-                    }
-                }
-                if let detail {
-                    Text(verbatim: detail)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                if let note {
-                    HintLabel(text: note, systemImage: PresentationTone.warning.systemImage, color: PresentationTone.warning.color)
-                }
-                if let disabledReason {
-                    HintLabel(text: disabledReason, systemImage: "lock", color: .secondary)
-                }
+        VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
+            // „Zuordnung unsicher“ im Ton info: Bernstein bleibt Befunden vorbehalten (Spec 2026-11-10 § 11.4 b).
+            SelectionCheckRow(title, detail: detail, size: size, isOn: $isSelected,
+                              hint: badge.map { StatusItem($0, tone: .info) }, lockedReason: disabledReason)
+                .help(Text(verbatim: badge.map { badgeHelp ?? $0 } ?? title))
+            if let note {
+                InstrumentNote(note, kind: .finding)
+                    .padding(.leading, Self.noteIndent)
             }
         }
-        .toggleStyle(.checkbox)
-        .disabled(disabledReason != nil)
-        .accessibilityLabel(Text(verbatim: accessibilityLabel))
     }
+
+    /// Hinweis bündig mit dem Namen: Innenabstand, Häkchen und Abstand der `SelectionCheckRow`.
+    private static let noteIndent = InstrumentSpacing.group + InstrumentSize.disclosure + InstrumentSpacing.cell
 }
 
 extension SelectionToggleRow {
     private static let policy = ActionPolicy()
 
-    /// Ein Rest; `kindTitle` nennt seine Art, wenn kein Abschnitt sie trägt (Aufräumen).
+    /// Ein Rest: Dateiname und Pfad, Größe rechts; trägt kein Abschnitt die Art (Aufräumen), steht sie als Name.
     init(row: LeftoverRow, kindTitle: String? = nil, selection: Binding<RemovalSelection>) {
         self.init(
-            title: row.pathText,
-            detail: [kindTitle, row.sizeText].compactMap(\.self).joined(separator: " · "),
+            title: kindTitle ?? (row.pathText as NSString).lastPathComponent,
+            detail: row.pathText,
+            size: row.sizeText,
             badge: row.isPreselected ? nil : row.confidenceText,
             badgeHelp: LeftoverRow.uncertainExplanation,
             note: row.note,
-            accessibilityLabel: [kindTitle, row.accessibilityLabel].compactMap(\.self).joined(separator: ", "),
             isSelected: Binding(selection, id: row.id)
         )
     }
@@ -67,26 +53,18 @@ extension SelectionToggleRow {
     /// Eine Berechtigung der App (zurücksetzen per `tccutil`, solange die App installiert ist); `note` z. B. bei weiteren
     /// Installationen derselben Bundle-ID (`RemovalReview.note(for:)`).
     init(grant: PermissionGrant, note: String? = nil, selection: Binding<RemovalSelection>) {
-        let reason = Self.policy.availability(for: grant).readOnlyReason
-        let state = grant.authValue.displayName.capitalizedFirst
         self.init(
-            title: grant.serviceName, detail: state, note: note, disabledReason: reason,
-            accessibilityLabel: [String(localized: "Berechtigung \(grant.serviceName)"), state,
-                                 note.map { String(localized: "Hinweis: \($0)") }, reason]
-                .compactMap(\.self).joined(separator: ", "),
+            title: grant.serviceName, detail: grant.authValue.displayName.capitalizedFirst, note: note,
+            disabledReason: Self.policy.availability(for: grant).readOnlyReason,
             isSelected: Binding(selection, id: grant.id)
         )
     }
 
     /// Ein Autostart-Eintrag (entfernen mit Wiederherstellungsbeleg); `note` wie bei Berechtigungen.
     init(autostartItem item: AutostartItem, note: String? = nil, selection: Binding<RemovalSelection>) {
-        let reason = Self.policy.availability(for: item).readOnlyReason
-        let detail = item.owner?.displayName ?? item.program
         self.init(
-            title: item.label, detail: detail, note: note, disabledReason: reason,
-            accessibilityLabel: [String(localized: "Autostart-Eintrag \(item.label)"), detail,
-                                 note.map { String(localized: "Hinweis: \($0)") }, reason]
-                .compactMap(\.self).joined(separator: ", "),
+            title: item.label, detail: item.owner?.displayName ?? item.program ?? "", note: note,
+            disabledReason: Self.policy.availability(for: item).readOnlyReason,
             isSelected: Binding(selection, id: item.id)
         )
     }
@@ -109,37 +87,17 @@ extension Binding where Value == Bool {
     }
 }
 
-/// Reste nach Art: je Art ein Abschnitt mit Summe.
+/// Reste nach Art: je Art ein Gruppenkopf mit Anzahl und Summe, darunter die Häkchenzeilen (Blatt „App entfernen“).
 struct LeftoverSectionsList: View {
     let sections: [LeftoverSection]
     @Binding var selection: RemovalSelection
 
     var body: some View {
         ForEach(sections) { section in
-            Section {
-                ForEach(section.rows) { row in
-                    SelectionToggleRow(row: row, selection: $selection)
-                }
-            } header: {
-                SectionHeader(title: section.title, trailing: section.sizeText)
+            SelectionGroupHeader(title: section.title, count: section.rows.count, size: section.sizeText)
+            ForEach(section.rows) { row in
+                SelectionToggleRow(row: row, selection: $selection)
             }
         }
-    }
-}
-
-/// Abschnittskopf mit Angabe rechts (z. B. Summe der Größe).
-struct SectionHeader: View {
-    let title: String
-    var trailing: String?
-
-    var body: some View {
-        HStack {
-            Text(verbatim: title)
-            Spacer(minLength: 8)
-            if let trailing {
-                Text(verbatim: trailing).foregroundStyle(.secondary)
-            }
-        }
-        .accessibilityElement(children: .combine)
     }
 }

@@ -1,20 +1,15 @@
 {
   "schema_version": 1,
-  "version": "2026.11.11",
-  "build": 1599,
-  "source_commit": "cbd0e38edbc6e48b4fb127c33ced726acfb7a92c",
-  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.11.11.dmg",
-  "dmg_sha256": "8626a794515d5b418a74c69852269e507d8966cf9d11d2823b5a44d5aff76d17",
+  "version": "2026.11.12",
+  "build": 1758,
+  "source_commit": "53da676efa549a26ca557da915eba1f51fde6fbd",
+  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.11.12.dmg",
+  "dmg_sha256": "d66d481de4dc1c42ca2caa8dd1ecd5fd39f81019981b6185e1cfe50e1b120d9a",
   "source_files": [
     {
       "path": "Grantry/Agents/AgentApprovalDetailView.swift",
-      "sha256": "92ea5584244ab66916c99ce3239529dc24fcc1478eaecf29da46055c9c943429",
-      "source_blob": "b5c253c131bd0facfa09acdc2c1d8ae1e5fca67c"
-    },
-    {
-      "path": "Grantry/Agents/AgentApprovalRowView.swift",
-      "sha256": "82604e87f0252dbe4146e69a709b9eeeccd8ad5fec76938d325d6b5eed06ce9b",
-      "source_blob": "07eb2a1b3847ac116ef01514a408fbbc3e7b2b01"
+      "sha256": "6ede4e3a5062520ece4eab3e607422d069cc4b2a61f567ef57e10616e896d4b2",
+      "source_blob": "1d1e12b863bfc123545bcbfd74e68ee237ecc996"
     },
     {
       "path": "Grantry/Agents/AgentPreviewData.swift",
@@ -22,24 +17,24 @@
       "source_blob": "f0f954b7fa84412e477668bb9ddbc16e95c6d2c7"
     },
     {
-      "path": "Grantry/Agents/AgentsView.swift",
-      "sha256": "d2cda14ec2384c5bc1febf77bedb5a706f1e60e61e3da3b3a6e07a1288a5ac07",
-      "source_blob": "fa0e4fda43c566a2f8d8ff40c5b35ea984e31498"
+      "path": "Grantry/Agents/AgentsBoardMapping.swift",
+      "sha256": "c4c1bc626e7598bf8ae7275145470e1563a8ea5fe8f7bc10744453171807c4f8",
+      "source_blob": "008c5f0bebb5a097b90227cf24cfe646d48e2aec"
     },
     {
-      "path": "Grantry/Agents/ConfigFileSection.swift",
-      "sha256": "165c106caa98960b6d4aae2a4044b13a1a589fcad27a3babb76fa2136124d026",
-      "source_blob": "f4717193f52facadd1669d253da18cd85c77223f"
+      "path": "Grantry/Agents/AgentsView.swift",
+      "sha256": "b2bc7a0a9773c77c807f20edd0b4ba04ac072bdf92adc1a54ec8119c5e217027",
+      "source_blob": "4b803b4ea3e80f08052f061a275c15ed12fce7cb"
+    },
+    {
+      "path": "Grantry/Agents/ConfigFileControls.swift",
+      "sha256": "3bf363d055d15ad5e3668f0cef606e436f23936c97085de951ddd746a2533767",
+      "source_blob": "f9375d41bfe7c52da6d5690a047e74082a37a37d"
     },
     {
       "path": "Grantry/Agents/MCPServerDetailView.swift",
-      "sha256": "0a6922c43f5d7463e5f83877d48fff10f80fb1931f97d4e9773cfa5bbba950ea",
-      "source_blob": "87d66361f3557ea731ffb4ac2a82e57e6494b268"
-    },
-    {
-      "path": "Grantry/Agents/MCPServerRowView.swift",
-      "sha256": "0d6af70c77b56211202a469cd8c074f7513342b137c5cbfb444c530bc4e9eb7f",
-      "source_blob": "7ca5f6b5341bae2e39cfc96eb49bfd860ef0a553"
+      "sha256": "933001cc8e8319de2db42c9c98a22b17eb73485e1e911206bb7c49bb182004b6",
+      "source_blob": "cca61b4ba523332f07070c77a34961590697d7ee"
     },
     {
       "path": "Grantry/AppModel.swift",
@@ -62,19 +57,19 @@
       "source_blob": "fbab48c9348312fd525ffdaa5bf955cc18d7450c"
     },
     {
+      "path": "Grantry/Apps/AppsBoardMapping.swift",
+      "sha256": "d65bc97fbde9474dabafc69d693ccb32d65db45adfd7e4632be9fc69a425ebbc",
+      "source_blob": "a75e1cdd0eee6b8f0aeac5e7fc7fe60e86f374e8"
+    },
+    {
       "path": "Grantry/Apps/AppsView.swift",
-      "sha256": "c1ce41c32197365b25b101e32d168a375f9bd79b23d904c4002d775c7744be61",
-      "source_blob": "91e24c7eed974d851994702fb7258189373aab42"
+      "sha256": "8c8d3f9b1cc5b06d65f6a1a3ba135dbb755f82a9d35b983860c5392dce09bd9a",
+      "source_blob": "c6a252d967cb6c35ca67ae904edadea125d3819d"
     },
     {
       "path": "Grantry/Apps/InstalledAppDetailView.swift",
-      "sha256": "28462bf3ded3e1d764af2f01a15ec3229bc856a21ff64272ecfcadc4a9eb2ed3",
-      "source_blob": "06a2906acabc09e4a32dac69134291f717d614d6"
-    },
-    {
-      "path": "Grantry/Apps/InstalledAppRowView.swift",
-      "sha256": "6cb503703e60daac9fddb834c6fa031757190ddd569e130e5cd75b16a0bde146",
-      "source_blob": "081d7be7af70cd751f18b48911d6924ed163d7df"
+      "sha256": "da1bcc5483174aa1c53660d62e304a82ad35f7c56cf5846df3e571db4088d48e",
+      "source_blob": "0865a11910a532149ab6d4aff74345543b765b31"
     },
     {
       "path": "Grantry/Apps/RemovalModel.swift",
@@ -88,13 +83,13 @@
     },
     {
       "path": "Grantry/Apps/RemovalSheet.swift",
-      "sha256": "dbf92788812e8dd2d4b3116b762d97de40c89821c247ca640997c865fd8a9fc0",
-      "source_blob": "cbf4616eb058a977be590f7cdacc3b6d9d6fa395"
+      "sha256": "97a16e95e9e506556007120af7d834aa8fcde2cd9f5862c18551a21a6e76bfe4",
+      "source_blob": "49ea0463ebfe3f838034357edd14ae8cc1a5f7b3"
     },
     {
       "path": "Grantry/Apps/SelfUninstallProgressView.swift",
-      "sha256": "52031d750d455849278c62a2d1b0c75ce405e396adeaab02358566f4aeb15c00",
-      "source_blob": "4ffab048db550704a8a177f2fe8f9d643013a682"
+      "sha256": "c39a6478ab2f84e0ae55338ca2a40d852eda0db8e897cbdc6bb7abbab400f735",
+      "source_blob": "f58ab286d312ffd001564b64a083c4f318b8dccb"
     },
     {
       "path": "Grantry/Assets.xcassets/AppIcon.appiconset/AppIcon-128x128@1x.png",
@@ -157,19 +152,24 @@
       "source_blob": "73c00596a7fca3f3d4bdd64053b69d86745f9e10"
     },
     {
+      "path": "Grantry/Autostart/AutostartBoardMapping.swift",
+      "sha256": "9e74a6d46bfe3b41baccb69694fcdb57529a2702b530cf57dde96226a7ffc7f9",
+      "source_blob": "2bde556dd674f3c6113b0432523555ece455ffb6"
+    },
+    {
       "path": "Grantry/Autostart/AutostartDetailView.swift",
-      "sha256": "1d81140993f7e1b8c0f53fbaf3c1d0bca01c5b7a521961236e74f6aa137e663b",
-      "source_blob": "94fcbbf5a3e6ddf71a2def880b7fb48c2553ffcc"
+      "sha256": "2360228f503cc17ba89f7ff070f16f6341f0dc4e5d4b0512fb00245965168e80",
+      "source_blob": "2e7161eccdb6933c98c26c588b1d9ad73028d6d7"
     },
     {
       "path": "Grantry/Autostart/AutostartItemRow.swift",
-      "sha256": "37cc662486e196d5dd07370041c5efec79a63e98d502912c8d34b38b303e6a21",
-      "source_blob": "2e064ca222183f3e11bb2a69f3206bffa3d2283d"
+      "sha256": "1224afa35daf526fe4c70a3e64b4bfa3a953d810a4bfc2740cdcd9e1e53a47a3",
+      "source_blob": "70769584c50d9df434e30c8cc5f483d50f0aaff7"
     },
     {
       "path": "Grantry/Autostart/AutostartView.swift",
-      "sha256": "ae6ddce1146e92700f1d1720bf00d955e4e726b9cc8f8762757fe6037b1c0995",
-      "source_blob": "9655fbbf6203604788708449aafb45968d3d67cc"
+      "sha256": "ba8ee22a76fe45a31b913e8ed07f1d3d6a09d5e557d12a72ef88961c56113584",
+      "source_blob": "42b48b74b6dc9a8cf885525857b344f47c09e50d"
     },
     {
       "path": "Grantry/Cleanup/CleanupModel.swift",
@@ -177,14 +177,24 @@
       "source_blob": "6e0debed406b1c117841dd79adab26967cc12a80"
     },
     {
+      "path": "Grantry/Cleanup/CleanupProgress+Scan.swift",
+      "sha256": "9574232ff1ce5a871738e1b101bbdd468180a0c41aee79c30b8fad71ec18b9ba",
+      "source_blob": "0967141726f6b3ff1ff6fcbddbae09aa15f0983a"
+    },
+    {
       "path": "Grantry/Cleanup/CleanupView.swift",
-      "sha256": "c275fea3bf33020fb099f4537e01cae2d7de8c3ee18accb02ba20f320b3d3016",
-      "source_blob": "9e902e15382e9c90fdc65b77d72e89e96b6f8638"
+      "sha256": "68213bd3556d73d2f7c242b3d0bb2d2141d67865f86de01a833fb591c65f903a",
+      "source_blob": "367bbe860463b05c9f9c45432103a5fe89f5112b"
     },
     {
       "path": "Grantry/Cleanup/ExtensionLeftoversBox.swift",
-      "sha256": "030f0aba903c8fcc204ac74c45710093f85497b7951d51d37d161d2b0e635311",
-      "source_blob": "3f371c0322f7aa38deac5e97d17d66ec2287616f"
+      "sha256": "6dfef27ae9667c149c89277fb5438c3c1317c95a83c08bce3abcb4802c7218d7",
+      "source_blob": "f17fa80c7be893f1165d5e0692e38bcf220cbbdd"
+    },
+    {
+      "path": "Grantry/Cleanup/LeftoversBoardMapping.swift",
+      "sha256": "1af0636989183a0c24e4799758fc4e4cf074298f78c4bba01f5dd054eff1283d",
+      "source_blob": "29e89b46df932e8479c5cdceef96681f7103f873"
     },
     {
       "path": "Grantry/Cleanup/Occupancy/OccupancyMapping.swift",
@@ -193,8 +203,13 @@
     },
     {
       "path": "Grantry/Cleanup/Occupancy/OccupancyView.swift",
-      "sha256": "fb2ab0dc576e97cfbc794074ea862c473b84e13643f2e93b78446f43d0324198",
-      "source_blob": "32da760030a035f8bb64bc1cb763101a62d1451a"
+      "sha256": "1f31bb578e2517fca88311b1bab57f0ccc985a6d85c412f134772a308cafc276",
+      "source_blob": "65c31206bafc1eef3fb217085e27df4d3e09f40f"
+    },
+    {
+      "path": "Grantry/Cleanup/ProcessCleanupBoardMapping.swift",
+      "sha256": "5fb2dda069988202b5e7610cdbc8b0890de02e7b22aaf6c84e0d2975749d80a1",
+      "source_blob": "f4e415e94ccde5514b479014cfed3707a42896a6"
     },
     {
       "path": "Grantry/Cleanup/ProcessCleanupModel.swift",
@@ -203,8 +218,13 @@
     },
     {
       "path": "Grantry/Cleanup/ProcessCleanupView.swift",
-      "sha256": "4cc49253e6a5fe98a958651207c659520f5fdbd1d6edc9431973516ea83fce66",
-      "source_blob": "0832db824877f5877aab8c625376be8407d78aaf"
+      "sha256": "d450919f8cd7a0dec1b8d1f6e56a7e09afe42195b1f7d21fa56c6ca340f1afd5",
+      "source_blob": "172db867f419e8d618d19d41ddde31b6f9d66f2f"
+    },
+    {
+      "path": "Grantry/Cleanup/StorageBoardMapping.swift",
+      "sha256": "1cc3a4b715538643eb3116b0a8d00c768628d13d23ca77e4466d75934084f4d8",
+      "source_blob": "ce7f121a7b5e957eddd94f4cbeba938fb2b21b25"
     },
     {
       "path": "Grantry/Cleanup/StorageCleanupModel.swift",
@@ -213,53 +233,43 @@
     },
     {
       "path": "Grantry/Cleanup/StorageCleanupView.swift",
-      "sha256": "9d536aab4e25e2fca22f28ed9812d4d117d6cf93052d2a2d1972b8e0a421ca42",
-      "source_blob": "f0d962f0d9e91ab7e2bb40a31ea71562f37d6bcf"
+      "sha256": "79f5b65073d0abac2a19283e72c7f466c0e907a7fbdf267ca2755cc81caf4871",
+      "source_blob": "97d5996e2c084dbfc3f0714268c07a88df100a44"
     },
     {
       "path": "Grantry/Components/ActionConfirmationDialog.swift",
-      "sha256": "d6525c01a2fc9ca3cb4f0d5e0d06b4b4443994fc1271ac657c53d2999ada8460",
-      "source_blob": "dc9068956ecada9133e619cb0056a82c45596b0d"
+      "sha256": "43eba320bd3195b9de1f194d597c037bc7a6b9e1346af8b11b25b77b9a5a6313",
+      "source_blob": "594405d7249e5c506a748fad663a4200a9b9e7e5"
     },
     {
       "path": "Grantry/Components/ActionResultBanner.swift",
-      "sha256": "1843a731f266f3cd43961a281698798a7a973bccd985d64f980bc6bd11c264be",
-      "source_blob": "0f4b9bc1cb2fe2d960d7bd20581747eddfe0075d"
+      "sha256": "7e7d9a60133db864ac15b66d3709b369df8c4b39cf466d1c6ed7cd6779b07aa6",
+      "source_blob": "22164eff1f55be34b559e5cdc44eda87536afc9f"
     },
     {
       "path": "Grantry/Components/AppIconView.swift",
-      "sha256": "a9486a99c611d7642229e82f1152b2f5eca98f7106c083d809918a69de2f7ce7",
-      "source_blob": "bc01262a879fa64409d734a65719fe437b5a10c6"
+      "sha256": "232950e143f9c723559c7c429b966ed6ec45b56cf2572cf1d4dad50bfa66a7fe",
+      "source_blob": "0802b1320eecb02bda2eb506f13f54de0157a4d7"
     },
     {
       "path": "Grantry/Components/AreaCoverageBar.swift",
-      "sha256": "eaffbc9fce19fbc96486f965de2d120ddebd6613af836d743010d7b97c37e03a",
-      "source_blob": "ad89c89b14f529670ee9c976806ea65faf682539"
+      "sha256": "afe1b839f0ea06fc888e408c87c1895f850a657b03bdc7e6dbd08fccc3d112db",
+      "source_blob": "abd799dfc646acf549ce396cca0f6388a6b1a0c2"
     },
     {
       "path": "Grantry/Components/CancellableSearch.swift",
-      "sha256": "6597ac9cbfd492ead1605e8b122762e814d5fac6ae83ec212d1e836b03dd38d4",
-      "source_blob": "4c946ed695f69d5c61568375bd5acbf5208aad23"
-    },
-    {
-      "path": "Grantry/Components/ChangeRow.swift",
-      "sha256": "f086ff932b7457bc03e12587f62097dc223665c354976eaa93f3d82c1bcf66f4",
-      "source_blob": "eee588653af02d4ceb0da38a9c8bd41b169fcd6d"
+      "sha256": "ebbadf20b029bb54481fe88fa92d4d52daa06c23e8a2bb6b1e7dcf3c036a4257",
+      "source_blob": "c2b17665012e03f9ba3f7cdfb073ffe555e4c870"
     },
     {
       "path": "Grantry/Components/CodeText.swift",
-      "sha256": "5aac48b77736e184d7c6c3a9072d1b291f9af55a80e8429b7f7ac40ece5790f6",
-      "source_blob": "26d5f237a476ce3cbede545fdc5c9f77c8b3a92f"
-    },
-    {
-      "path": "Grantry/Components/DashboardBanner.swift",
-      "sha256": "d13f9d47bd5cd5892cd05300519ba1b74a25f3ae5fac95acfc4f85d0fa8782e8",
-      "source_blob": "8c684e300bf38f08252c8f718dea5c887618a8d5"
+      "sha256": "f77c8e840a6ee1480b359b640e24183342a679315e8c8859c15f4d332d9ac465",
+      "source_blob": "556092d57d25787ed37a23b95e2057611b79c873"
     },
     {
       "path": "Grantry/Components/FilterControls.swift",
-      "sha256": "1251fc14628f0134b2c3c3c53ad4e6d325edecced74d69c07d13d7677a004d04",
-      "source_blob": "9ebf0c5241b19f60b0a4a5888e5358f5ac788c91"
+      "sha256": "97fcd958dd14648faa107389c6e125b987b0a3763e4a4d1307c907be2b278443",
+      "source_blob": "2c64be959fe67e637273701d4a452c6b17c3e6f1"
     },
     {
       "path": "Grantry/Components/FittingScrollView.swift",
@@ -268,13 +278,8 @@
     },
     {
       "path": "Grantry/Components/FlaggedNoticeBar.swift",
-      "sha256": "f8cdc387191f15da71f44183f81fc60789e371c2c06152ab5b6f806ba97939ba",
-      "source_blob": "b8ce2cebc783ee04407ac5b4c9358717dd523c3d"
-    },
-    {
-      "path": "Grantry/Components/ListDetailSplit.swift",
-      "sha256": "db99a90f3afc61fbc45172ec0d2ba82fabefd01887ecb3a25a8037e1ea4ee25a",
-      "source_blob": "3eb504a352541078472921aa7ab0f27aa7f00e45"
+      "sha256": "fa63ee51bb89a83bbbf311d386aa5db46aa25133d82aa495e79c6ffcf320e1a9",
+      "source_blob": "865ee619b97558cac4055f0bd9a414edd5ff7520"
     },
     {
       "path": "Grantry/Components/MeasuresWhileVisible.swift",
@@ -282,19 +287,9 @@
       "source_blob": "73cbbc6f6c93f2906fd34c4602c1ce422eafb96f"
     },
     {
-      "path": "Grantry/Components/NoSelectionView.swift",
-      "sha256": "9d9528d7a28171f73e345d8a99d5735ad9ac95a2cd6dffb921e89566621ad689",
-      "source_blob": "45fdf64d187cfef88d1042302181b47c24204a5a"
-    },
-    {
       "path": "Grantry/Components/NoticeBarLayout.swift",
-      "sha256": "ad2d2ffa64ff7758f3af8e9f3cb87ea2bfc04c33ec6c4f77566082a7cd703b4f",
-      "source_blob": "a4eb92c8d33fe2a90fb9bca3689d13348cedbea1"
-    },
-    {
-      "path": "Grantry/Components/NoticeList.swift",
-      "sha256": "6f81f56780444b2164ac3b89cfb81ebc9316d699d98220ef0f6317b9db262599",
-      "source_blob": "d10f95091cf1ce55b329a110684647dc564b49ea"
+      "sha256": "44e0454f537ba00e70d9d4b58d72dd8da5a5c7ecfb36124d857b0ef9b2806568",
+      "source_blob": "abc4030f08a52030619b9ee8538f3c31adc41aa4"
     },
     {
       "path": "Grantry/Components/PathText.swift",
@@ -302,14 +297,14 @@
       "source_blob": "528293700e630d1a08fe7aa66a37d1be881cae26"
     },
     {
-      "path": "Grantry/Components/PresentationTone+Color.swift",
-      "sha256": "0f2014ca5f6878994d79b6c3b784f9a5308fb08a0fafed2931ebbeffb119aae9",
-      "source_blob": "5ab0caedb8fb4c431661f3c30ecf35be7d8c9b38"
+      "path": "Grantry/Components/PresentationTone+StatusTone.swift",
+      "sha256": "a6cb013de0f097bcd98095e5d9841ffdcf3d79dd4e6498811206f9b68bc44447",
+      "source_blob": "028426497046162ae7678e5f7f31ef77c02cd5b1"
     },
     {
-      "path": "Grantry/Components/RecordBadgeView.swift",
-      "sha256": "91c392253ce084f7abe3fa4e2150978809a19bdfe173725c28a9763ffec93b4b",
-      "source_blob": "ebc4ca3afb98d713f72cd02dadc0405db9a7ac4b"
+      "path": "Grantry/Components/RecordBadge+NoteKind.swift",
+      "sha256": "6e282b7fd251977cbb3cd355f9ae9e0895f7b2509586801721a0235b854cc755",
+      "source_blob": "df2e744f57a0ff886d048129785afa4d5889f3b3"
     },
     {
       "path": "Grantry/Components/RecordBadges+Combined.swift",
@@ -317,9 +312,9 @@
       "source_blob": "d31b08952027446a2afc6b81ea22acfbc4e5c48e"
     },
     {
-      "path": "Grantry/Components/RecordHints.swift",
-      "sha256": "8f9c4430441b43a9161da12a4286dca7ee9787b2268b1a9990273c2706c4817e",
-      "source_blob": "7ba5930dfd55fa29b1a50ec9aafbb73d188a7675"
+      "path": "Grantry/Components/RelativeTime.swift",
+      "sha256": "536fa72f54c793fd4591ea9ab5ddee045afeee5e4bf1139c79f8299d8d18e883",
+      "source_blob": "5689def14a15c4ab6fdc436bc2ce48a524e6d453"
     },
     {
       "path": "Grantry/Components/ScanActivity.swift",
@@ -328,33 +323,23 @@
     },
     {
       "path": "Grantry/Components/ScanProgressView.swift",
-      "sha256": "1cad2dea935718c5172dfbddef281661a3c0be0326586e008335482795e94dbc",
-      "source_blob": "73b2289de1d48ef5f5e3d2afc36f0c8251492f5e"
+      "sha256": "184cdaad76881b87b0178be1ee57b34a29a4a13bae4573ee46f911f8143bcacf",
+      "source_blob": "9bc9060a307683b0d5f89e5c94872b1b353c8b50"
     },
     {
       "path": "Grantry/Components/SegmentScanProgress.swift",
-      "sha256": "ee8001015752226f99e7f2ad0e06cc29ca5e9515d7fd1c5d145a1c01f410b81f",
-      "source_blob": "c6f93c77cb20a67e9b0f0540793b8950010f1c8c"
+      "sha256": "82d18ccab31eebf6e009351417b1b23d5120e91bdc1037ced653acccd7b1ba69",
+      "source_blob": "2f65d5d7ae3a144443e348c23bea9256862d560c"
     },
     {
       "path": "Grantry/Components/SelectionToggleRow.swift",
-      "sha256": "bdb257469540d4f3cede8596e2065ecc3f983c7ebaefbabf7804692d77adee4b",
-      "source_blob": "e430f6243f4bb8f058cdaf033e7a9e9e130a83c3"
+      "sha256": "631c81876ed9084ea9608620689161af9d35aeb7e319deade8f32cfd8df41fb2",
+      "source_blob": "42a04c3f04ce64104f8906ab5c2703af91f5644e"
     },
     {
       "path": "Grantry/Components/SigningLabel.swift",
-      "sha256": "975ba993cdf9671279585b74f4cb9a936adb7ed7003d582f4b5d1012d4b59504",
-      "source_blob": "6bc2df7be7286901a974481d2df6f6d4665b5d4b"
-    },
-    {
-      "path": "Grantry/Components/Sparkline.swift",
-      "sha256": "07db1ac54ad3f53b8d17f6dc67e8b8b8f88af436a2eb69d49c530fe984215e5e",
-      "source_blob": "55984482f5950b5a372c1062a78bfcf824c7bbc5"
-    },
-    {
-      "path": "Grantry/Components/StatusLabel.swift",
-      "sha256": "ec40ed273d623c9eb359ce9126e295e89ce8055c538a1cf416f2d32b7de680b2",
-      "source_blob": "ccd6e913b770654ae349ad66d8be0da15b64f8a0"
+      "sha256": "452e13372677ea85ae3ee31c64b858ec5fd6ae72925865dc7793fb4f36691aa8",
+      "source_blob": "53eb17330b6b3b4bf34f5f664c3725f5600150a5"
     },
     {
       "path": "Grantry/Components/StoredSelection.swift",
@@ -397,14 +382,14 @@
       "source_blob": "dd2ce3a50d8c16b6f589a0b2a8ed0849740fd803"
     },
     {
-      "path": "Grantry/History/HistoryRows.swift",
-      "sha256": "de7568d7e9eae03616ea0337d4af3c6055080c6b68cdfd9b91f659342f6ad77f",
-      "source_blob": "5e3fa4d8d6a0bb6f7cccf11e1d9666c48e857987"
+      "path": "Grantry/History/HistoryBoardMapping.swift",
+      "sha256": "b0d79527264a550690023c66d1d5a64b1ae21c531dea6825a23a975ebac70c61",
+      "source_blob": "a71c3743da1b7940e80126853b42a2fef8d5b71d"
     },
     {
       "path": "Grantry/History/HistoryView.swift",
-      "sha256": "34013261c35366ec5a75aab895763fa4ea5ddd0527e7d12edc0212f0f7358fd2",
-      "source_blob": "6f6784ee3423129228b8dd746cf4001d71785f41"
+      "sha256": "dc8d353e4a4f03305c858669862e387ec85a08a3f3bb7171db98f7d1dcff799b",
+      "source_blob": "8fabf5761b909365f94f562d66717e0ad9525a8b"
     },
     {
       "path": "Grantry/Info.plist",
@@ -432,14 +417,34 @@
       "source_blob": "b5a4ccea9056c6a2d84cc20eab3742d07bc8af4d"
     },
     {
+      "path": "Grantry/Licenses/Sparkle-LICENSE.txt",
+      "sha256": "389a4e4e9a32f059775b13a06e25a591445ba229d2838d26dd3e7c0c45127cfe",
+      "source_blob": "abe6e04c37e0b94e3a25078b6fd4abdafc299af4"
+    },
+    {
+      "path": "Grantry/Licenses/ThirdPartyLicensesSection.swift",
+      "sha256": "9671792f47eb357496affbc43104e91e2f546ef3b5b2e584b5a05c0ebd793ed6",
+      "source_blob": "1c3d33674b68bf55704126cf2bccc6e2a0e8e5c2"
+    },
+    {
+      "path": "Grantry/Licenses/ThirdPartyLicensesView.swift",
+      "sha256": "2910adc46f167e4e5956c03e20b2c4715fa82b85c59b6692f875178419176311",
+      "source_blob": "28c9c1b94b608d71eb85e2e2ba7fca15fb998190"
+    },
+    {
+      "path": "Grantry/Licenses/ThirdPartyNotices.json",
+      "sha256": "a3b94099f61b079b38866dc7955f036958a6c9de6b0891622c898fa710b09844",
+      "source_blob": "f23c72e4a020eaab3e1f8f5d1f8b86e7b4598153"
+    },
+    {
       "path": "Grantry/Localizable.xcstrings",
-      "sha256": "5e7b584ac23334ba7e8adb6779979b950b825657f3e9b0349ed181a60279aa3c",
-      "source_blob": "4965f20e884dfe92fa3489a0b3629743d88389d8"
+      "sha256": "36e0bdfc4c4765fa2709756845956e41f0b574b1253ce92e8a1b9cc33889906f",
+      "source_blob": "da9fa114c8b8818d0ef75c12dd06a72725af1031"
     },
     {
       "path": "Grantry/MainWindow/DashboardView.swift",
-      "sha256": "d3e87dfb04a1757ac3a14fd9fa14bdb08d09cc2baa459b6222262cc5b274d635",
-      "source_blob": "7c7371db77983caf0662c5172fb3094c5e8fa8cd"
+      "sha256": "7678f0ecf751aee95afcc8f521400e8b629928ffe65dbd66d14fcb75a4c6b4a0",
+      "source_blob": "326059a44ad476557065d34d1e644503ca6ef5a3"
     },
     {
       "path": "Grantry/MainWindow/InventoryListViews.swift",
@@ -453,8 +458,8 @@
     },
     {
       "path": "Grantry/MainWindow/MainWindowModel.swift",
-      "sha256": "5257826d1bc1727e3125008cb13e12c8ebb57c750d1bf936f70fe9b24d74d65c",
-      "source_blob": "1c04454e76ce53fda3722a0144ff6df5f2366958"
+      "sha256": "9eb48f7a294506e673eb5363ddb2f25e772e2e111641529cb231951fd383fab9",
+      "source_blob": "0e95709ea2792596eaa192b661f4d03a638a109e"
     },
     {
       "path": "Grantry/MainWindow/MainWindowNavigator.swift",
@@ -468,8 +473,8 @@
     },
     {
       "path": "Grantry/MainWindow/PrerequisitesBanner.swift",
-      "sha256": "7e70c7081c71bc771b561fa787299c14789de67b352be81090d1fdb72ce45a27",
-      "source_blob": "b7fee257477b34110a3f501fc0f0d5e5ece19dda"
+      "sha256": "04a189d378e2f912917feb3d189855991e2ff71efe1f02042050974d4e1bbba0",
+      "source_blob": "47c6e702925103e1fcba894d3e8c010542601875"
     },
     {
       "path": "Grantry/MainWindow/RootView.swift",
@@ -478,18 +483,23 @@
     },
     {
       "path": "Grantry/MainWindow/ScanToolbarItem.swift",
-      "sha256": "b5184d61d3d49b85d1ffb7cb57c7e73b45d7a65f8df4508fe5ea2b1685940266",
-      "source_blob": "9a1343977acc95440280fbb6aedd94ef03e28136"
+      "sha256": "6d7978cf8d1dce28b70b51a6910ac0eb21ffb9743750278231383fadf53b447f",
+      "source_blob": "31970a0503c1b571f55d34607f3e97ca2e36c2ea"
+    },
+    {
+      "path": "Grantry/MainWindow/WindowLayout.swift",
+      "sha256": "4bcd6bc575cbcea53b025142c93cf5bfb0c5c3beb1c47abe4fde96fb83b9e9b5",
+      "source_blob": "a965b6123cbfc470945fd79e21372a6b3772b2e5"
     },
     {
       "path": "Grantry/MenuBar/MenuBarContent.swift",
-      "sha256": "1f6b39a0ba36a61ceb5a18a68d3ce6dd2a9292c7e5a566fe603c5684e7cbcf30",
-      "source_blob": "5940deb888c0be37e14287f8a7fd82f72e8310b7"
+      "sha256": "ebab685dfa3ebbd3dd538fde590c3b1a075bd2f05a8d16ea8c13710e054f9957",
+      "source_blob": "4a2eeed3f462308c4c5953c2595079864033787f"
     },
     {
       "path": "Grantry/MenuBar/MenuBarIcon.swift",
-      "sha256": "76c3ca57fbf9f063361afa12aa20a631d5fbef1795793d6be96f2c99427c1463",
-      "source_blob": "1dfb65e4b9ed9062e62f14929f9b77a715a0daba"
+      "sha256": "4b579163f8cb58bb55d30e8221c0ca6846d43cb485f1799d29a785e33abd02bf",
+      "source_blob": "26d2bf347cfa3c93ebc661242d760abbdf44c499"
     },
     {
       "path": "Grantry/MenuBar/MenuBarMeterContent.swift",
@@ -498,8 +508,8 @@
     },
     {
       "path": "Grantry/MenuBar/MenuBarMeterPopover.swift",
-      "sha256": "519039dbc42c478f6fd6c12c4f0106add592ac5bee0533210b2ee6cb0e27453d",
-      "source_blob": "6e3c6d8998c81b1636e25c9b74fb57b0266c5f45"
+      "sha256": "48c675da9dc93031e8aa1d9aa68d0b9394cb4c20f9c2bedbf9867710b69bdeec",
+      "source_blob": "42232a2926a721ba7e4028e41b000bde76f2bde7"
     },
     {
       "path": "Grantry/MenuBar/MenuBarMeterStatusItems.swift",
@@ -513,8 +523,8 @@
     },
     {
       "path": "Grantry/MenuBar/MenuBarOverviewCards.swift",
-      "sha256": "680da27ec5e6dee18431353b7c3bee2a6ce0d3336f67714074d66a6a0dd91564",
-      "source_blob": "160c12672468979cd41ea4e193ad90f328d5b958"
+      "sha256": "1917488e33d0de979bae0f5a3b364442767386f745497fdb9a597c7c7d699677",
+      "source_blob": "248ddf5029c233f5fd2fda21d4f7d1f1f3b996db"
     },
     {
       "path": "Grantry/MenuBar/TaskManagerMenuBarPopover.swift",
@@ -523,8 +533,8 @@
     },
     {
       "path": "Grantry/Network/Connections/NetworkConnectionDetail.swift",
-      "sha256": "a9d2fd233fbc54f340dd79855ce070f3d868d90dc114ee3815136b3e24e3aa04",
-      "source_blob": "4a3345cfe12772c864edf766211f4b96cbf745d5"
+      "sha256": "f2a77caab6d2eeec6dd790111a911d41522f4fa4f3be69636445b5045c97cfaf",
+      "source_blob": "301d52c17a6c5ae2625372b0e94e47d36f071775"
     },
     {
       "path": "Grantry/Network/Connections/NetworkConnectionTable.swift",
@@ -543,8 +553,8 @@
     },
     {
       "path": "Grantry/Network/ListenerTerminationControls.swift",
-      "sha256": "d083110dae8c8cc3b99e9d92a6114222d0d846d5c6cdb3bdbdc8840846691223",
-      "source_blob": "959ea354b91f77bb48b30af8e6fe695e87995098"
+      "sha256": "513118bc25c3f1801a0f40e75ab383a9c5581b9510f1da7ef317f011dd882d4f",
+      "source_blob": "6d4bcf3df433bb031eef24b783a9a28bb0e69579"
     },
     {
       "path": "Grantry/Network/ListenerTerminationSupport.swift",
@@ -583,23 +593,23 @@
     },
     {
       "path": "Grantry/Network/NetworkInstrumentParts.swift",
-      "sha256": "54bc4f8db608aaa83c403cd9e4636f3cb9fdd9bb3d5e5787784e54772e7a21aa",
-      "source_blob": "f93d7025cc2f4fafff1f6dd7000512fc2f369857"
+      "sha256": "c0e2c916882b03d1468f73d22d3ba16bd720b90abb907a7e9d9240eb5b6f9399",
+      "source_blob": "ef7349cf5db3c721381b6b5d1629a2e532dd7a0a"
     },
     {
       "path": "Grantry/Network/NetworkListenerActivitySection.swift",
-      "sha256": "b5fd29df34a2aeb7701cb9b308c48cc5e8b81696525c42aee7bd180f9cc6f0f7",
-      "source_blob": "0c29090f1b23f39a0d26a2b0fc4290b5f8facb1c"
+      "sha256": "2262cc5d7e8609c746ecf2f36840df4880e4738b7c49c36e0867aab039596664",
+      "source_blob": "87d4a869abac8fd8fdb33aa4a73c0c3d48347e64"
     },
     {
       "path": "Grantry/Network/NetworkListenerDetailView.swift",
-      "sha256": "e35c8146795d7b8d810a75774caa94a727886f79da1664d680444c67e1bd8dd9",
-      "source_blob": "95b7a200d9b2a474dfc2e667f7e2ac2dd6497d5c"
+      "sha256": "c3e27525f4e7c8d0f6ac51dedd90716fe68602638d55b4c24f5c65483c8ca817",
+      "source_blob": "557e3ea46f15bc81989b6aa1a5421a04cac66acc"
     },
     {
       "path": "Grantry/Network/NetworkListenerRowView.swift",
-      "sha256": "d0d6a838650eddce251480efa382436633cdbd5833ea8e5481b8019873c34154",
-      "source_blob": "5bf2146ebabd44c72e3ef10f4f4900f110cd87ee"
+      "sha256": "4714d078f8d3cb5e94e0be61ae21612a6602fcf994afb9ae5e487b21deee1c56",
+      "source_blob": "1c1eff1cf009ba5bec72db509665e3a681c3e568"
     },
     {
       "path": "Grantry/Network/NetworkMode.swift",
@@ -613,8 +623,8 @@
     },
     {
       "path": "Grantry/Network/NetworkServicesBoard.swift",
-      "sha256": "b561a48cd2d458770324009a2dbf1c20db195d5d7df74d85f4acfd705aef88aa",
-      "source_blob": "0072a3956db6c5c5041a80b193ccf4cdc5b6e79e"
+      "sha256": "5d83ddc885f7275c4040b93c422e31b38e015ffe2be19de91c6a57abb769d838",
+      "source_blob": "90d4956f7d422771286c28470630695778aa0975"
     },
     {
       "path": "Grantry/Network/NetworkServicesBoardPreview.swift",
@@ -633,8 +643,8 @@
     },
     {
       "path": "Grantry/Observations/ObservationDetailView.swift",
-      "sha256": "a383ed20f824d71ff36a501684de2df299aaddf24c287c9dc8c9cfcc0a0c299c",
-      "source_blob": "783181210b23553ff91eaf12270edb12c4a7dc53"
+      "sha256": "206cce409bc359e29b1432601911efbbf011b9d5b2e8d6ded19d42dd33e6ed08",
+      "source_blob": "60e724135eff2177051b3a1248dfc0814abf1e24"
     },
     {
       "path": "Grantry/Observations/ObservationModel.swift",
@@ -643,38 +653,48 @@
     },
     {
       "path": "Grantry/Observations/ObservationStartSheet.swift",
-      "sha256": "54292e6ebb68a8f301ba713a2e8235dbd961609deb6ea462a68a5fd68e9c9972",
-      "source_blob": "4f13f659a1d379dbdb844eb47f803fa1b853da16"
+      "sha256": "270575a2fdeadea9f5915a3e69c63a4d57e64916a2a88e65ac0f65f240aef52c",
+      "source_blob": "8d842cdb431711c8b994cb51d5081575ab6a01cb"
+    },
+    {
+      "path": "Grantry/Observations/ObservationsBoardMapping.swift",
+      "sha256": "7fa727bbcbb48baac7af3fb33d13d999f90e4b28f92f586317fec4004a6b8c3d",
+      "source_blob": "f0c7a2be85bd35399d54e6f1effe06b8281a7c71"
     },
     {
       "path": "Grantry/Observations/ObservationsView.swift",
-      "sha256": "2e1e9df8a19f6d45adfe1a9a222157bf382a875aa655bb049869d66a0ca2e9ef",
-      "source_blob": "42df7f0ea63fc2f92efb9c48e7399369cf89a4d6"
+      "sha256": "4bccf4a16a4e7c5c7f8566d08288a32cb69d6c7ca1d6b17d375e92a250b7a07e",
+      "source_blob": "f30c49b4517b0a6cc19b9be0cb8cd02949d6707d"
     },
     {
       "path": "Grantry/Permissions/AppDetailView.swift",
-      "sha256": "2e12d22ebc1a299022bc857850e7704bb48562bbbc3fcd47f13c173b270abe31",
-      "source_blob": "034019ac08bc985c41773b7cf273d7d2eb031840"
+      "sha256": "d5c962fe88c7a5e691e1872ab118d4484de2c05941748544d7e413c5562d6ba2",
+      "source_blob": "1e7a24f62797b012b9555598a03b868fc55ba6dd"
     },
     {
-      "path": "Grantry/Permissions/GrantRow.swift",
-      "sha256": "e49a00136873de36b461362d18b9d37336067c3b2492953f8438f0739e822a8a",
-      "source_blob": "e95a1201e258c852fc0a6b91454454368f16c59f"
+      "path": "Grantry/Permissions/GrantActions.swift",
+      "sha256": "91f92abcbe5753e555b85764915a58251abc97ed7dc4a0195ac9cd785e737c95",
+      "source_blob": "87e0e810f33fe4909db1859e5d56685a4a674525"
     },
     {
-      "path": "Grantry/Permissions/GrantsDetailForm.swift",
-      "sha256": "3f5135f2ffc0c4d6eef92cbbd9c1bc7e704c9c8ab9f33cb2a7e4f9f255967285",
-      "source_blob": "57de8c0cb1f8ab28a7c1e81f142af75d5523446b"
+      "path": "Grantry/Permissions/GrantsDetail.swift",
+      "sha256": "9dfa295293c74033c4bb0a3d1ed91cf0a5952bda3fe7533648636b0daeeb373a",
+      "source_blob": "5e15fb2c246d097d4155b36c636f0c653c2be3e2"
+    },
+    {
+      "path": "Grantry/Permissions/PermissionsBoardMapping.swift",
+      "sha256": "86f543b15337a75fa4bac6806569a4b230b40d94ad05d99cfbbdf1d319e190a8",
+      "source_blob": "6f0278dd2ff81c5a4ecae511d408d515e15127a9"
     },
     {
       "path": "Grantry/Permissions/PermissionsView.swift",
-      "sha256": "0bfbda498ebe2aaec15a25beda5cfe7dd9e71b2d662253839553178eebccbaa5",
-      "source_blob": "c3141036692d40b65aaf6f5aca69955dc948e5db"
+      "sha256": "17945911e538c47cee21297631e02d200a8c5bf3f9d4599075e89385262d99ef",
+      "source_blob": "5f552ae3386d2dd6d30c851ff8758cd47ba3bf40"
     },
     {
       "path": "Grantry/Permissions/ServiceDetailView.swift",
-      "sha256": "8af9fc2f8c938416156be80265f96f9cae767549a7afb44f9bce9692fb64d731",
-      "source_blob": "986026c8ebf4774ebaa1e4166aa9b81d268532f6"
+      "sha256": "7daba5dae398f61c102517a2833878bb6fed8628cd585163876afdd0fc17f5da",
+      "source_blob": "4bbb484bff89bd94acff37c1627453fee9c94555"
     },
     {
       "path": "Grantry/PrerequisitesModel.swift",
@@ -698,38 +718,38 @@
     },
     {
       "path": "Grantry/Setup/MenuBarSettingsTab.swift",
-      "sha256": "7a27f3038e58089ee8cf78b04f0aa6e8a20238b734c9037e7b742f250d4b3520",
-      "source_blob": "885ad57ef61ec0ef4fe993e1ad5914f3df0cbdc3"
+      "sha256": "47970d731f6b55ac7f97fa39c88ade3029eaa037994b131767f9de050e90a2c4",
+      "source_blob": "06b1680ac8a3f951fb00e75ade3fd598a625d310"
     },
     {
       "path": "Grantry/Setup/NetworkSettingsSection.swift",
-      "sha256": "de145c4edd60fec87d9e7599d89693f3a9e66ea6aed45bdd433ace2600d595ff",
-      "source_blob": "dbae964f48d19b2d872de2d855a636b1e754b0b3"
+      "sha256": "a6f67630975632c44fb79e9d6f1bf31d07ef3f5c9cbfdfe48916366bcd41b6d9",
+      "source_blob": "f877e7c35157ce6504470129ddc936636c14a54b"
     },
     {
       "path": "Grantry/Setup/OnboardingView.swift",
-      "sha256": "7aad05c223891958b25c3a4e46e417b7d45d01733719beabf05292951198525c",
-      "source_blob": "6ffe1f1fd1b25d61b17d88117fb32e2b7f8ff8a1"
+      "sha256": "64462d3376246d9d5f751f21b0646e90e7fe7a15d05943fc912f171a7411b702",
+      "source_blob": "3e5f19a12905a1b0a21b8b41027a11d640f06825"
     },
     {
       "path": "Grantry/Setup/ProcessAlertSettingsSection.swift",
-      "sha256": "b066085e4002c59b325ce6b2ea0f222bd8109976af20cb1e5a14e6eb485bff94",
-      "source_blob": "ebcc7a1fabcf5308c674b29937d71d26512d4fc3"
+      "sha256": "659c3a3117680bf87dbde80189604265c74f89c3bcc72d3fcad8c06d1ce73f59",
+      "source_blob": "b284190330288485fd6a2e6547d4aa02c558f4a0"
     },
     {
       "path": "Grantry/Setup/SettingsView.swift",
-      "sha256": "c60d9ba2d5ed44499b714b57b8dd51e2196ec93edc3fbf18f95d36b85c0a739f",
-      "source_blob": "5bf77c8cc9baa465c1a37aa597f56c019401d1f7"
+      "sha256": "b04bf9259fa6ab7610f852dd059613184a81e3564e10747d6d8dd62abc2e6935",
+      "source_blob": "e907dc9dc86f45f32c1c12dbcd7d3446d75dd3f0"
     },
     {
       "path": "Grantry/Setup/SetupChecklistView.swift",
-      "sha256": "15dca56ac57eb9d6a0441f421e7f80daeb31298a42afd46e8b580d2b3e81e092",
-      "source_blob": "dbb277410aabef40d5f396f6eca162cc4bd79fd1"
+      "sha256": "af16b508829d9a3340cc864829054cef6fa176b26bcb4f98cd9524be615b3954",
+      "source_blob": "5288e8518fcb441de0667f2591536e774f1b0060"
     },
     {
       "path": "Grantry/Setup/WatchbookSettingsSection.swift",
-      "sha256": "7e6524cb7cbe44123355a7995e66934e97e69aaed11ba974f3e0d39e81b112fc",
-      "source_blob": "b19b6bbda40898edae8439f4e6dcc89426f07d41"
+      "sha256": "7121b85f87117be4bf899ae2edd59fd5f5ad5a30e6121c6dc86ab072a91a55ba",
+      "source_blob": "28a57e504f1879a8e603f058cecef9f36913d892"
     },
     {
       "path": "Grantry/TaskManager/AppHistory/AppHistoryTab.swift",
@@ -783,8 +803,8 @@
     },
     {
       "path": "Grantry/TaskManager/InstrumentMapping.swift",
-      "sha256": "e41465a09f0da6ef9b65f3d17d3c8d40ccfe59aa233a419336adffffba71b012",
-      "source_blob": "0fd6c14473fe6cbd88649fe9e60ea793c4478bdc"
+      "sha256": "d3cbba091246284a18d1f21ceb2d0622def337b07d5e03343680bda9c16ca92d",
+      "source_blob": "8fbb1bfcdf058cc6cb203c955d238a5665c2b828"
     },
     {
       "path": "Grantry/TaskManager/Overview/OverviewTab.swift",
@@ -803,8 +823,8 @@
     },
     {
       "path": "Grantry/TaskManager/Performance/PerformanceGraph.swift",
-      "sha256": "4535d4851a3cf64c965a6f5e2aa921269639bf5b5d802be175ab29d45034e4bb",
-      "source_blob": "82a3ff2bc49f135fd47889ef500d624bf9b13a1f"
+      "sha256": "0e90ed229ca4da514964735a5bc142823aed0461251b5753936bc1813812565a",
+      "source_blob": "11de0cf037bf6a170b1d08fd67733180ea27bdd7"
     },
     {
       "path": "Grantry/TaskManager/Performance/PerformanceView.swift",
@@ -868,8 +888,8 @@
     },
     {
       "path": "Grantry/TaskManager/TaskManagerTabBar.swift",
-      "sha256": "2db5595c30930e7e0b2c15a3b24ff4ef99290f7acf959d18b9a0eefe389f992f",
-      "source_blob": "30b28013e29f566a5e880cb67a63dd6b05f1fb4f"
+      "sha256": "3961da9bd1a704e3cfb1320bad8d27eba04b62d9a709fce3b7e87c80ecb61d34",
+      "source_blob": "ad81908c49fe99d28b97ac5aaa007bb754c92558"
     },
     {
       "path": "Grantry/TaskManager/TaskManagerTable.swift",
@@ -918,8 +938,8 @@
     },
     {
       "path": "Grantry/Updates/ReleaseHighlights.json",
-      "sha256": "f6a6d75a332696ec5834383e73526c88f9c4f5ca58ab513fecbe116cd2cbf9bd",
-      "source_blob": "2eb11c69c23ebfef62dac447156317926111c481"
+      "sha256": "791f252a8b7bbba86c62166dd6842d2821676bfeb25ecdde7e50b6a17f4816af",
+      "source_blob": "b07b2ad8b5c4ca105ac07b58bd382bffa7a7b63b"
     },
     {
       "path": "Grantry/Updates/SparkleUpdateService.swift",
@@ -928,13 +948,13 @@
     },
     {
       "path": "Grantry/Updates/UpdateBanner.swift",
-      "sha256": "5192d349f469d843739a9ade822b6fc1d1f72b4996ad5b585649cfb5c01a14e8",
-      "source_blob": "d4f2ee4b7421c0f0f917c2283d59d34f4bd205aa"
+      "sha256": "35bb2a705d312677261c949f83945aad0a585bc22c9486408b5f5c39e8a14800",
+      "source_blob": "a099131b7d4e1bbbb503738228f78f4c87721cf3"
     },
     {
       "path": "Grantry/Updates/UpdateChecksumView.swift",
-      "sha256": "718b1e60ccef332c457bf3b1243c3d02b6b752831014c35dd946abbf9f75a0dc",
-      "source_blob": "721735954dfaca6ebd9be7c9bb6608a1cf08558a"
+      "sha256": "5003d4dcae2bd362e8cf6cb1aa5447bafdd1de648da8dcee39a3b7ec276e8d02",
+      "source_blob": "b9bfa29a0cd7705f7184010787e1c7c9f670f9e3"
     },
     {
       "path": "Grantry/Updates/UpdateCommands.swift",
@@ -943,13 +963,13 @@
     },
     {
       "path": "Grantry/Updates/UpdateSettingsSection.swift",
-      "sha256": "5e2004fa0c5293d56d539a86b675bdd5046b27be0a8cc26b632ebf56c2eb4cc7",
-      "source_blob": "7f57bc9ecf278ea6dc517b60c8f9b34e87d1aeef"
+      "sha256": "05209429104e6580aa51d8f3ef31483785565e90054b718c8d400f656b3ebe01",
+      "source_blob": "0a8e706fec07c01d5190c1ba0342436f3fc93193"
     },
     {
       "path": "Grantry/Updates/WhatsNewView.swift",
-      "sha256": "527bec97cb4aadd0c3daa41e060909928031cbe3d75b4599fdb5ca801dccbdda",
-      "source_blob": "1bce4f9db5679cd0d878387a1925cc91dc6fc277"
+      "sha256": "bcd76c99dba13af684338c0cd99933fb24f755b5bc34f8de4722ee706ae41024",
+      "source_blob": "d56ce9f799c6dcc41850fd115171d21e1128ea1b"
     },
     {
       "path": "GrantryHelper/Info.plist",
@@ -1062,24 +1082,49 @@
       "source_blob": "604fce22102b99d40de011682260ec5b8f7a93b6"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentActionBar.swift",
+      "sha256": "72ca34dce0a3fee5729fba180e5946624708bb41ad7901b4468757e91e75bb18",
+      "source_blob": "718fb033d20ac3449332bf2d3261c533e4a77387"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentActions.swift",
+      "sha256": "662122abe34f8243eff17a35b371ba86f5381580ff43a7dedc8fd167e1546a67",
+      "source_blob": "894232604583f8d86864327ce61ca453be2b27c3"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentBands.swift",
       "sha256": "2238bde093c21f06d47e709d4aacf01f6b57f57205e5336014a744e5cb515a08",
       "source_blob": "abc1c7d8a8743f66934506a0ab9b4afe2f7a5ba3"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentCards.swift",
-      "sha256": "58c33af8e12351b0526be6c212e95b0e6256afe44e50b216389f3be8b586ce78",
-      "source_blob": "f335667933c86a4817751fe87f7916d246e777dd"
+      "sha256": "39cfaf46b0436d8eddede808f1702bb6a5b9cdb8f8e36f1c4c5ea1138120cbdd",
+      "source_blob": "9aa2bee40fb2230e278160e6bab5c22480b8b15c"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentChangeParts.swift",
+      "sha256": "6c39077cf05a1875c8abf51dfaf5e6c5b13ff4dcd456db75aa5b6545c66ba9d9",
+      "source_blob": "949cc2edf3e971505e91b1a5368c5650d199848a"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentChecks.swift",
-      "sha256": "52c5c996d4e3a518ce07e88c0be7756376f653540eb8704b6a1666c780a4058f",
-      "source_blob": "38a5d9453364423dc1faa43cb00d33e8449bfaac"
+      "sha256": "ba3e6b4e5e1ad70bb87e838e794b348ea9eea2adbe1522fd93ebd996b03cbdd2",
+      "source_blob": "8c381d33ab37af5c47841341af3907c0f9612cc0"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentColumns.swift",
       "sha256": "a1bc90aa6ec7b3babe9156648c3c6c76d4a356f659d3114074f9eeb24cbcfa61",
       "source_blob": "792b9e00ccd8219a47d39214cccde0661ffcd61e"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentDetail.swift",
+      "sha256": "489f529b77f308a94037c60363e68b18e222a538623d597cc7124ff38f0a31a4",
+      "source_blob": "5a163b0d16dc1caec4cedc69b2266bde8be7432f"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentDisclosureMember.swift",
+      "sha256": "abb083bbdfa151fa3b82ee656e5c2bbee795cd42d886cf487f1bd58cc6a4ed50",
+      "source_blob": "e01dcc02f28e8e836ea98aa996320af998239aee"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentGauges.swift",
@@ -1088,13 +1133,28 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentHeads.swift",
-      "sha256": "057a5b06a226d4cd44f9654a546c68d4c58e1f1fcad4d3638abea4303bc325b6",
-      "source_blob": "61ef09b37ca65d0d9bb5f76498cca2c70117091a"
+      "sha256": "8ce70895f3c568880727db1474972cd041eb2a9008732ab76871127dd7938169",
+      "source_blob": "d814be3d3c3a09df7ed72ce3573c8c18fbac70a5"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentLadder.swift",
       "sha256": "cf49a2357e63e97819e1733a23f9972277848db1f3e7d49ecc00719eb42d6f2f",
       "source_blob": "e16ffcb5d4ab09da602331f9980714438d048ee3"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentList.swift",
+      "sha256": "aee949e7346495c039309fad93ed3704fe57f06a5b419bc363402a961e727c41",
+      "source_blob": "54ba5a37647ba896930087a6e3915fa409d40cee"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentNotes.swift",
+      "sha256": "8baf9524ee4cf7741607eccc5d487382d2285e43338483e40f51d2cf5134f1da",
+      "source_blob": "4142733743de368ef9a58d26cbb6e4ab4cc2c1c1"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentRows.swift",
+      "sha256": "697b6d05530bcae099245250990e0f42b5d4c6054bb6863bd1412b641ae7a32f",
+      "source_blob": "e966c000b1f56b0bdcce6f6f79e335f4731e3710"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentSearchField.swift",
@@ -1107,9 +1167,34 @@
       "source_blob": "d11ec85ab7def4b0724743e8b5c5afe72d131e2c"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentSelection.swift",
+      "sha256": "aa70e0e689ac0d4b6bcc6898f287a26631ac799e7ce85914fdcbfa07e49544dd",
+      "source_blob": "782a1e7dfc627d18306300d1e39c0fba8be10b37"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentSelectionGroups.swift",
+      "sha256": "257182dd85ff791d74eef0d27e628b9260e1614319cb62f8bdb33eb9daa587e3",
+      "source_blob": "b7b1d69c2d19ea6008ba29c1c47155e18adc8c65"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentSettings.swift",
+      "sha256": "0e01ef13a1d2dfbd285dcd4b710ae4a4108b78d18e178d1e01991567a715d415",
+      "source_blob": "47e9b66675cd2602e58c55a3e9ced98327889e32"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentSideColumn.swift",
       "sha256": "02b83b4438122fe0761f787a940034336251238be883a477991479a082aaf08f",
       "source_blob": "e0bae987248845c2f8d3fdd59bac334fd0f1a703"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentSplit.swift",
+      "sha256": "1927b6999533d26d9416d40b287c203939cb6674897c6be8306b58f110706de0",
+      "source_blob": "e65bdb01999955221271618de8d0c7709e67eca8"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentStorageRows.swift",
+      "sha256": "f44e650d940b0d55f1cc0e4a80ce739998b647260b32d7e7a7fcd12153d88c0d",
+      "source_blob": "924fda5b694037794e51b919d78ee30acfea8e00"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentSurface.swift",
@@ -1123,8 +1208,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentTokens.swift",
-      "sha256": "7efc0c8efe2902a04ef96f1414099c0f9241c90085a751676e40d349809586fb",
-      "source_blob": "493745c6d4c3669523ce319afea9768eae2ba332"
+      "sha256": "45cd6d899838da3437b3e99d0f3aeac5eab85cc1666c90edacc0f0b912afea9f",
+      "source_blob": "73987ff09b49799b3ffb4c1c8f4ee8e726ab87d8"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/ReachRadar.swift",
@@ -1143,13 +1228,18 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ChartSurfaces.swift",
-      "sha256": "6b9b62e2b695252287a842bcff53efdd963816b724b29a12282a5fdc7b8f8eee",
-      "source_blob": "f3c2963f5002b4a732efa3ae41f5cfcff9125746"
+      "sha256": "0f3071d162fb5482bc27a0bf7eaac44e071ee4a09fb11378a980249f5513176a",
+      "source_blob": "395c24104db5a08e4086a8c5f174095346c4326f"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ChipPanels.swift",
       "sha256": "532c37216c7b32f1d1c4089cd11ed19de7ae4c920fbbe657d44562ac88175128",
       "source_blob": "58ead4a9b601c5ea874066eebe4ace7d086672e8"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/CleanupBoard.swift",
+      "sha256": "36d5d4e03c086536f43bac5c4495338b92a87c4ed001cc41d47f8c1a7d814f4b",
+      "source_blob": "d5ca68187cacb5d39d4c9c17b5dd91a85be510f4"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ClockThermalPanel.swift",
@@ -1173,8 +1263,13 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ExtensionDetailPanel.swift",
-      "sha256": "7ae93d2ba8c28cef4ff4f0fc791d895d6f9859e5ef4b178d8b600a2b810c0433",
-      "source_blob": "758253b3cd28ddd20d1a329936c903b13a536ac2"
+      "sha256": "cc93f0510276a6569a67be4b1a9e842eb5452d408a99309bd00287a32c0bf6e6",
+      "source_blob": "76876a20e66f23761e3b0352445229f993dd797e"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/GrantDetailPanel.swift",
+      "sha256": "1a0a588f6fd31f3b620301a05a8f4d6e9bd0304c3f4519e41c2ec7609b95979f",
+      "source_blob": "e6f464b0986fd2b21eea0992e943142991224f8e"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/GraphAxes.swift",
@@ -1207,6 +1302,11 @@
       "source_blob": "ab587d09d0a8a14f695d341c616fb02bdfe65fad"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/HistoryBoard.swift",
+      "sha256": "80bd4883799cd8bcf2fb4c3691867d6fec4ac2f33eb90d914152e08921af0d55",
+      "source_blob": "079645826424fcd05f8c9acda2b70ad67d97c573"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/InstrumentPanel.swift",
       "sha256": "05bc7e4a190f8cf51f731e4fcd0691c6b05e813a378e1d33a517dbb3f7bfd5de",
       "source_blob": "9d026cf30bc988fd7e9906cf9e6a50389bb7449a"
@@ -1215,6 +1315,11 @@
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/InstrumentTable.swift",
       "sha256": "128a0dfe2ca1e0e0d6d3656d232a456b3428a1a69e47776cd5d7fb8bad40905c",
       "source_blob": "397d14a5502d4961a0bcb85752dd8a6f9d97e05b"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/InventoryBoard.swift",
+      "sha256": "a45f209a40ec4a127997302a4c203ff736cf40b41e78dc2a08db672886ecd63d",
+      "source_blob": "836ef99de072fbd26cf351b273e125576fe2fffb"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/KeepsWindowOnScreen.swift",
@@ -1237,6 +1342,11 @@
       "source_blob": "35aadedda0e94a73d392b9a91b87ffe21fe81744"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/MenuBarMenu.swift",
+      "sha256": "aeb0acc105e15ffa965467b99ad2eb4a7f26a6d739aa41200af0ffaf424a9677",
+      "source_blob": "e8dd46592ab7e6349fcb965375c4f8e5641f1e5c"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/MenuBarMeterRenderer.swift",
       "sha256": "8a84fe3a88e9d8d5c3eadad0b057ecc87f5b8275a471594c8973b5cc719bfa03",
       "source_blob": "0c6913244bb50521bf54d7a5454dab0b2617cc95"
@@ -1257,9 +1367,19 @@
       "source_blob": "9dfa5dd4ed73c3e92d4b0206942d925c6af6aea4"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ObservationPanels.swift",
+      "sha256": "ef601cf5b304e642d0c1858157e4f51062e0d2a16aa11f430ca7a7afd399fa3e",
+      "source_blob": "63ea899a8123cba6e52eb120271a73714a8a6f50"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/OccupancyBoard.swift",
-      "sha256": "dfb915d2a67146a31e223ae2b66a57a632a016d34c5f8f919adc8ea800682fff",
-      "source_blob": "ae1845b29ba4d3e2619ccc05ff0e3d283c152f52"
+      "sha256": "0573d77a9d9d9948824145fbbd2d08c2b424a03782a6d0d2edcbcfb67e58ff79",
+      "source_blob": "04f8405e06424cc027794a8b3abd381a948d5612"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/OverviewPanels.swift",
+      "sha256": "cc5d4ed497fbfbded71ba72a4812c202676853c23565c94a51efa296cdde9f47",
+      "source_blob": "f73ef9bd1aec32b4d5470cba60c8831186b5cf69"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/OverviewRings.swift",
@@ -1277,6 +1397,21 @@
       "source_blob": "dcbd52c04e925f720104029f197a3e16976e6ebc"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/RecordDetailPanel.swift",
+      "sha256": "d34f9b81de5afe412c35f95c5aeb3638eec0309aa169428cc0bd08f83b9564dd",
+      "source_blob": "7e91443eb34166d13790fdeb5682a88bba44811b"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/RemovalSheetBoard.swift",
+      "sha256": "1704477125733d492244962f81938144e2851d8ea2a38e88020b5677ffd6af5d",
+      "source_blob": "d971fb23723e543341832c3d40e084baecf861dd"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/RiskAcceptanceControls.swift",
+      "sha256": "332123c3b43d252ea089c4c72bfe3a8d35e95f580c74c578d29c85fb40092565",
+      "source_blob": "5cf588c25071b335db8a97d5041f1667e886b37a"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/Sparkline.swift",
       "sha256": "d808e451d452fcff5b652c78e8d3bd4b394b842e5f78c2010ac3e8fc1102379d",
       "source_blob": "5db937c03a9752981ed2511cff97d41e400b9966"
@@ -1290,6 +1425,11 @@
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/TimelineGraph.swift",
       "sha256": "1226983e42c1be1455a74a5b465c5ed9bd56547ec2c483a37c7f6ba0c52af28b",
       "source_blob": "8b83cb1699724f493bed4a7f40d2fd555504fab2"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/TitledMenuPicker.swift",
+      "sha256": "7558f7c32f80494b5182b5567ad0c68ffb15e31ab455477e47581b99b3e683f1",
+      "source_blob": "3b8c853d2929b7d741415134f2e747f59ae8b19e"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/TrendGraph.swift",
@@ -1328,13 +1468,13 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/DemoSnapshots.swift",
-      "sha256": "9a3ec8ce6616094c591c8c432599442537368590eccfb3488bde7b78a1be815f",
-      "source_blob": "1c2edaff842197a6c67bdb23899bbf9b73262783"
+      "sha256": "b1e1ba0965e12a1cebed845e97575f90776673a56c3d21e3727a85bd037c32d7",
+      "source_blob": "f0be45dbb79cc3b9469f1d9fb40579de9ebca815"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/DesignGallery.swift",
-      "sha256": "bc4f35abd99d5a92b9aedf19cc84500338f6dabbbd8e8c0ba681cbab5a64b9d8",
-      "source_blob": "3c109127ca83340fddceb71382b73459146f8fa8"
+      "sha256": "c2dcb811698173b9b6e4732c9cf5b58708bd33d1866a027e3be6a71b2323c22c",
+      "source_blob": "1bb5b0b487aaced0d30467c32ebc9d839fff4dd3"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/GrantryChartsDemoApp.swift",
@@ -1342,14 +1482,94 @@
       "source_blob": "9f1736519d07d1b46e82103db14a29fdd54429bf"
     },
     {
-      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildDrafts.swift",
-      "sha256": "e26bc626ce5792eff17f877d1443ecbaeaddff2a5c63cdf765309e4902168bd9",
-      "source_blob": "c2d534a7b26969f906eca2794581b2e62dd02768"
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildAgentsDraft.swift",
+      "sha256": "aaf64bfacb64b2832208aa57536921626f3ae5e4950c35ad1a6277c7a1d0cd31",
+      "source_blob": "bcf01d4ef554666e42dc955b49ab34e6f5ec914b"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildAllViews.swift",
+      "sha256": "f8c90cd4bfe177c6d5fddab5cb0299b759833c2d1a3c2b488aa61ad2ba08cade",
+      "source_blob": "e33381a91101765a68e4c7021bcf58f908d6595e"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildAppsDraft.swift",
+      "sha256": "c00920a43b01333eedcc8817932596537bb9c919d013b75a2f3a890048c95df7",
+      "source_blob": "892d3a3d792bd884a4500657dfa6d0a6ae15772b"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildAreaDraft.swift",
+      "sha256": "1efbe886bc4b42a2c16eff280684cd33471e087a39f35f3df0191a405099083d",
+      "source_blob": "169ffb8af05dfc7ea2c20ed64c77e7e33074ca5e"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildAutostartDraft.swift",
+      "sha256": "6726567d9e2a8f43e23df3759459a73ecda1f849d5f60c156231e6a76cfff0cb",
+      "source_blob": "f95a907c44db3a4c72171c72ec4b02d03f6ae356"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildCleanupDraft.swift",
+      "sha256": "9d1bf862913173f4f71b72ad307d04c8c33b1177ed056864bed6b741c0e7555e",
+      "source_blob": "f419ba35715a903ae98e8679aeaa5be9386eaef5"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildGallery.swift",
-      "sha256": "57f7cf4e13051dc45dd44435564fc0f6babaf0886918b1523f42a7cd0aee6f20",
-      "source_blob": "a71716bd8b0a6805bfee77685b336b3c3ee4d53c"
+      "sha256": "2788893baa30336dea9f999b1137f8290535d73dfd344484405979cdcc137fb8",
+      "source_blob": "346b59a670697132c6ebdc26cb96681a1ac40f73"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildHistoryDraft.swift",
+      "sha256": "c4951041d2b6cfcc2eb38cedb6447c7f0181e8278817a252c51e5c1f49a03d7d",
+      "source_blob": "b8b37ca7085fe7474009e670d738ee1898beb714"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildMenuDraft.swift",
+      "sha256": "384693077ea95b9b559644f6f1542ed56c392238eb2a387880c2b55af43f072a",
+      "source_blob": "bcd8f3ecc7cee181985dd7cd32fdf506f6e3c4b8"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildObservationsDraft.swift",
+      "sha256": "32081c740581f0c32beb5448db6c4c8c05c52780e45ac1bdfff0482bb8fd1e49",
+      "source_blob": "2811fdd6e8bdadaf108eea532e54ae0b1479bfcd"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildOnboardingDraft.swift",
+      "sha256": "a226177af3168d064138eae8e24fee9bac14c40b8fb9e14396dc3040d0e1f78b",
+      "source_blob": "9d8ba2bf599b99a6d00b007f0c037d4a00f5aed9"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildOverviewDraft.swift",
+      "sha256": "faf1a4e368479fa5951150a61d759e0e0aada7709e2e6586eeaee65da8968486",
+      "source_blob": "75a82fe2e05b03608d588223f29f4e21e184c07b"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildPermissionsDraft.swift",
+      "sha256": "e92fcd18ac043cd7495f0be8fdebb3b13f54358320665d1c791fb60bb6a6695e",
+      "source_blob": "79346edc0f5f70250796dc16616a5b228740f9fa"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildProcessesDraft.swift",
+      "sha256": "b6d69355a48ba5ae52184aeb9f980e23b2f1cde99432aceeefb56a1f8d66093b",
+      "source_blob": "39a521a12051f949b59923388b2085e384867b72"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildRemovalDraft.swift",
+      "sha256": "9ea508f73d6072007270c93f2538125fdaec822fc381dd65fe24b902a3c17cc3",
+      "source_blob": "3c1f7d1dfd49c0caa45e3877d50b171d9ba086a9"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildSettingsDraft.swift",
+      "sha256": "b79b95e28904d6e064b08671daf8032cab6c39202850c174635d48fa7027ea97",
+      "source_blob": "f01b1d599c158d3cb47ee22582610b6b3b0cef83"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildStorageDraft.swift",
+      "sha256": "52b835bbe7adf66d74520c85924e72ab1c28d15d829e8accc8bf4058dda81e32",
+      "source_blob": "aebfb5b638bd51e6496edf779ba7460bf1cb3c74"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryChartsDemo/LagebildWindowsDraft.swift",
+      "sha256": "2dda2a92bbe4a9feb782b298e3ea471a67543040554d9a53dd0ff001d56b266d",
+      "source_blob": "bc17a6e1ca3061e625ecff9d059ab69f51bdaac3"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryShared/AccessControlList.swift",
@@ -2312,6 +2532,11 @@
       "source_blob": "63c0e214e4514cbb2e09e04786bd3c2399415a53"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Licenses/ThirdPartyNotices.swift",
+      "sha256": "f72233c7202f295d011f437181ea6d429fc517eed34c480f8627080ce9f2eff0",
+      "source_blob": "b01da3d195fb7df25d7f02244f80f17c5811ff9b"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/ManagerKit.swift",
       "sha256": "79e64f887ebad50fc86086842fd5f8300fa7ac2d00b225cdf7420a66851bd4df",
       "source_blob": "16f818255e9fdb07a2c7931fb53f7cd90a2d5250"
@@ -2408,8 +2633,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/AppInventoryPresentation.swift",
-      "sha256": "7d7afa5764ff778a79a38223383c0690ead75817154b51b268a3ea42459be21a",
-      "source_blob": "933ef9796e579997de5050bd3e96cf38f35edcd5"
+      "sha256": "617d48a59152e836a9a1234541779f0f61775e76797b164d233ce7f1104be67b",
+      "source_blob": "89e52fc3f36ba4dcd024b30c973351e718978c70"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/AppTexts.swift",
@@ -2443,13 +2668,13 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ChangeDescription+Agents.swift",
-      "sha256": "743cdaa9ed6507618c9a78a4f29c5ffc0c4c4b25ea8b0a16597664fe807314b3",
-      "source_blob": "cdf8aa6ac34289c794cd08f3d8f16e05dd17c146"
+      "sha256": "6745072a10ed9e8d2acf0a4e964bb8423f4f2cdd99f186972a50686192999d8c",
+      "source_blob": "773f51492cf3e2955977f2614187016d241fc4ba"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ChangeDescription+Extensions.swift",
-      "sha256": "494d4e5d078addcbeb767d6d7a2ffdaa67616e26182629ce38a9f3aa8ed74bf9",
-      "source_blob": "cd468ed1fcee74be06d8717506e268028078ceb2"
+      "sha256": "fc07247125ffad02f9c3a96a37d18d8bc3132dcaf16ce75d3be9eb4bcb3963a2",
+      "source_blob": "d04cdb57f59508f3fa588ff23a58b51714493f5b"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ChangeDescription+TaskManager.swift",
@@ -2458,18 +2683,18 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ChangeDescription.swift",
-      "sha256": "e0df610b29e53242c0fbc67be45390d0bf2270c307375f08ad6ddff1dd6c3386",
-      "source_blob": "c2ade716efc5d79f18399f36418496d39a161488"
+      "sha256": "27940f4aa171909356f336e3d928c0fa8ec1a3bc576522a0f97f28004573b1ab",
+      "source_blob": "55234c246c6867ee8b3bd889475758322dc27b6b"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ChipPresentation+Clock.swift",
-      "sha256": "a96cfb609456d2506be8a941b47498bab3aec7209eff820d858c7ffb039c40b0",
-      "source_blob": "9e0e2dccb63b4449bf1afae096fe3703f92b6026"
+      "sha256": "762b43f022a95828bf7b3432cee977cb66f18c3d5fd724ee789198c9f38d2989",
+      "source_blob": "f199fd507057ae956cb828915a7102ea2c06d63c"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ChipPresentation.swift",
-      "sha256": "e236898f024e99e4bfc80669d3f5d68f400151b5248cdf622545f7b36c942070",
-      "source_blob": "e7df96e15042d5f6e365b596cc4d807751a1d29a"
+      "sha256": "48de8168940ecb2d40a4f7f4460404c5eb1ef57d8637d1841136cbf2f4e0c172",
+      "source_blob": "16497a094d43b0ecad0c0a11685d272763382468"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/CollationOrder.swift",
@@ -2482,6 +2707,11 @@
       "source_blob": "4e412d64cb53e962937db7decf7d53ef2ce6b7ec"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/CoreKind+Presentation.swift",
+      "sha256": "03c7e973fb1869512d7ec8fd60a88c23785ace79cd7a5385688bf5dd812819e6",
+      "source_blob": "7c125373a2109166266069cfa54c0243e768e4ee"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/CoverageTexts.swift",
       "sha256": "457f3e7bae5f51ada241abcdc42025e3d77c2d1f905031c02ebc598c9eab9cdb",
       "source_blob": "a20376269c799a5cbb7084ab5f605dd55b0c5fd5"
@@ -2490,6 +2720,16 @@
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/DashboardMetrics.swift",
       "sha256": "0c8e4deecfb790643a2e94ace1c20ce401f8cde2220906509c91ffbb01937094",
       "source_blob": "dd2ff6fa5abc69b5dd9e792a79f55de772687390"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/DashboardTile.swift",
+      "sha256": "43420c6128a97a37d2648985cf09564f2ab6e6424933fc1f13bd7550a5c45742",
+      "source_blob": "c83fe9d7e96fcf608a33e1c7593d1ba36a3cee1f"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/DashboardVerdict.swift",
+      "sha256": "a6556371f618c1722b5bb67139c5c468d6d59fea3761687e8309733fe2ff4bd0",
+      "source_blob": "89c8eb8a950e01c8c5d1a40cb8776f43636fb703"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/DockVisibilityModel.swift",
@@ -2523,8 +2763,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/FlaggedBreakdown.swift",
-      "sha256": "0c6c5fd65088ed7f08421f0f2f53a9f5c19c487018271e9cc6c6b06d936616e1",
-      "source_blob": "a07d3cab2189b8af25c9d761e8d4c4cbece3eb5b"
+      "sha256": "d2ef1513755402fa2269b533023389b891b6626b50d3450bcd5ecd6685d9d7e6",
+      "source_blob": "0d18e1351aa49099ecbcac59a6119606b90cc0e9"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ForeignProcessUsageModel.swift",
@@ -2538,8 +2778,13 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/HelperStatePresentation.swift",
-      "sha256": "006378ae3910ea66c4c0de90c99bfd49774b8e6f2bdd621ad68e8cc197ba12ae",
-      "source_blob": "7389bcd94032c9d8c74680ba240b65dd959d78dc"
+      "sha256": "0d2e3e9e3b877ab12ff3e7e6b0eb7b407c833270bf4249fe7c033111334f3250",
+      "source_blob": "ef845f15b114a3c4bfefac64f72fc58f44114729"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/HistoryBoardPresentation.swift",
+      "sha256": "0d821fa230f331408aeaf7637f550f235ea61f8abad0a3b90e80ce85a0a76885",
+      "source_blob": "1c80e39d0372fb5fce8e05982ce862548621cb0e"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/HistoryPresentation.swift",
@@ -2557,14 +2802,24 @@
       "source_blob": "f6939d1ac4921ab2f5d7d60570bed5d3696f78a1"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/InventoryVerdict.swift",
+      "sha256": "85888a3059ac921faaca1e7e62d47fa261c93ddeecf503e73fb5c4164867b832",
+      "source_blob": "c25bbce6829f68ca406af6d7fc8540ccab16d760"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/LaunchdServicesModel.swift",
       "sha256": "87693bc6af6f3b7d06fee23706815295c61a98af295d08a16368467b2866029e",
       "source_blob": "a708a7db019a5359c58bf381ed2c9b18570eb20a"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/LeftoverPresentation.swift",
-      "sha256": "c0a53d7c7d54c21004ca230b7ecce352525165ea0e36e82d7f4a7971a665c0fb",
-      "source_blob": "cc4aa0d88d85a40593c542f8a01813931634c81f"
+      "sha256": "1a78757dcd609f4c3d2e2d72a952e4340cbc27a6f5ca028e7070aa95b9a30602",
+      "source_blob": "9e93b4f529479b82190cbc4d0258a6929aed7362"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/LeftoverVerdict.swift",
+      "sha256": "19714b7d97167aba33edfbe4af3f7bf6e42e7e083fb3f35e3510ebef2149e0d8",
+      "source_blob": "8a6d562f423723d946572c5382cd8ecf392c7510"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ListenerActivityPresentation.swift",
@@ -2592,6 +2847,11 @@
       "source_blob": "6c71641123cc41f693e3ea2cf6eb1366db011045"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/MenuBarMenuTexts.swift",
+      "sha256": "d5331dfe9a0b6811b75ec191161d20141546358ddf9428756056b824db7f7816",
+      "source_blob": "8aae1028d722369c034acec896064cc769f22b81"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/MenuBarMeterBoard.swift",
       "sha256": "1067bbc493bd6cb7baabcfa071f66f8a487ade949a0a809d0f7917f1428cf17e",
       "source_blob": "696e91d27ae1b405cd0452f4c3416370ad5c56eb"
@@ -2613,8 +2873,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/MenuBarOverviewPresentation.swift",
-      "sha256": "b7ebc560984367da1eea31bebcfbe088000ae37ff2f35d932d3362d4e994953a",
-      "source_blob": "48cfd1c5da92614e12cf9658915da73748f1a16a"
+      "sha256": "0a1a86ac517d50c69a80b3756e7d6df0ff9e560c00045ccb981ad66eea8a96e5",
+      "source_blob": "e5473d6d71416b7a6185a0264db224b5785be02b"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/NetworkActivityModel+TaskManager.swift",
@@ -2697,6 +2957,11 @@
       "source_blob": "f021cd057bcf33a50315d5e394ad11493a46449f"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/OnboardingSummary.swift",
+      "sha256": "7860f2d63f3400a019658cc162498f1c68de07d91acbfc365714a599a863bd15",
+      "source_blob": "0b09e33b30e3da00032808074d866665748c159f"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/OverviewPresentation.swift",
       "sha256": "2ff43076debb30614646c01406446756a5b739a64516e6b21170ac420760344d",
       "source_blob": "43146648501354be94edd17cc118463c6d785de1"
@@ -2713,8 +2978,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/PerformancePresentation.swift",
-      "sha256": "75b326ab9dfa4cb87bbc1f8feb68598180fa4316fe279e24dd5648e00a190ee2",
-      "source_blob": "702d3c6297b40bc252c98900c7b2e5514a4366ca"
+      "sha256": "ed16d12c7c1752ca944178e65a500b3485984f963fbd5b8526076de7b8787e33",
+      "source_blob": "8f6ac2a2acaa72787e0bc7d6809a20f8f95d756a"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/PowerHistoryModel.swift",
@@ -2738,8 +3003,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/PresentationSnapshot.swift",
-      "sha256": "c0a4404025b6006a2a7b042f728b2713a028f85563949170bae9c38dc3b89a22",
-      "source_blob": "ab4d029ad7ff05c4ddde34e49bbe49cf2165b186"
+      "sha256": "500ebbfbb0aec5a5d5ccfb943a041839302db476365ceecc658b2f40caa81f31",
+      "source_blob": "ac28712daf3c3f7ffab3d684b388b331042b2a55"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/PresentationTone.swift",
@@ -2747,9 +3012,14 @@
       "source_blob": "7ccdc2f46c990578e97b1e394d5ea9d6abe6e819"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ProcessCleanupBoard.swift",
+      "sha256": "6fd216f8089fb4e7c4aade19256bff1d56a4b2d367d8b81accd77be99941b82c",
+      "source_blob": "044499eb567bbef7c671bc740c96a4393eb81b4e"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ProcessCleanupPresentation.swift",
-      "sha256": "f2fa8732ee8e2d8a9e8eab288ac2e229032485128bfbdf45fd325734847b2bab",
-      "source_blob": "c966e0748b4e9aa36c48380f3ab9f085e263f908"
+      "sha256": "69790ffb1dbd61a17e13e3f75987b24ab9370da4f8a8aa672a0b27942d359a53",
+      "source_blob": "cee1703cd2bf99d64d3f239a74b39d136819b5d4"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ProcessDetailPresentation.swift",
@@ -2763,8 +3033,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ProcessListPresentation.swift",
-      "sha256": "7e5cdec916bdd54d8c2bf56ea881c3e0712e65dac4cc51697510162433bfcdb1",
-      "source_blob": "40426850888e61e8756d5da361ada94afdd38051"
+      "sha256": "ab747ecf0a4130f003b31672ddbd143bcd023bc5a99b05234e1f974355cb441d",
+      "source_blob": "a68bde3dac063ef56a867c7c3825f14cfd5eee96"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ProcessListPreviewData.swift",
@@ -2842,14 +3112,24 @@
       "source_blob": "d0670af528c8c14ee7a25bf06b7f84d5e033eef9"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/SetupCheckPresentation.swift",
+      "sha256": "e1c4f9b96d0492cff971679d7d5c46da952c255453da92c458060337ecb1b161",
+      "source_blob": "bd8a19b4d538bf79503a199d51c9d7b5c08d2329"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/SetupChecklist.swift",
-      "sha256": "6c1ca34f152b2e1d9196d4ae442ed983b4dda953537668d16d03f3fec60cefae",
-      "source_blob": "12d774d0f283cdfd26bada157104042b8dacb2af"
+      "sha256": "279a6bfd1f1306e144c3f363ac15dfb3dc6042237d2c56d05c2950bc2a1ef768",
+      "source_blob": "cbb4268aeb33625ab65cc46ccb3c3b5ea014650a"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/StorageBoardPresentation.swift",
+      "sha256": "2ee89251f5220b91c9049499c674c6606826355cb08be612b9e8841a72d97066",
+      "source_blob": "033e0fb4a1ff929d919cc9f4115b347218f8e136"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/StoragePresentation.swift",
-      "sha256": "aa14fec26317cb136acb4c672db24d5dfd20ed3262354347f61506571419de2e",
-      "source_blob": "18996f5dbf389882bd5284e33f9382be0412c717"
+      "sha256": "cc3977bc5e090d4990d7214113bbfd07ed2f23ae53c0e89cb799cc0f840f6bab",
+      "source_blob": "7b5a04097e23df2667ba38d746a15e9fd94d9033"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/SystemVerdict.swift",
@@ -2873,8 +3153,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/TaskManagerPreviewData.swift",
-      "sha256": "b2f392153279249aba6e05f8a5223ce5cccb06a427f46ca7e101b769c938c41c",
-      "source_blob": "de4ff0c48c6142276925fdd8996dd74ec765ce73"
+      "sha256": "ca948102fda402e72a769ff3453e134b1d050f0124a326271cd1772e018c8b06",
+      "source_blob": "54bba70fb43aa5471e8c385ca9e466860093d9eb"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ThreadTotal.swift",
@@ -2898,18 +3178,23 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/UpdateTexts.swift",
-      "sha256": "423b50f2bc9fab86b67ef4c99ad4ccebb8fa609616a73abf07d3fbc84da32f83",
-      "source_blob": "b7fce9f4f16eed02c346753b4e9db661dfb5ad7a"
+      "sha256": "30b617f5ece969d352e60d5c65b3178780e45c6809a5dc77d7f35ab5fe790e56",
+      "source_blob": "a34129e4cb9aafff76ea32bca428e7e6e9f1d5bb"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/UserUsagePresentation.swift",
-      "sha256": "53b95cb490d4c82d7734f9a05fe21daf5bb27ca5a9d2bfef161da3cad448d84a",
-      "source_blob": "f4d417bcb95bb5bc1dee92493513f0d21f6f5bf4"
+      "sha256": "bfa4f55009cbf558912a1c95e0345d22dcbbd7d492c8c1e2a3fd2d429bca0a80",
+      "source_blob": "f1d4f74788aee63b21c4170401895dbf7b5b64ef"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/UserUsagePreviewData.swift",
       "sha256": "8811f36e611bc9946c3f8bef1a689736001c28199c3706997e673231bb03e3ca",
       "source_blob": "1f93c60c304da492ef1c88a48e8c15d432244fdb"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/VerdictShield.swift",
+      "sha256": "c1b8c1c44a8c059ca110d1145ba7ef6afeaf56b3be5b289510eb42fd8f21112e",
+      "source_blob": "056aabdfd7e8b54fad7b8877c9c3716ae1a29dc3"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/WatchbookMomentPresentation.swift",
@@ -3048,13 +3333,18 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/ChipProfile.swift",
-      "sha256": "888f78dcb54b1f67bf09b391b96470eddb2649e9a8d073aa218dd306d5dcdecf",
-      "source_blob": "bef6ec2f21db0c6466298939c47d34fef37156c9"
+      "sha256": "a5fd0fc278ced7224833b9685c97e1eaab47106fc8b8bd8e64a3ac2ec7afbafd",
+      "source_blob": "45d0516ac74164150411f14348cbd8fdf1f1ec12"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/ClockDistributionHistory.swift",
       "sha256": "fcd0ead52a0a1e21afad59d5a41a96aaacff36cfdebf8163f1914685b2e28eeb",
       "source_blob": "3def77f66e415392c132fbe437bbf28dc96fa0b5"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/CoreKind.swift",
+      "sha256": "a4630a22f71b284d797eb19f697e1be58f33f10d04b7183b57e4067e589627dc",
+      "source_blob": "28d5bad0e87714a44d027ff4f22351ab05b25184"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/DiskThroughputSampler.swift",
@@ -3103,8 +3393,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/MetricReadings.swift",
-      "sha256": "dd29ade7f8e7bbc627ac78ae203c89a2dccde7b8d548055daf84b942b446e4f2",
-      "source_blob": "4bca1c3575412d50ec7bc2a078ea7bc9c10de3b9"
+      "sha256": "fda46ecbf4f8c348ca2e48ef0ee47097d7321b6b837bd357892e3d2b93684748",
+      "source_blob": "a6517f3a62e0dd6f2a66e3f470af95272baabaf3"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/MetricSource.swift",
@@ -3998,8 +4288,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Watchbook/WatchbookMetric.swift",
-      "sha256": "8b4a969cdd2f0d4e8d8f3f0be80817ad1d02872bf15dee1fd69cc275f0330270",
-      "source_blob": "117d72b7e787fa5af99bc8e4b614d1ad370e4865"
+      "sha256": "453fdc1699766f79b55a1ba3bdde8189a2f7201f56066667368fac3f880bfefa",
+      "source_blob": "41e23998f43a9f119bb1cc0c3790c5f7b90ae484"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Watchbook/WatchbookModel.swift",
@@ -4008,8 +4298,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Watchbook/WatchbookPoint.swift",
-      "sha256": "745c4e873bda5944c1919dfa5c9cbd3980eb959bb7ee7e3067e2e5ab3980a55a",
-      "source_blob": "61b2530380acbe53611045c71afb2d92b7230bba"
+      "sha256": "b1e96f83b8206758bd0cc6043fd15ad74b4642a6f25f2f37c8789a880964b68f",
+      "source_blob": "a7c9604efc9fd70c64bb7661a498f5365dc0784c"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Watchbook/WatchbookPower.swift",
@@ -4047,6 +4337,26 @@
       "source_blob": "cccbf9e85be9376c11c930bc8cb6d4a79bee9f93"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/AccessibilityTreeTests.swift",
+      "sha256": "b451cb00f22e132ecbaa20a753751fea59ad2f1ed8baed0a08cc9667f568559b",
+      "source_blob": "e1a27ad6021e7b774dfddcab8e840793bdd56f96"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/AgentsSnapshotTests.swift",
+      "sha256": "da82977fe239b1f6a0340574014aef862ddecd69e73b8823e604e3de1e9dca38",
+      "source_blob": "57242afcff609c48d0619c31eaddc850bbca7534"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/AppsSnapshotTests.swift",
+      "sha256": "8a2390c487b7ee2ec9a062d798cc7d95ccb411222a36e40d4a77f23b44000580",
+      "source_blob": "de7ce1900c338fcb716a728ba22a7eb55966b499"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/AutostartSnapshotTests.swift",
+      "sha256": "51da33903b7b52c7c3c095cc894113da0395e6ac89ac5f7d4a5ae55bde17a7ed",
+      "source_blob": "ef64bac20d4799d0f20ad710deb39f0665a1498b"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ChartAccessibilityTests.swift",
       "sha256": "9d57b5d297f52cab95cda709d7df0f335160a8adb6ce10c94eff9f3d3d6eb187",
       "source_blob": "80794d58b4320d3479e00462cb0e2f43a003f2b1"
@@ -4055,6 +4365,11 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ChartGeometryTests.swift",
       "sha256": "6b19aeb07fb0ba4e8f0b70c35302894e8f28e662d8ce6f8eaa044494a7618cf9",
       "source_blob": "3b0a723288d38bdf7f10d686dacd2851b51e436f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ChartImageComparisonTests.swift",
+      "sha256": "d12d2feba8e2c51149297d0636902798013005f39378b8d56452e704d92fe690",
+      "source_blob": "9f2f4d0839e88a9ac044e51ce28bd39374faf60d"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ChartPaletteTests.swift",
@@ -4077,9 +4392,24 @@
       "source_blob": "3072854816db450918a79726a25f54a3b3f7da09"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/CleanupComponentTests.swift",
+      "sha256": "30e16dd093557fdd489bc9c908f40aa6c710747715becf35f7568aa920bbd8d2",
+      "source_blob": "e577c50c8522cc316e3349cb16681a52841a0bd5"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/CleanupSnapshotTests.swift",
+      "sha256": "837b6d633b468e2180996e733323aa3e3ecd90af52b69daf7e0173569b2ee819",
+      "source_blob": "2c1d15c4f1e159b1ec86e769569374472aec4977"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ColorVisionTests.swift",
       "sha256": "87e7acdd8c88dc6e550fd51c0dbf86c5dfd63e890d52bd80eaddd8a59edeb4a5",
       "source_blob": "2fb8a303efaee244d1fb49a59c675dab0b4ecc87"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/DetailAccessibilityTests.swift",
+      "sha256": "457813e4d374c1fd038ebcc9106d727a3c499eb394013a038f3e0ad201a507b4",
+      "source_blob": "d0e4e0691e7d0cbff782b2d43817059d427b166c"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ExtensionSnapshotTests.swift",
@@ -4090,6 +4420,11 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/HeatCellTests.swift",
       "sha256": "b615e310353fca9c0d97c55683560c9c58d1cfd5196b8045d969b5f64c756826",
       "source_blob": "968475dddf3251ddc4415c39cd5a44b93873bd19"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/HistorySnapshotTests.swift",
+      "sha256": "b785dcce8055dfe3c8c4c61f3f15860535bd519d183df93196e6ff8c6ac767ec",
+      "source_blob": "09736fe491fda1d679145e220bf6c743ec349260"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/InstrumentColumnsTests.swift",
@@ -4117,6 +4452,21 @@
       "source_blob": "24a99962ac16562115803f058999ed0645e79837"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/LagebildComponentTests.swift",
+      "sha256": "b714a71012b38997f67fd601832d34a0d93ca5384e4edcee5dd3cac484001608",
+      "source_blob": "b9cacffb8c5154aefe02eee7e213563d287c7908"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/LagebildSnapshotTests.swift",
+      "sha256": "4398cacadbb0a4ba39f5b1be3b3230d83aeb9f4bdd309c5a75b90b93a66b4df6",
+      "source_blob": "339f2e6053b5a6119f0634eed6afc6944d750d84"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/MenuBarMenuSnapshotTests.swift",
+      "sha256": "ced7859f2df2d6bf279380177783160704806121c65a1a765ab85558dd485d79",
+      "source_blob": "c3234882fe8299ea7dccfcee58741c85b88cd60f"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/MenuBarMeterSnapshotTests.swift",
       "sha256": "31265b68bf95e7a22d192c5571ce1c0facddad1a679431bc528f5b27ce314acc",
       "source_blob": "8d2ba36cfaa63cd19d008f232409f615059b783e"
@@ -4137,6 +4487,11 @@
       "source_blob": "09e9d7961836abd229f5598a7bd177b216acbc03"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ObservationsSnapshotTests.swift",
+      "sha256": "5f70aff3cbaac6188020ae8029b044d98cf1de518cf1517712d2f696236d4c39",
+      "source_blob": "ac881037f60fab099dc6bacf232c4228724e2fc0"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/OccupancySnapshotTests.swift",
       "sha256": "909f4a0254991b68ed80dc11c9347d4a595d45de3f8c92072c50cc6dd25facab",
       "source_blob": "a50e2e252eaf79b3467ed4e9528acfd06929353d"
@@ -4147,14 +4502,29 @@
       "source_blob": "1a46fc75441a8e0874f47da5c67374018a981b45"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/OnboardingSnapshotTests.swift",
+      "sha256": "2df186e3c250e17e2d9286c03a483ebf3f0dac2a354e5f6b0ce104b9b54d8d95",
+      "source_blob": "58a67ed7e3badd5cb8e39faf79f646c33026e2a9"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/OverviewRingsTests.swift",
       "sha256": "9bfac8d238f54b650903c3ecd0ab906e8a25fd93bbb75969d5cb1c248dbeade1",
       "source_blob": "a371305cf9a6c4f82d8e697502ae9e3bffc20ccb"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/OverviewSnapshotTests.swift",
+      "sha256": "4b5ff2ff9c82c3c3b357135040d86fc71dfb7d3184eb854da5d1641a28e0235b",
+      "source_blob": "66639d5cefd97cf3f41945506afeae5cbff2f3c9"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/PathStepsTests.swift",
       "sha256": "966f29263aa1ec33bae1213fc0a832aa9a93848b0ff722e9117e56d18e1603e8",
       "source_blob": "9e8275c290af789ea6b4daca49d0ca5e4945a580"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/PermissionsSnapshotTests.swift",
+      "sha256": "406cc2bb6ae5a2a9af4ebc476271829a0b241026edcffb3db5e30c7d6e820df4",
+      "source_blob": "d5e588ea635248af78aa1b9554991cdf49b81b20"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/PlotTests.swift",
@@ -4165,6 +4535,16 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/PowerHistorySnapshotTests.swift",
       "sha256": "de614442953cddfc1e1ff285052fbdfbef57183189ce13dd6361e7192ea76cdd",
       "source_blob": "fceaaf297a6c5b0507d8d32845f2c70d1adfa5cf"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ProcessesSnapshotTests.swift",
+      "sha256": "288ad7eb14ae2936b7de3e4b758b7896bfe3a08b35b3d2a3ad41da5c132e7d82",
+      "source_blob": "214ff7167c7b765d14b39af4e55b0fdd76f985f8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/RemovalSheetSnapshotTests.swift",
+      "sha256": "44be208d4f424be9493156fc55a6f9d9b4b3fd05e6a18a1286500b3ee9ec50a0",
+      "source_blob": "f7d9ea59eb76f4febbb91dd70ab4863ef7bc3df6"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/RenderGuardTests.swift",
@@ -4180,6 +4560,11 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/SecuritySnapshotTests.swift",
       "sha256": "abef1a035edbf4550fcb2c61eaacec6d2907aaefbb2185f253cd23a60b6c004b",
       "source_blob": "a8848e718cd35872e8c131e84ef9591868761430"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/SettingsSnapshotTests.swift",
+      "sha256": "06fbf10855d21106cfb0cbbc11f0676f100cc57dc607526cce580a55136ada33",
+      "source_blob": "b6d025f3b1ae1452588ceae65a977e317142f794"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/SettingsWindowHeightTests.swift",
@@ -4207,9 +4592,24 @@
       "source_blob": "7ff9cc17bcfd6cac361f72f11c00842a6b90e830"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/StorageComponentTests.swift",
+      "sha256": "06dc27ff9485727b3121730897d9f95848cd4e0a3b43be1a4255135b46a75f38",
+      "source_blob": "68f2156792d0548addb7f9f7d418923cf34af677"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/StorageSnapshotTests.swift",
+      "sha256": "2318e564cd8fccb1e389d5b8c46ca7e0bbcc6c92eb57a9045084780e407a4fd7",
+      "source_blob": "46b5519b5218ae8472a1b771fc43e346a44baa8f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/AccessibilityTree.swift",
+      "sha256": "c422cec5912572999012d1fab10d321ee0715694d310305c680ad4ea477f676d",
+      "source_blob": "3834fab67f2a8a0b047c76390bf8bef669fe0486"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/ChartImage.swift",
-      "sha256": "e77e242d836c31b8e65ed1b675effdf6d40f25e9d65c7d93017fe5dc9f39c978",
-      "source_blob": "109b21663a3de90d1ab0946cfe839798aed2ae25"
+      "sha256": "54228f0bfbf358f6375e3b1dbfb7ffa2f55e351097fbcc2d2e3a960d400f2cb8",
+      "source_blob": "9ff3573b1429e9bba1d7f163182129545c8f9c2c"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/ChartSnapshot.swift",
@@ -4217,9 +4617,29 @@
       "source_blob": "bad856e7f822960fba606d2aa872d3648a1b4b00"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Agents.swift",
+      "sha256": "73a9bfeb6dd84722557370ea0cbb62ab3a8b3503611a080e02dacc7984119d3d",
+      "source_blob": "5101a757d6c5fd4217e4b771e6813793fff7e857"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Apps.swift",
+      "sha256": "dc42366d2e3e9aad384df2843c97151aed2823234e686e138caa0c5f82122454",
+      "source_blob": "b89f5e9249c1e13695f2b9e43220fe57eaa6bb42"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Autostart.swift",
+      "sha256": "a32b295ff95a746c9b0895cf71e416fb25eade320e94cd0f5fc9c749fe8fb301",
+      "source_blob": "0c04e9fa0edcc9fbc242e3a506283eccf678bd67"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Chip.swift",
       "sha256": "1de34e918b21f3b325d48b2c9f39ab1b8c7f09fdd9b1736106719c2d8fdb2e15",
       "source_blob": "25afa8c8b1bf23832c89035556e9060ac18a0e05"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Cleanup.swift",
+      "sha256": "f148a9c5bac321e24cabdada11899dec5b4079af61335287aca33ecb3ebd89b5",
+      "source_blob": "db01cc21905247921b19fdeb318a83a13b744737"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Clock.swift",
@@ -4237,9 +4657,29 @@
       "source_blob": "a941fd73c993727d392fb50a5e6258aff26347a3"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+History.swift",
+      "sha256": "c4c392f934b62e7b94af833543fae27a0c2a80cd29cede21da1ffa26bae00749",
+      "source_blob": "a97a2d1e19cb8bddd84f317bdcd9e7a80cb7cfe8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Lagebild.swift",
+      "sha256": "3c04905aa77d3c22fca5162e78480f5177540503dec1df359bdecaefb8ce2e0b",
+      "source_blob": "30e6037bc8e6342ed695f505d0f90aa3a80fcdad"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+MenuBarMenu.swift",
+      "sha256": "11386a2e90690601b4175d4c477978695cced9aba22a7aee440c1bf3efd10d76",
+      "source_blob": "3e1dc4d20639cc88510f03905f346cb08f58100a"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+MenuBarMeters.swift",
       "sha256": "0393df7ebdd735e837802ba5f7988843feab1b4eabc9d7473a9cd804aceae2ee",
       "source_blob": "37751e9df845c5c969bb35fb8728dff75906ea8f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Observations.swift",
+      "sha256": "aaa26d273088ff9aed8a6ba17d41848f6cef339efa4a2981dd4f02f7e8c11cde",
+      "source_blob": "6534d55a986595f253baabba9407c85b2d9421d3"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Occupancy.swift",
@@ -4247,14 +4687,49 @@
       "source_blob": "5e7e1c5d44d868540bc56196b57cae7504e66dcb"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Onboarding.swift",
+      "sha256": "84dd420de9d2dc2185e51cfad78d2f6adb2b5cc29bcd8613fd82b3308ded2925",
+      "source_blob": "e350706f89f3bcef9ff92321c0b1157d381c5e1d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Overview.swift",
+      "sha256": "e52146e87fddfcef58d473e2483acf3eac2d7e92b6d6e6cd2d2596dbf7575612",
+      "source_blob": "2700f509332ffb2ea135fdca0e96c53a95622a72"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Permissions.swift",
+      "sha256": "af685116beb69799199e5dc2e0c9f32dc01a30212cc9bef59678482284e62f73",
+      "source_blob": "dddc267bc973356f4e28620d72e86188df59f060"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+PowerHistory.swift",
       "sha256": "2bd7dba75cc97e402d38c45d06ac7a7e46410af558baa21c6b96b315d3f9fd7a",
       "source_blob": "ca56585d91a32725703b8b6445b353f583b46c33"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Processes.swift",
+      "sha256": "82ea0479c05deb6310f03fde460c9a5d3838593f937e4276aec4a50b312c8e3c",
+      "source_blob": "5f939b12594c4025cf81630b29c8838adc92e882"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Removal.swift",
+      "sha256": "bac8012ecddff601684ab28ea50ab5ec7e8d6d694bd601bcd9b77caa0883fc6e",
+      "source_blob": "d7122e3374a8dc9435db10e28eae17172335c1c6"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Security.swift",
       "sha256": "67ab0073723a964fa525c0bfa471d2b73e754d9dec431d810d482339aa976e1b",
       "source_blob": "86685d224ebb9e3b53ac318834a47e5c3d1d6b6c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Settings.swift",
+      "sha256": "60bdef4edeb798b63e454a2de72e44b7c9a22075a137f687bc4e4a0b8879e371",
+      "source_blob": "d4f42a73a97250e2ea8425ea30e6eec3b1bc9baf"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Storage.swift",
+      "sha256": "503f40235fc9f12e2173eecfadac9a8b04455fe04ec33a1ff867725817762490",
+      "source_blob": "da628fe6e62fd874939ee042534a99fafb21786d"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Watchbook.swift",
@@ -4295,6 +4770,636 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/WatchbookTimelineGeometryTests.swift",
       "sha256": "c5d090ac62267d91916d695a916227e876744c73df511e992f9acc404db0a6fe",
       "source_blob": "141de0091ca15fbd038867ef9b74847d8bdac6fd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-freigabe-gewaehlt-contrast.png",
+      "sha256": "ee57806700fec914e8fd341fba105929652ebaf17a490152ea5116b66f3c65ba",
+      "source_blob": "29e233d1dd9999611081364df153be7d9c110b7a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-freigabe-gewaehlt-dark.png",
+      "sha256": "a58ba28e12b0d3a92d9efc67ab5c14780b3cbfdd079d6355bc868317e061e3a5",
+      "source_blob": "ab73c1b7dd9b55c5e2393a106d5d700b075bf3a4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-freigabe-gewaehlt-light.png",
+      "sha256": "a16bb67c8d7e00dc0a4af0ee213f2aa07c5cab9e41f2dd7c55657e390e7cc5f0",
+      "source_blob": "8b3fd0c4def0d242a5f5d7afcddf59e276d5ac2b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-kein-scan-contrast.png",
+      "sha256": "3f96242d68b8b984223888d004874194c8f3f0fe04f261052aad044552587d2f",
+      "source_blob": "62f4f438405e85a02c18afd92f56a70e07afee15"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-kein-scan-dark.png",
+      "sha256": "03ae986d40d3d27c19ead8c11f27939d551a709ea3070d4e35cd3556ff0aced6",
+      "source_blob": "fba510a6c5130c12a36a708376b0706a6662f02d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-kein-scan-light.png",
+      "sha256": "0a64db459a7b959a8d929b87912ff4f6e631a517d32de62f7651b6958833abcc",
+      "source_blob": "62d448493584e2c8e72573371db5f10c123f1163"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-nichts-gewaehlt-contrast.png",
+      "sha256": "dcff7b136022493bbb6212023fd4734daad7b5e8f3c8791423a6a417cdb5ce14",
+      "source_blob": "dde622076669f1fa4a11ad4c29e3750ea9fb6496"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-nichts-gewaehlt-dark.png",
+      "sha256": "4d13a4b328a9419d4189a6409ba753bc784a22f2a617aadc7773719d05680e0e",
+      "source_blob": "764042f61de0c7b073bd8687ce8fec72d92f28c7"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-nichts-gewaehlt-light.png",
+      "sha256": "125b3fb9b2881c0361fdb03275cccd75da0e2e79a1d550f447d722e8f6c55b50",
+      "source_blob": "5f9c9b45ef4513c65d0256507e4edbcbe3db747b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-server-gewaehlt-contrast.png",
+      "sha256": "09e17474b2b3c0e7faa566ee013910d713f55c9a2378f5f79674f2a04bd62bc3",
+      "source_blob": "e39e7eadddd35d59efd1895791389700934d4692"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-server-gewaehlt-dark.png",
+      "sha256": "f01b3b93d7318d8e63f7cd06dc181c2ca837ae4fdf0400b817d45c43a3dcb764",
+      "source_blob": "40cb9d3c327ccd30deb15a21b3d3b01355b2e36b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-server-gewaehlt-light.png",
+      "sha256": "9665856b24434e83e680a44faf97f55d6223d1df83b6446f1e90baaef6de0482",
+      "source_blob": "d84c31bb50529589d78da36a7d6af4bccc95cfb0"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-unvollstaendig-contrast.png",
+      "sha256": "897966b0eae20e5e267b614c196a67af4f72e4d22859ae7ba124167c042ea074",
+      "source_blob": "931070d0cbdc53b6491b65ca44bc86f02bdc9e8f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-unvollstaendig-dark.png",
+      "sha256": "7f7975ecb9e06dfcc3a45bf56df2cb517a6cd8329d5660511978115cf4627401",
+      "source_blob": "12a2b2535b53638225acd3abea551ec3b52dda0d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/agenten-unvollstaendig-light.png",
+      "sha256": "afb8b001ec20fdeae19ef21d4b0155cd66e6a8e9bcee791c88041bfd6f6248ad",
+      "source_blob": "ed0430ba95f8b5c48a01269bb89b5842b939c66d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-abgeschlossen-contrast.png",
+      "sha256": "e8bba4d571360736aa32035f2e003830221f1f5ae1161fe2ebd3e4bcf10205e9",
+      "source_blob": "9468a92767222047e2f1d1dfee1a22886b21046e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-abgeschlossen-dark.png",
+      "sha256": "f3a99722cf3fa6a94b0055a082a1b46dafe66d42fc1a53f94321671c5088d363",
+      "source_blob": "a90cb026045224ed78afd3817612f9beb4fff815"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-abgeschlossen-light.png",
+      "sha256": "c10c9fbc731cbfb883df17088f120290fd1e53fcf253f6300f3b64a0cf339794",
+      "source_blob": "9d4c10dbfc25f20318b236be3462202122f66555"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-app-laeuft-contrast.png",
+      "sha256": "cc6498d4fd6743b21edadd59ad6d23d97672b4e0bf3c0049fc06b9e919b0e8db",
+      "source_blob": "15c882a3b9f31eafe90bd94e68b91e0485a50c36"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-app-laeuft-dark.png",
+      "sha256": "afdce98b3b980685971c9c74692ae647d0428432c20ad41c05e5703ba9d987cc",
+      "source_blob": "5d9e3ccafd0615c1018e32c2aae82b5817fd394b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-app-laeuft-light.png",
+      "sha256": "c4bed0c4f88098548c0098aee15bd3031b479460071f86b380c9cf0360fa2067",
+      "source_blob": "8b05dd2cc18439ea1a4fcbaf0e50a86187ff5e11"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-auswahl-contrast.png",
+      "sha256": "1c90858ee1e9eac7feca7444e01e7dae774cc0e5649d6d82ea3db25eaeb419b2",
+      "source_blob": "99210a0cbfb8b23210ee033557cb5390142a5d6d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-auswahl-dark.png",
+      "sha256": "6d451ba0f5cff7a5306476f31e039456d3da91322b2b81ef4728aaf56b7b8a57",
+      "source_blob": "2cafc0f7691e61f78b0df56e4f8774429f4428ff"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-auswahl-light.png",
+      "sha256": "3317225af1499344040dab936e4822a0b394a3592cf5285e127cda57b3417f9b",
+      "source_blob": "e39202cb21e284011e7ad37e9bfe19c9a28c3347"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-deinstallation-laeuft-contrast.png",
+      "sha256": "7c134715170bde2952ec755d80dc4aed48f8a49e6b4d3e8cc0385e88b293e7ba",
+      "source_blob": "a56539e2b1494e332cf8a32dd33eb4b0ffcb57bf"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-deinstallation-laeuft-dark.png",
+      "sha256": "107baa81aa66b068b7b9c759d512a8a7a3ab6f650ccc0cc716cf7ac689f67e7b",
+      "source_blob": "1ed7869ba688c3b50893d2b7fcd03874d7dcb3e8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-deinstallation-laeuft-light.png",
+      "sha256": "ca7d2936d779c046cc245eefa4328b3cffb801b5c18a0236d587aa77110b2850",
+      "source_blob": "d97b2cf3d630dc8b96760578da17c674fec8efd0"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-grantry-contrast.png",
+      "sha256": "e463fdd06027e0589f966d54e77ac1408ae2718c50200c1ef87a5d4a0e62b4d1",
+      "source_blob": "ec43a52265f90a1ca1649ac260ea0c525fec6ad3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-grantry-dark.png",
+      "sha256": "829cd45863a348058596e663f451c31b4255f9acd89b8551f1768bec5c3aba52",
+      "source_blob": "18bdaac488527349c092507ccbbf131b9196d2c9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-grantry-light.png",
+      "sha256": "c4edbfc4223b8000dc2edcb8e1c3b1ae079dec12b29451e0a92b4d412774f087",
+      "source_blob": "bef3b2a6529a64a9b78bc6acb04e63631478dfcd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-homebrew-contrast.png",
+      "sha256": "d59a89062814db1b4f839e4958cadeab496caa46cc40c56c1da228919945f184",
+      "source_blob": "eadd21aa628eb0005a99d930b6e8c9ba7e78ab1f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-homebrew-dark.png",
+      "sha256": "a6a012bdbecdba6d10da9eefc405c830c22910311c8ef5f08601fe663e38546e",
+      "source_blob": "e1b88d8acd8ec4aac453e129b28d9f58cb7dea66"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-homebrew-light.png",
+      "sha256": "6034c4d7edcd8206aecde2ccf6f59e66e4a84ca7b56efc73bf402485f8770c4b",
+      "source_blob": "1bf6ea9bc9eb28e52d97f503c4f4363afe44ca6e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-suche-contrast.png",
+      "sha256": "384173d856c1898dc060d3708ad9d702ee1823b439fe084fb13a53d8e1ef4e95",
+      "source_blob": "332628a93827c8b6b315fca35378d22323703835"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-suche-dark.png",
+      "sha256": "9fd0a17b88975a22c0a20c6173bc012ec92098a0f5c91d64c4cc28d2917f7810",
+      "source_blob": "62fe0e8b1b6b2729467b401c77592ff943efb020"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-suche-light.png",
+      "sha256": "8afef30df8d274a7a9ac65def06fdfb367517472e5e27b9345919b28f3ba1fff",
+      "source_blob": "5941be2fc8bf42a5f2f06ebb2e6c7af54ff184c7"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-teilerfolg-contrast.png",
+      "sha256": "5376a36189c81e28137fb303ba99f80cf7e9d123d35e6dd76c59cd431adce62e",
+      "source_blob": "8e79541982ba6cfaa3c9e7934eda230ba17ea4d8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-teilerfolg-dark.png",
+      "sha256": "278e5afccf9ae9d126c919455eab85a5f0a00be0edafd28b7799cb077dd394a9",
+      "source_blob": "a75b5090d66713e8ce7888297995d6baf8349a43"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/app-entfernen-teilerfolg-light.png",
+      "sha256": "a6943424cb6d75aa1d65a13bb04a02c37068af1b66d5797635f6eb3f8d0fdd63",
+      "source_blob": "770bf5ba17d167a11d66854d9068b5ee44b5d96b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-akzeptiert-contrast.png",
+      "sha256": "db7a540fc29b09dddb2f3cfd9416acb228005e640fa09ab3112ec0bbcb9fd5f1",
+      "source_blob": "a69936cf794a0d39e715c9d2faf7ec3fe2bce6a4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-akzeptiert-dark.png",
+      "sha256": "f06e9aa8d3942dca0b4fc89d57ee02d92d69568b421a7fc5aede388324ee5e4d",
+      "source_blob": "64072ec4321cb470ad80ca492a26527886ed098f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-akzeptiert-light.png",
+      "sha256": "110c2bdfd3590accb1326ea04fd2ce0a4a029c34e958189bafbd82902ddc128d",
+      "source_blob": "eaca93cfe5ac11a3101b20cc7b8b74729943d714"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-gewaehlt-contrast.png",
+      "sha256": "9d67bdb48b43200e35e4c522a7eedc9ff2075f6a9da8df47a6f6ec1f3da90ab1",
+      "source_blob": "92ca95b1580f61f8f2d4dc98b8b057a39c26e405"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-gewaehlt-dark.png",
+      "sha256": "5c41e767ad8159c47db990cd3652b49d0f09846d8de4449955903491ffcac790",
+      "source_blob": "8617b32a3430e9cc880e0edb4e6f687f137d9030"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-gewaehlt-light.png",
+      "sha256": "49510a8c60c73bc68194e97bdc4d8db65f161786b028d5aceba632e3e8a5c8d6",
+      "source_blob": "84390ce9131be82590e961c3639917677cf2cdcc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-kein-scan-contrast.png",
+      "sha256": "042ffac3ed27f8bec01f394e453ad000fe262c862c228f0b70d71e87af0758c5",
+      "source_blob": "27c2ffb30ff57ecc9c5da4dfe6cd3b1952cdeb75"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-kein-scan-dark.png",
+      "sha256": "b07c917998a7d24f6551f167559cf4fe34b12777ecb3c8082fe5053fa93d8832",
+      "source_blob": "fd6d69c3e8b2d537c7fded2b0ff7172afbe4342a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-kein-scan-light.png",
+      "sha256": "7aa90039633e0d4740f97e70381da703f809460debccef6a12f322fc5d46e4d2",
+      "source_blob": "cb7ca067f7e7988b9efb2073b65e47e727ca42bc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-nach-groesse-contrast.png",
+      "sha256": "c4c0562cc03aeeab0954fc95300d3adbeac8921dbe17642b95d104034ee954b5",
+      "source_blob": "54ca4399b978b2dd17a4463f35a2b2dcde0cea45"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-nach-groesse-dark.png",
+      "sha256": "5f0521cb22699bb625543bb4b0e92e4a6f72654f0f82d7b6eea9034d351cdddb",
+      "source_blob": "6b8aebf40d6b8de88c5409ba683abbea23f5c2d2"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-nach-groesse-light.png",
+      "sha256": "16454fd10f9316c0d76945f7a90b1fb6f1dba68988c226d3ea2f3fbc0f944d36",
+      "source_blob": "0a1a8642cff26f8da8d431199ae0b70fdbccf19f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-nichts-gewaehlt-contrast.png",
+      "sha256": "053d6d616f6c68206513b51ba0f66fd04626c0875b8b03181e137379b3e7423d",
+      "source_blob": "e52d5dc537445858949a3000193a1935a6877f46"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-nichts-gewaehlt-dark.png",
+      "sha256": "541119149c1d8d7aabc7871845a75261429a4150237213e2732ec40f4758bf3a",
+      "source_blob": "9551ebd1871c005d72713f081aaa3f9333f14d23"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-nichts-gewaehlt-light.png",
+      "sha256": "0f5680c9f80009a070ab4ab190f7edb7cbc441fc52a0addfd17ac0bd2988f9a9",
+      "source_blob": "d9893d9dec2cb3aa536641518d9b8e3ccaa6459a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-unvollstaendig-contrast.png",
+      "sha256": "684883c91f9c964ce7b96ed131d34afb6ce400bbf4ac38fe9cfc30fbb559d042",
+      "source_blob": "9d1639bcc3c5d60366263e5ad3911ee0df4b0b47"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-unvollstaendig-dark.png",
+      "sha256": "c9fcd66500d579d68d81b0f24831b3b46bd10ecf60a61d89b06f289dd1dd0cd2",
+      "source_blob": "de56ffcf38716ba4bd872a58cd219c02b1e999c9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/apps-unvollstaendig-light.png",
+      "sha256": "d61df4028b122133d75ba0aa5b8eca0f635a33e05651b6050810f9b580a4c882",
+      "source_blob": "f9df75c9e6a34400a768522cb0f2e4185480b8ae"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-ergebnis-contrast.png",
+      "sha256": "dc2115c678e4336d3fb595b6962af29511a7c6979a7535e835f4306a91268208",
+      "source_blob": "ba2f023b442fc5dc42e82636cc1d299a1a84e6e8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-ergebnis-dark.png",
+      "sha256": "86f4c2c81f752f8a6fc71160018bc861018e38115d8ec1f8b62d40a0709e5dd8",
+      "source_blob": "cc58312009b8dc34b07d034d3b456dc0f9a133f4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-ergebnis-light.png",
+      "sha256": "139d46f4367779871ffdeb3e58de4576f6334e9d9d7b2450253e1bbd881d2bd6",
+      "source_blob": "237b582e1a67c6e0dc8fce2e5ab72fde5a675a6a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-keine-reste-contrast.png",
+      "sha256": "0841ea471032da66efffdedd1737b1d5b5961a53c347173fd5870fa10aa59770",
+      "source_blob": "b1282cc5ae7be7fc11b2dace6154c0e89ed5bc77"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-keine-reste-dark.png",
+      "sha256": "f5c8c8b4e7f87965aa98879a37be079529bcb648c5c7b8b95eaa29ece74b35cc",
+      "source_blob": "801f967d45f23674ce6ac148ef1378058c45fcb5"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-keine-reste-light.png",
+      "sha256": "43ea7ddd0c7cc9387150ca85044207475bc7f27a650d32cfab31741a35f259aa",
+      "source_blob": "d88dd6e91831e5224696db82c2b056d1f557bba5"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-papierkorb-laeuft-contrast.png",
+      "sha256": "09da1b81d8e71a674506987be907956e48cef32242ee952b8ae0d142e7629e79",
+      "source_blob": "807c6bc9ec5a71c58612fbac0727d68c4e5a65e6"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-papierkorb-laeuft-dark.png",
+      "sha256": "bfc13d9f6df9b7e9610feb2f1bce700cbd00b237ab19b24a3b36e5535c8e36d4",
+      "source_blob": "02a55859552f174412176b3c9caa50a7219b1eef"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-papierkorb-laeuft-light.png",
+      "sha256": "3ecc3ebe3908e90e55a48cb9df1b145567841fe6125eb3fac7d535b2ed202bd1",
+      "source_blob": "12fd6cd517f8b3e0d1ee9e6db60933439d79eac4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-suche-laeuft-contrast.png",
+      "sha256": "f60d0c6a18d87273203cae8e15a0abb83e8ef49c54445e38f53f63cccba1c888",
+      "source_blob": "f1ef85a703dff2d47bafde2141f8100d428b6811"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-suche-laeuft-dark.png",
+      "sha256": "fa0ac2bef57a14f5d9c28f0ab231abbadc06457cbe182771f98b625e0bcd1711",
+      "source_blob": "14bac7986b463f87c1b5433c59baf9bd01c5ef75"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-suche-laeuft-light.png",
+      "sha256": "99b2ddcd2e9b663701afad824e8c7ea6340fa6fa598554832a2117367f20751d",
+      "source_blob": "574a87cea2dac355d9b63d11ee5addf0b79f6baa"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-teilerfolg-contrast.png",
+      "sha256": "ae65e4e6382dc505d8264897c3449175e507c34ab0dd749c738746c362325612",
+      "source_blob": "806c65f2c6f608f49dedc87edaa110370d60ef66"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-teilerfolg-dark.png",
+      "sha256": "01611bd49d1316fce1e31d8f8de6852ff575fd3eed5beec5ea736f0b9f809552",
+      "source_blob": "92510cb2e3e33ee4523f74d498fcd4462309fcfc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-teilerfolg-light.png",
+      "sha256": "0de11aaede2861b27b51ead32e28883a0dee6945348185b687378d23ef822566",
+      "source_blob": "57c253cf003bad5cdd5f699ae1a465353b6ea5cd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-veraltet-contrast.png",
+      "sha256": "6c5a18588156f264f60bdf3dd243ef0b7f12d2d6c0c391283acb7fabf447763e",
+      "source_blob": "a6ea62aed122ecc1e6f2b375528cd1b0514b710c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-veraltet-dark.png",
+      "sha256": "fd719085349dac95aeb4674ff32b815f1da32f220f0278634e7d4167e66f742b",
+      "source_blob": "19bc9229ff6d1c09900c90db3eaec2da999c9d77"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-veraltet-light.png",
+      "sha256": "dd06c75675ab380759655c50012fd676ad8ba9c81c4d64fba2a23a98f8b9c703",
+      "source_blob": "6d6e9efe1fec9e492ca6b9d79f455a631c38dd8c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-vor-der-suche-contrast.png",
+      "sha256": "b8f17ab217a762bb6e6b346fed3a1b3411310a924e3e7166ea400fd796c13bc2",
+      "source_blob": "66322e0b6e4d40077014c1824f65cb16c20b6e84"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-vor-der-suche-dark.png",
+      "sha256": "ba084d26c7f62166a367dc134635e3e336167fa31531bce386cd94238e4af188",
+      "source_blob": "8f5a854f43650a422f9c4f0e42553b513547c5c3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/aufraeumen-reste-vor-der-suche-light.png",
+      "sha256": "3ebc71b4db34699987c0c465f425953aa36310fd2d5f2fb605cbd3841429bb01",
+      "source_blob": "404a7ad6e885f0615100f9895cbe7bdf7d01e4a6"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-gewaehlt-contrast.png",
+      "sha256": "75c819124d836d0e525491620bcab10a700ee56f45895bb9a6513096bc76d7bf",
+      "source_blob": "e6dc4f2279d1e50058fbc14596adfc2b72d2e2db"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-gewaehlt-dark.png",
+      "sha256": "6500fa1430959df639b052999894685dcc8691cf6892e28ce280961bffccbccd",
+      "source_blob": "bf8efb2fd7618cea4b17e30ff1547beb391bd56f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-gewaehlt-light.png",
+      "sha256": "163fca6ddd8e10a92a27402d2760664e1fa3ca184e52cb15b326d261708f0b92",
+      "source_blob": "4687a4fa00b201201974ae79884eccd404c9d7ff"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-kein-scan-contrast.png",
+      "sha256": "6f88210bed36f848b6892e65ba2a7b782f854b5737deb2906f53f298b6856fe4",
+      "source_blob": "a1d6077279bcae4692e0d78590097422d60a55ff"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-kein-scan-dark.png",
+      "sha256": "66e6c60a4902f68dde9c0951bfff1d2b1f954f3e9f5db8c2882d2472bbc94c9f",
+      "source_blob": "d523ab5d8b3798cc680a0f2d7ae7824b7f9be966"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-kein-scan-light.png",
+      "sha256": "c934cca201add4ec92f71d11e90968e2b0fdea1256f51fea04f0d4c3d39e105b",
+      "source_blob": "d03c528c6b7a93b226ef109ed6384f16cf343f3f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-keine-treffer-contrast.png",
+      "sha256": "a42450ad1bda4f830362f299742c9fe16934e80a28e87ab31116af9cc4b2d43f",
+      "source_blob": "c4f6ceb3cc6ff5cee53ce3e49eacb9ba62f98f0c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-keine-treffer-dark.png",
+      "sha256": "7404a84627c14121de38d744047db648d8e5f4101f905e657b25e49721beb097",
+      "source_blob": "1fcfa3cbbd7dc7f0f4a9980acf2a00ed0ab11514"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-keine-treffer-light.png",
+      "sha256": "eae3dc36e4424726d7680cc495b2cab6d5638477a89b29f190dc726d9a9d55c5",
+      "source_blob": "e1ba03ebcae4dfec5b75efc5b2e12878cf9c2dd3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-nichts-gewaehlt-contrast.png",
+      "sha256": "2dfcc8f517eed9cbce8b7f457e4ec9c8a253ea2ba2088dc9539cddfe52d9d71b",
+      "source_blob": "c47366015f73cdead7d5c1e56ef8058d21eff22b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-nichts-gewaehlt-dark.png",
+      "sha256": "e31cfc5db856a9cf742b605bc36166125153266f107dd20b391c008e30e25044",
+      "source_blob": "b4610c21380c79f304cd403ff09db55775d773f3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-nichts-gewaehlt-light.png",
+      "sha256": "481d3e28ac9778d78ee8f77a82f6041c40acb01733e0a1ed0a5190430367a9fc",
+      "source_blob": "07a443504d9a897a7a95921503e29c3b27658ad2"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-schreibgeschuetzt-contrast.png",
+      "sha256": "8ffb595a586ce87d3da57a90446b5468abaee24ad0281c890643287746639a6b",
+      "source_blob": "2d507370131c827d74d88253857b068e2830decf"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-schreibgeschuetzt-dark.png",
+      "sha256": "504a7d83ed744b2ec441d670f5f475ecdfd2838fd7197ac14e1ba4f64dbe1fe6",
+      "source_blob": "c31ce16f43739173d2a463193c4ecce4e7f91ccd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-schreibgeschuetzt-light.png",
+      "sha256": "ec07a4bf15042763b99c93c65617be7de245ee665c50bf20ceab1e6ce060ee7c",
+      "source_blob": "44c5fa5b4d134ae851df54161e82be67589ca81d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-unvollstaendig-contrast.png",
+      "sha256": "515bbbd5489576bdcd5ceb38fa931c493ff9b345104f1f077ebe280922447d42",
+      "source_blob": "60daa0646e1da45adf1f7174110be5d51f556b4e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-unvollstaendig-dark.png",
+      "sha256": "0a0523e28b9f6986f3edc5ea8eca1f751c96923dc2bdba6406f40532f0c5e523",
+      "source_blob": "573d6fe66a0f79edb6da34353c25d058b848b769"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/autostart-unvollstaendig-light.png",
+      "sha256": "3a9f1b8bf07b8853cf0cfa795e2c0b50fa00ba97ed19fd78a483b477b58336b9",
+      "source_blob": "c7cb98648ef7ab03a5e0ec42a067373842e007fb"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-beendet-contrast.png",
+      "sha256": "7814cb8af75a7d0bbab5c89f732e5bd8c3a775c1591e7a0739c35b2dc13e9ed0",
+      "source_blob": "fa86982e1b5da36d209c4644c3220e1c7ba3e7db"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-beendet-dark.png",
+      "sha256": "c6b047d9775ccd62368d8fad6a78cdd025778ffd5260e0c73e6a493ab628e70a",
+      "source_blob": "b8e3e2a1d60c35d2877a09162bdfcc3d53c22918"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-beendet-light.png",
+      "sha256": "97279ac7caadc3b431ff89493de27154a12de8ff5f3c826bb01fef0028583f9c",
+      "source_blob": "c4db9b8733a0038438252830f6f20f08e3a8f231"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-blatt-erfasst-contrast.png",
+      "sha256": "be46d8ea666e30877116a18356738ce41fb23a7069d675c11f7e46e1e0cf73b9",
+      "source_blob": "07185225e955ae430a74318fe4eaeaae723d42fa"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-blatt-erfasst-dark.png",
+      "sha256": "5226cdb39fb753805fe96a3ae95ec5f507e8ab5dfc5e669e6d9996662d1e288f",
+      "source_blob": "7bf08a952718585713ae71ca7d502ec9423fe786"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-blatt-erfasst-light.png",
+      "sha256": "3ee73f822f9d9285349ead76f4cf2fa676e2eb638c8db5742d458b01075671b7",
+      "source_blob": "e6e58d1ab62bc318361e53879a720a20804012d4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-keine-aenderungen-contrast.png",
+      "sha256": "37de148505227f5a1d22fdb3d48eb084f7a8517131e4db54b42ecf79b25313a1",
+      "source_blob": "d39fc444846cd9ac18f6c06ccb4f517f9c583cbf"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-keine-aenderungen-dark.png",
+      "sha256": "c8c2a88d90a6a69705f359e4964c220da3d06491a81ec87099e57aa3099e4501",
+      "source_blob": "30785f255e9c8b10b3fa45abe8e323f072639c6a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-keine-aenderungen-light.png",
+      "sha256": "42620f61944e1e811501fd7d2adeb568c4c23a4fadf8205b002b5c3d75ec0a4f",
+      "source_blob": "1ca09444565b8b8a8b6bde55075fdbd6490a5c0f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-keine-contrast.png",
+      "sha256": "d97a742bc74098d875138c216d74e13d99629276f517a06af6e6668bf7d6cd31",
+      "source_blob": "9f797ca681286254d2c12b163a08e62116738513"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-keine-dark.png",
+      "sha256": "cf7e1c6405890db38152576ca000c67f8dc885526e79d0ca0225013feaf5f784",
+      "source_blob": "52162306fa45672cb4b05804954509f956f0938f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-keine-light.png",
+      "sha256": "a06e047b49eb40a126f1834e7e22c52db6a699bb404de88816753d61aa84d45e",
+      "source_blob": "38521ecc51d4522396efb3d41f43c5fb19c4c3c0"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-laeuft-contrast.png",
+      "sha256": "5e0359632b7668f507d0813ad8856d3bad13b538b223cafae7e56156ffa01a4f",
+      "source_blob": "fe8f90df6170cd684a2cd91f18103f1ad859c60e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-laeuft-dark.png",
+      "sha256": "2762b9ab10d67cf62ca55499dd688ed50ab8fd7beddb648245161f03bab469e1",
+      "source_blob": "6cbbc476622c7462632783b025fec59585114b7e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/beobachtungen-laeuft-light.png",
+      "sha256": "b49997c5d8820d87851755ae2599cf98c27ebb3a8fdd8d223df38741729ee033",
+      "source_blob": "edbadb50a3232947eb056dee4d87c3057145684b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-kein-scan-contrast.png",
+      "sha256": "809966c0da6b141db043179d779e4f401193a0c2da0b882542d760e128fb6a3e",
+      "source_blob": "ad35215f8e2d44fa6cbee5596f9bcf4c460477ae"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-kein-scan-dark.png",
+      "sha256": "62ccba90f4e53c257f0a22a937c909b9fd151f407d6a66599ebd1aec2efb4f92",
+      "source_blob": "11ba404b76a58bd4d587ccf4c7b53545dd0622b9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-kein-scan-light.png",
+      "sha256": "c31ce9de967f0581669bf01ed64ba9f67b605df945f09358f0c7a68580a9189d",
+      "source_blob": "0d5b40aebedb6d85ee95b81e2924088206f7785c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nach-app-contrast.png",
+      "sha256": "e230d6daecb3bd4bfd1678aaa109be3854ae70dbcd345b146cd929454b83a360",
+      "source_blob": "cd0b0e427d41d340c7f141f6b15ab1522de64c4c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nach-app-dark.png",
+      "sha256": "c8b93822a47fee7e0a06bce4572a33387cbc3720cdc4899def53f52404b8a9f0",
+      "source_blob": "b39750f64db5145bdc2873e3e991b0f16701976f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nach-app-light.png",
+      "sha256": "6693df4685d09b4186b631840054fe3a796d74719236e16909adbfe8e704fa7f",
+      "source_blob": "e1e68cf1b429cce724f20407c5add6b34aeb101d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nach-berechtigung-contrast.png",
+      "sha256": "eaab00fd0b319c4bc0470b7eb72913cd769f1347eececf374dc363e5581fa2f7",
+      "source_blob": "c31037a9c7704bf827eed5750ecbaf45ce0d7d49"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nach-berechtigung-dark.png",
+      "sha256": "fc9307aa3d446ab93d547e068488369cf6499d5430a3961b43772dbbec48f739",
+      "source_blob": "bcf53847453eca0dc19730a03ab2ac1a8308a128"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nach-berechtigung-light.png",
+      "sha256": "7459a5cd551f9d077df5a97b05720f162a3e72694caf35eb05567be7d2ee20cf",
+      "source_blob": "1765a40e52ca7f4b93adb75acb173db68717f65d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nichts-gewaehlt-contrast.png",
+      "sha256": "4a10320f284b8ea2f564e4f273e48d3ecd49867b4abc95d63af6b8104106d7e6",
+      "source_blob": "852121e26bdc55346c43bc40de7c75feb255eccd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nichts-gewaehlt-dark.png",
+      "sha256": "740eaad6a45b1dfbc3d884f38e08180b7deb79b0d22491f9d1834f7208806c26",
+      "source_blob": "e8f87dd570d10227b0dfcbc3e6804cd3141c87fa"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-nichts-gewaehlt-light.png",
+      "sha256": "c7911e74ab4ee8e25f9654e13cadfb25c38c8a5e3dcacd23d2119f95ee259ff8",
+      "source_blob": "15d7b0a42c6ebac42de0a77454a7252393af92dd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-unvollstaendig-contrast.png",
+      "sha256": "0819df69487cb91a98f982498ba22846ab5277a7305703f63d23c10f209ae539",
+      "source_blob": "483df1e39a0418bcdb0616f59f91b83c9db8f06f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-unvollstaendig-dark.png",
+      "sha256": "6e67a78e7473777bfccb68d554f3feaa9e6c2aaa54c1451f4ead97f6c961dcb9",
+      "source_blob": "50aec8bf5ab20a17b9241722a4a321ce2cb5a17d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/berechtigungen-unvollstaendig-light.png",
+      "sha256": "e02ddfec09d9ba85c6bb622a93aebbd516cf3b5a0a93b9fdd647c43e282ec2dd",
+      "source_blob": "2dd3c9b29bb917a7716a69787b16f2e002313211"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/chip-contrast.png",
@@ -4385,6 +5490,66 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/core-grid-light.png",
       "sha256": "b40ad3d9a1b9388fcfecea1b84930cd44f67adce051d770bd91fdce051b3c591",
       "source_blob": "66184e2f1cfb333c71c4192b389833de135b8711"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-eingerichtet-contrast.png",
+      "sha256": "25c878a3e7b11b64d494ca4849d6a6a408047f352dc27b71eca1c7a8b0bc08d0",
+      "source_blob": "f9cabaecc51761d341117bcee39fab1a6cfa6be4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-eingerichtet-dark.png",
+      "sha256": "ecc7052cc60648829b57975c2e951cbb5fec24bf577d57b38b95446ae0a15cbc",
+      "source_blob": "e748e902722399b0e74a3e46c9bf86026dcc9183"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-eingerichtet-light.png",
+      "sha256": "eb2e31706ad47ce6dcbd7441ad7c83d5bdd7e6eaae63f3f37c4ae554272ba601",
+      "source_blob": "b9166a01f9218b79aad9ace7cc06856770ec9e99"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-fehler-contrast.png",
+      "sha256": "d69890dbb9310e10b510c7e89c52c60e41f8ca83b31ce99fd599a6851db24dfe",
+      "source_blob": "a2544138cce3b1043b4b3ddfee9e1b445299af0a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-fehler-dark.png",
+      "sha256": "14d34e68f06f2509afcdc4c38e11c3adb10697c4ab632719f34501e4321a8580",
+      "source_blob": "d50cbd52a06c8e14576fa65fb2779bc31c48b614"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-fehler-light.png",
+      "sha256": "e676912131285fd05f3e3efbed1c5feb2641d4fbde605654435579b76cc6a045",
+      "source_blob": "286b45cdecb0d3e9563d6213f59846974c186d4d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-offen-contrast.png",
+      "sha256": "53eb5a9cf67072be2c852c992846f7aa7ff97858a02efd741e6308a5dc1f569d",
+      "source_blob": "8cd95f2d703e729c6cdab00e99de05b529b7ac8c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-offen-dark.png",
+      "sha256": "c80451fa7ee1a98e12cd6faf4757efdadf6195cf9ec723c8546a5a6af00b1784",
+      "source_blob": "664a5a4425cffcb3e70d3cb237a77c5cc228c0f9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-offen-light.png",
+      "sha256": "40da34bdb75ba3a57db060ae2c3256f347c6a68d71603863573a86f8d38a6faa",
+      "source_blob": "f5b4b59c5581bde682ed26857471210419b2cbfa"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-pruefung-contrast.png",
+      "sha256": "c0a8712cb5024378f635e926258217103023d512d128f9c5a5e700fc980c8394",
+      "source_blob": "34f5e7aa864a4e2a3c4c1d445d307d0320164fa6"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-pruefung-dark.png",
+      "sha256": "cf125624394c1cf12c5631eb6a76f08fa1a1bd9eb23fe393ec5c26c3d521ca2e",
+      "source_blob": "9062c6840e7273f2e19eb4551449dbf5bcdb5087"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/einstellungen-pruefung-light.png",
+      "sha256": "ed31da7f34e7bb3e8275c42a83f5ca30aec2b7c604b2457dc0afdc7daab4e525",
+      "source_blob": "48d2333331ea0c36d74804aff4f982be0b3b8edb"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/energy-akkubetrieb-contrast.png",
@@ -4552,6 +5717,66 @@
       "source_blob": "7bb8e6a70973f6499d6a22ca99c5e6e0d3635052"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-auswahl-contrast.png",
+      "sha256": "552e1388e171ef5dad6a5420395a06a6d67d30148f0ad456e362ca8f85e6cba9",
+      "source_blob": "e5a0b25a9eb2362ba37ce95b25b8b2729920ec3a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-auswahl-dark.png",
+      "sha256": "883458105482200b86ba1a83076932634ce0ed8d86f4edd19bbd6ceac2877e66",
+      "source_blob": "c2c2832d2e2cd6c8817379175ef0386b826e2ddd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-auswahl-light.png",
+      "sha256": "3f254981cac9678e1d377e65fd7365187fbbd0ee1e0469547a43a912cfeb308d",
+      "source_blob": "25bdc27085eb2376414116c16f1c59a8ebe91b83"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-hinweise-contrast.png",
+      "sha256": "51041ad9962f3099600b26cfe4de50858fa54b486dcd202903ea8072c69661a8",
+      "source_blob": "e6bdbeb36b4cb5ca363b012a698530dc29d6fc57"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-hinweise-dark.png",
+      "sha256": "482e9c97eb7a9a09072576dc199dcb6c77981353cddb9dac04e1a1ac49dc8595",
+      "source_blob": "1113bd9bd3acf129c9f451178c669656f314c5d0"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-hinweise-light.png",
+      "sha256": "7c42518a7227ad5bfe8ef9309c5edf0df73ab604c148f925ab6c683c40ceb070",
+      "source_blob": "9670b4af9d6d4019d8c6668fb67916bd73480704"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-liste-detail-contrast.png",
+      "sha256": "9bf387942dc91388229ea6dd5a841da6b36aaa9a9fb0be237c4c4469c9095e5d",
+      "source_blob": "bcb8994215f5c7e9f903a4a484f55a9fb351541e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-liste-detail-dark.png",
+      "sha256": "8ca0f8cd0fa3526a5702c8a74932605f0b2f69f0b37be4f93a15f15bf976149b",
+      "source_blob": "b68054af8d8daed99a6a2b26ac3f71fa8eae49eb"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-liste-detail-light.png",
+      "sha256": "894a004de5e2a9c57b9f270322b4201a8fc90eabe998e4c0d0368f35547f79a2",
+      "source_blob": "f1e891755d19027a68393ff6b6f312b2e331890e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-nichts-gewaehlt-contrast.png",
+      "sha256": "6b976022a82ebcb098fc8612dea2e8f1aa64346a5cc7f4efb39e0580d502ff1d",
+      "source_blob": "7eb92d80629d4ac313f286d2237b15c58472b8f4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-nichts-gewaehlt-dark.png",
+      "sha256": "1678988b5fd4aa5da3d5398cce1a9142ce68961552bcc91c5318c39f86569eea",
+      "source_blob": "9f0687373849f15587903169d7c32727ff1f04aa"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/lagebild-nichts-gewaehlt-light.png",
+      "sha256": "b667937d1c950d54f6e78ab55553637ff33a9fe123caf83c228943cc405e7f1a",
+      "source_blob": "0b1e665db5b84e3104d84bc4bcbd1e54f9012658"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/live-graph-contrast.png",
       "sha256": "dcbefac80a309fab936da99b2e005e54228bb1397950063e65af8ba2d508e1f7",
       "source_blob": "9de6acfb58c4f9acbfee945137159eb5f36f704e"
@@ -4612,6 +5837,81 @@
       "source_blob": "7ada958768d56e372c22bf73e873fa6b16ea04d8"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-fehler-contrast.png",
+      "sha256": "e15e3d7eeff04422942c94ecc458a2dfa1447d85654fdea81112be6b31590057",
+      "source_blob": "4dc4bf32a9414355df704d7ec796742e72ed1f79"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-fehler-dark.png",
+      "sha256": "8e5baf6fbd8afdbf8cc772b195f61829588819ad8a266583d24234eb85781966",
+      "source_blob": "84ce657de2a255c046b43e873c58ad561897b518"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-fehler-light.png",
+      "sha256": "5ea6e732ed5221beb370c5184fe147f02ad07ff798a159ccc4056d2f57bf1564",
+      "source_blob": "f95e9df5431e7692082146da2f9243c158f4f728"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-hinweise-contrast.png",
+      "sha256": "fc580352df6f94f76c5cc00696b336a8563d41c31ac2f2eec438b7a585c842bf",
+      "source_blob": "5c6c328ee87a1c5e23d4930602cb3b64b05a7cc9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-hinweise-dark.png",
+      "sha256": "14334d299278a980deb297d96c3a76ebf51262adf470fa0d6bf2a62f18b10395",
+      "source_blob": "2e099d9540476b4f78dbdebab32120c81ecef085"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-hinweise-light.png",
+      "sha256": "8dcdecda733d92b547c1191099f66aa7a7664b4ef9af80f87054f809a37c3170",
+      "source_blob": "46d8ecb52281137c43597e18e13c9fc98099a2dc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-kein-scan-contrast.png",
+      "sha256": "31ee7d1a078e908ee5afa644620b03920d1a513bd8f9836a4be55d8e26541c6c",
+      "source_blob": "25d25a6678f94737a068ae3f393943ba4fc7f5b6"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-kein-scan-dark.png",
+      "sha256": "e1b0a919924f8c7a8ee425bb309de6be14409cec90469bcadc6b23bcf25b1758",
+      "source_blob": "4752b8fb1160e339ea6e592512f2527d31f221d4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-kein-scan-light.png",
+      "sha256": "ac9a1f777143ef5a5ca44ae5897f610e455e71037c09ca75eb8aec08e3fce729",
+      "source_blob": "e01417949ae76ad57f2cc59b3fedfe154ca64180"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-ruhig-contrast.png",
+      "sha256": "6888f1af3631f5f8d796b67da89bab0276b03be9ecda92adf98a04c2e0228307",
+      "source_blob": "adee970e39fe603ce12821afc0353a6738dd377c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-ruhig-dark.png",
+      "sha256": "97a6c832d56c3b6455ebaf091021dfc095d797c119ddc1b02545acf48a80371e",
+      "source_blob": "4b4fde724d28fa42d6f757c4341c5d1ef2597d36"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-ruhig-light.png",
+      "sha256": "ddf8786e15406b70c3a27a0ebc6e6a67e0953073babb02eb881b62bd35398d0e",
+      "source_blob": "358dc74c2e409b951fc943b036533f16053182aa"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-scan-contrast.png",
+      "sha256": "e7c6880e32ccdf1f080b190610e1250decd2a5901648861ed18f4c18b1ece9b4",
+      "source_blob": "047980fd1cab0bc6fcfa7c90587fab5ea6331516"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-scan-dark.png",
+      "sha256": "cd7b26dbf950f103e1ac9fc423ddf998810945c11fc557af58054d176cf8bbbb",
+      "source_blob": "23c27e61c78725fdc464d29e224cdacbf757af57"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/menueleiste-menue-scan-light.png",
+      "sha256": "b98369e3ea4ef6fc714fcfea2ac94d8d9f570bfa55139bfbcfd76e3eccfaadab",
+      "source_blob": "98fd3cbd3a94785e3fdad017b780e2983b2bb0d7"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/metric-cards-contrast.png",
       "sha256": "fa02e4d03a08183dce5c72fed8a44c64483b5590d4f929f1c469d14be3a020a7",
       "source_blob": "fd17df09d54d3bd5978707acf8253a707a650a12"
@@ -4640,6 +5940,21 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/mirror-graph-light.png",
       "sha256": "4efc452c906389d4df4209af089bb219c5a12638ae04c0c2b17dec171170b13a",
       "source_blob": "377c6ef6a20541569570f12d46b412cc631cbde5"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/neuigkeiten-contrast.png",
+      "sha256": "ff94a779f86bbdb02ca9777a74f9cb90b0d6839fcf3323b457eddffa7ed16b71",
+      "source_blob": "240d934bbcb5b17bb898d23736bde6d6e8c01f84"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/neuigkeiten-dark.png",
+      "sha256": "14cc0ac7365d6f775986631cd9e48d899d208295b69f6ca8ea0eeb3717a58b52",
+      "source_blob": "d6aa606567734d3b338e2bbbe451f0e91e2e71ad"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/neuigkeiten-light.png",
+      "sha256": "6e59f981fc939442679f73313f860a60885ab3c4a4adced768e2306ed1432c43",
+      "source_blob": "8909bf011eb6cddbc934feb04951dea1cc9af035"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/occupancy-fertig-contrast.png",
@@ -4732,6 +6047,66 @@
       "source_blob": "ce0ead0ae1d77593da8d540e85909d8a3ac2001b"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-erster-start-contrast.png",
+      "sha256": "ddc84de927d729a617f65dd42d3562ec233ef22efebd0334263fffc94497c299",
+      "source_blob": "989f0ad54836495df948224b421ca98e99916355"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-erster-start-dark.png",
+      "sha256": "8c72ba36bd1a3ccc53c17765a71d0dad2679e69b94c141bef34ea01149fd6a66",
+      "source_blob": "0ca987000581c5df0b0628bbd83f29106eadc193"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-erster-start-light.png",
+      "sha256": "7843d3a7f64a8b17553636763ec1ed0da49367262074108b20a251d1edd7bf94",
+      "source_blob": "08925f41b643d7b3e058573d28a25146f3c4a107"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-fehler-contrast.png",
+      "sha256": "5dc4b0d3f5d0fae58b661600094636ef9175ef37e174d18c7b60f5cd87cb602e",
+      "source_blob": "279831889371af8d1d917135dc357863c43590ee"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-fehler-dark.png",
+      "sha256": "e0d4263d4fac8644d377f7ca631e176127191169cf3921561dc7435565068425",
+      "source_blob": "af2db8ee2f9de9b9a3334b53e8b22cbb9a63eda8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-fehler-light.png",
+      "sha256": "c747633fe11dd5c3b7c10c6f3faf7ad9eb3fc9e3dbab7d2843dd30fb5ea19754",
+      "source_blob": "1b9d87bfe7fc27bc68dbbc94882df401023ad6f5"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-fertig-contrast.png",
+      "sha256": "73994486220692f93cae88dd67ac7ba75a9dc8d1a6f4ce12d01fafe8f657ef4b",
+      "source_blob": "9254beb7f051b4358f402f6be970fbffb7980334"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-fertig-dark.png",
+      "sha256": "87c927d2276f0c6171d877dc290f6c422ba5a8eee6d7f18bd2faa2e70b200d00",
+      "source_blob": "2da091ae1d54a70c699f01c7e888e80cde23edd7"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-fertig-light.png",
+      "sha256": "d80e7099f971fc1741691a6e40688d857880262d5a90047d392240b368fdc8ca",
+      "source_blob": "e2f2332a72c540616a5d552a0fc4fde6627816dc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-scan-contrast.png",
+      "sha256": "6b1cf68538744654fea25219ff3f037df34ffcb32cba87a6876685b0db84fd54",
+      "source_blob": "f3d5bc9ab0e143592fa844e00d97695b1d2effdd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-scan-dark.png",
+      "sha256": "5c0eda858d4c2fb67cd9a89c0965748331ec94606ac36e01968d562c1b4876ff",
+      "source_blob": "373e1a3955db176436cf0990cd84e981f1068c9c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/onboarding-scan-light.png",
+      "sha256": "1604cbe172a3ba1305830d7206082c86d65608290a0ec2cd1984bc186f0e5027",
+      "source_blob": "3a1f3f00b7d932657d97471e4f360b6f44185e43"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/power-history-1h-contrast.png",
       "sha256": "d26299cae23df8fe104c68223c5c4a136697f5b226db157e8644da05c62cfcd4",
       "source_blob": "0ca8eb5e5c8c1ea0cde5f9928b1521c8adf6eaa3"
@@ -4790,6 +6165,111 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/power-history-wachbuch-aus-light.png",
       "sha256": "f5de311bae14435613d7cc5e4faea6769107606252f2fd55c570e9e62eee1462",
       "source_blob": "d472284a516b57cf2b38af35cd9260b20ce18596"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-beenden-laeuft-contrast.png",
+      "sha256": "c58712244d375e554f99bb0f4736b6b543cea1ccde3864ee3606ed9e2d1cdadd",
+      "source_blob": "e2bf00a3d045f9d12b180dcec0afa41f05e100c8"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-beenden-laeuft-dark.png",
+      "sha256": "f760bbd541cb8a57c22e4765b10fd48fb5b7b4f3bc6df800bb636b4cfc9ea29d",
+      "source_blob": "21b0bd6e16b3bef3f96ed49267a34153d0fd1342"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-beenden-laeuft-light.png",
+      "sha256": "d34b0cd9bc3a23f4b2cf627056d95ef474581c1b56884a0aa9e5c7f05912bc38",
+      "source_blob": "2c19f69e5e685f6bfd5d9f595d2587e715826899"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-ergebnis-contrast.png",
+      "sha256": "c4e1e6ac6c36236601449bb95742e59342e05f6fbfdacc78ed88fa41b828e9e6",
+      "source_blob": "967ce35b0c4a5eec6427d35c4e85fe228d3e6746"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-ergebnis-dark.png",
+      "sha256": "e3df5c81bc5db56e8e9fc73c3fd8d31993d59d3c54efaaad307afb0fd558480d",
+      "source_blob": "32cdfadcdb277239c06bbaf0ef2e9418ca0b033f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-ergebnis-light.png",
+      "sha256": "9e5a91cf629f1223f840a2d4e80dd350670406e2faf0ffaaded15e606945ee9e",
+      "source_blob": "5bf21fead8eaa7dba211295cbabd0173e6009cef"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-fehler-contrast.png",
+      "sha256": "92d722e418e1561354eafdfbbedc73cc51e7d32f0112c7ececa0d4c385b31c6d",
+      "source_blob": "1aedef1c094a1577d96db6c1a194d3dbcae4fdcc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-fehler-dark.png",
+      "sha256": "679542a3a993b97fde566c94fc2eeb1de6a75390839522e65a0709d9fd3332c0",
+      "source_blob": "3ee25dcbd57a5f645c29fa02bfba1936727e0c11"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-fehler-light.png",
+      "sha256": "9bbdadb7bae0d4d8f3500a9eeff25e71f7a04ecf980390ddfe27af4f5a5e1d13",
+      "source_blob": "24e700e1bf905a64a33a6ee3b2207ef951f1269d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-nichts-gefunden-contrast.png",
+      "sha256": "34aa304f1f708a512bcab38894621b842c2591fcf037d681a347e80601102fca",
+      "source_blob": "7c41f0f93d24d4885618a1921c1411e3af2667fd"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-nichts-gefunden-dark.png",
+      "sha256": "86f2581eae14bdd43a85cd8bec3cf323446e72c5a18f73eb7a75ec0bd9834975",
+      "source_blob": "45d80bb39dacb3a167b5f1d6723148a25335e40e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-nichts-gefunden-light.png",
+      "sha256": "df40516e5197fe4a7ac4f71a2bc4f52cbedb0e1834cd5474b51d630c367532d9",
+      "source_blob": "b4e74d2cd7ff76ce834007a17f586f82416b8dbe"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-scan-laeuft-contrast.png",
+      "sha256": "da5a858c83d0cddb14e6ff82b33a221a66be26ae6d338da5c1d41332f0eccc50",
+      "source_blob": "d38a288598962336851c7137f29b4b3e17b825e4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-scan-laeuft-dark.png",
+      "sha256": "b54507f3d3cf95f5963466b2f9c055c3ae05d36ddc3bc04170fb317316b95653",
+      "source_blob": "be9713ecbcda5d0823aed8c84d3442c793d03bc9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-scan-laeuft-light.png",
+      "sha256": "4f11ec485feffa760bfe2d330fe5382328603a46c7d649f9dd06c59ef933cbd1",
+      "source_blob": "5b03834dd59a115a2efcebf62e7564a0a0fe4389"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-teilerfolg-contrast.png",
+      "sha256": "149af08fcedef665b0aa8d17b82fefe676a8d426fe270a4bb68e0301a00bc452",
+      "source_blob": "db6acecaed1fad0beccab59a420a6efa95fb0cf9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-teilerfolg-dark.png",
+      "sha256": "8e6338df55e189dce32bea68eaa91e8e70f13574d9ee80e9f4145d5cde990883",
+      "source_blob": "3b81580df0d12a5c00597d41959913f29b9fb485"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-teilerfolg-light.png",
+      "sha256": "942582e9ac80bd7ae0603d4d01721831b0cee7c8c9857c9f8e236a6fb94635cc",
+      "source_blob": "cca483840a2070563e74735edda1422af18d94d0"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-vor-dem-scan-contrast.png",
+      "sha256": "4b99991fcbfd477449195c1fdb42675cde67a9a8399a2d954373fed6a824e8b5",
+      "source_blob": "e1365adacf8df2a460b644f4bb3604ead7c39cb5"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-vor-dem-scan-dark.png",
+      "sha256": "d2f06c407f242b47a9a02fb185eea1ea614a96585f1799011bc77fa909813a11",
+      "source_blob": "13d76c8972fc2eb91a736d0d8bfed90c9a7ab323"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/processes-vor-dem-scan-light.png",
+      "sha256": "5e7d94c7af86563fa71303ef1e8e13220279580fec9bbba92e0c3d9310741615",
+      "source_blob": "53a5dc325836b461d16706a59fd0dae4eb05fed1"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/security-ein-punkt-offen-contrast.png",
@@ -4867,6 +6347,81 @@
       "source_blob": "62e1c3845fa9fd068f6ea6f75c723267d7536887"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-aufraeumen-laeuft-contrast.png",
+      "sha256": "6839bab3af15d65ca258c459642f0803f3d05e5186ec9cd4bb08ab873937526a",
+      "source_blob": "6a4d77c34b455feba68630ec22e9f97447bac2d3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-aufraeumen-laeuft-dark.png",
+      "sha256": "048cf9c3cfdbf2843aaaf6767359c0f222291b3c8465edc596c3ee58c9a477f9",
+      "source_blob": "9ded699435448e0282c45ead09b1831847a8a028"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-aufraeumen-laeuft-light.png",
+      "sha256": "f7f4202e16e362bb913c86d3eafb64a44066dd095278948286f2497c70ef7272",
+      "source_blob": "38f3a6178c3d5d064323be2a022f294d503a5b56"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-ergebnis-contrast.png",
+      "sha256": "89dcec97f8741a8891ec353119e51bae84d1e684d689f8506725bf29e3a0351e",
+      "source_blob": "6778f9871afd678b1142fcf65220e5b15ffcd73f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-ergebnis-dark.png",
+      "sha256": "70a84b2ee7fbd666f6db35176ddb0fc1f9f4b4959145012db5a302b8dadcf0a3",
+      "source_blob": "186eb019934d53eb022af53f7dcc4929463acddf"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-ergebnis-light.png",
+      "sha256": "fabfc75a5bb9f00f768daec1f67d1f9819f2e6d9e7a35e98c59bdae0c5f3c747",
+      "source_blob": "16d02c5e31c874a500cdb3cd8c927add4df6f603"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-kein-scan-contrast.png",
+      "sha256": "c884c9183a98d4d41f0e0af58a3fd82cc8ff96e87be17af9182e17c20d1729a9",
+      "source_blob": "f43599a4942ae94b98b88c81b01a5b6ae268619e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-kein-scan-dark.png",
+      "sha256": "d1574dd25f858db20313182f031f6936c7fa146a62b2a0bb0318eede87443599",
+      "source_blob": "9804c05c39ccf2e232cd76916f03c62907617093"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-kein-scan-light.png",
+      "sha256": "f4af3d104643f5101bf0a01a655a27762ff9e495d93a29b641376ebb54b95d1f",
+      "source_blob": "4e706f45d0f429adb0d6f26d17199166c37b35b7"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-scan-laeuft-contrast.png",
+      "sha256": "1db0b15afd869976d155606f061e1879ef7ae3d94c0bdff1e19379b9cb0e9c5a",
+      "source_blob": "987bbab8b788651bfac9e2d7e303e668fb4d44a3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-scan-laeuft-dark.png",
+      "sha256": "e4520034bc31cf40ea55bdd4f07584de4e478543562c53b114a171eed7356651",
+      "source_blob": "2ef9ef42414c0bd88db82b52f3e5928468030f60"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-scan-laeuft-light.png",
+      "sha256": "6c4ab7dd848d91a46d67717cc79a7730b89b1a8f4bb78102a6f792efdbce469d",
+      "source_blob": "fc99f7056921b794abc83ee02e5d8aa5254f6e91"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-teilerfolg-contrast.png",
+      "sha256": "b1b620a8c4d8f914e52acf89b28c17bebec492c22cd162e85e521e22d9edc895",
+      "source_blob": "9a896cd5fa0bdd45b6a88dc6d324d76f5e5ba553"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-teilerfolg-dark.png",
+      "sha256": "75a6bb0100e786a4d6a77ceaa06390948ac799a91bc3389dd4e097140726c5f3",
+      "source_blob": "c0d9c8d33f8e898064a1308f03d8fc79801154c5"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/speicher-teilerfolg-light.png",
+      "sha256": "b0c35ef89273d71da89919e5d4f3031151368673bdbf28c8cfa83fbecd8ae609",
+      "source_blob": "9c5b38d8a634b2b11a5ff8a647ce67dc58396c89"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/tiles-contrast.png",
       "sha256": "d9acd95cbac7e0a701940ea932a75634ee389cf7d2dcd5d40fda922a86912b70",
       "source_blob": "0ca6285508a144441d5de136ae3b512b909308db"
@@ -4880,6 +6435,21 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/tiles-light.png",
       "sha256": "7ee0858098aa56e495058d19335c6f671e2cf87dc214900be46b3dc269981251",
       "source_blob": "ca63e754cfabaa15227bf2673dc71fddfd8f3267"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-auffaellig-contrast.png",
+      "sha256": "de905a503f221aa9754f2001d57d2aff466bc4ef33be610e8ae63fba60671d1c",
+      "source_blob": "c58e8871001630aa1e0fab0ef34e3f9f9a327e2c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-auffaellig-dark.png",
+      "sha256": "a18559caa6984a99dc006c9cabe2b174f637ba168b924c308384ecee4bd1db14",
+      "source_blob": "486a2dd1d1c6fd53063e293393b5f8f11f36f230"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-auffaellig-light.png",
+      "sha256": "96a3f7e6ea67dc322894f811dcb88cf68b04d27bed61ffece1554ef6fdfe9179",
+      "source_blob": "7bd65d9e0704d4151631cb19db44097fd7db0253"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-bausteine-contrast.png",
@@ -4897,6 +6467,51 @@
       "source_blob": "9dfc9dd1f0138ea6c5f78f1136ced2f865346c99"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-kein-scan-contrast.png",
+      "sha256": "943fc62d07cf975c5482f7fe23430277dd0ed8fae5d77e24961c65d7c75fec79",
+      "source_blob": "91626a26fdb28fa6f848215b4f253d805ea7a830"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-kein-scan-dark.png",
+      "sha256": "75f84d67b3627905809b377f143a9000b3560432ec417de2492add5b9566b826",
+      "source_blob": "3baefc954387ea6d8b7270b852ffb2be441b7986"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-kein-scan-light.png",
+      "sha256": "1975c09464c02044c7dceb2cee3ac6dfa51cabb04e3c72525c0a7d79952cfbc8",
+      "source_blob": "4896bca07cd782aa0dc84b2ed6066aa839848b57"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-ruhig-contrast.png",
+      "sha256": "0fcd09ad525de4738a2b8708d8afd9dcf90abc20b157def3ca9823d776960aab",
+      "source_blob": "d83b6f9b0c5aebbcfb32f58f749dba87e62fe4ff"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-ruhig-dark.png",
+      "sha256": "6fe2a02a0e4dc0d2c6d3677d9aaa1a18d9082eb26a3061247e1d0cfc88418fe1",
+      "source_blob": "df264ebe6733b1697215600c0ea6d944e11d6d2f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-ruhig-light.png",
+      "sha256": "e7cc3531288a2267545d57ec19d758ac633eaf8e132fef6afe472aaf01e7b72a",
+      "source_blob": "46f4c81b92d477dcdd8ebd6e14d8a9b7d9007c70"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-unvollstaendig-contrast.png",
+      "sha256": "6bd93265fd2ac45877c134d41c57f74d186cf9b875a4b994788d6ba2ba2c0421",
+      "source_blob": "3f9a69ea663ae2eb9ca9813f6d6b14593122632f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-unvollstaendig-dark.png",
+      "sha256": "76b4e2bff144b8b19bef10b5c94e65d6b3da303d4a1799b031a776bb5fdef558",
+      "source_blob": "1151afda9abcd259ed8e403395b5a24dc4ecc84a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/uebersicht-unvollstaendig-light.png",
+      "sha256": "de4c46d2e644a892cd96399008b63f02e581de834407485a25c28b46e5adf393",
+      "source_blob": "447f66e716762ddd554ebec72fcfdb0707419ff5"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verdict-storage-contrast.png",
       "sha256": "bdd57a83c9c85e7bae96a5ef64c7ad9f06b1d8184cb9a05d5d92b6f9ff03d251",
       "source_blob": "8bfe015a7ca80ca0fec15037ee7179e12491dd6e"
@@ -4910,6 +6525,81 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verdict-storage-light.png",
       "sha256": "47c8f49c46baed2e239a094e5de4b35881e73169cb299246f70f6fa2a67332c7",
       "source_blob": "7506a120743a61dfe370fc4c1a8fa64f056e4700"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-gefiltert-contrast.png",
+      "sha256": "9b100316ab230878165a556833ffef30576bb91fd1866b0acf7400a0b7207bf1",
+      "source_blob": "190fbc0402d38e4d46ec071354ea5a9152a7c842"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-gefiltert-dark.png",
+      "sha256": "cf33b976e6c4579b6a8cee2bc1b274302ef7eeafa90e0597ceaff67bdf470f07",
+      "source_blob": "da204754d6553ddbc26ee7d7a9db1a6e5f74c7b0"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-gefiltert-light.png",
+      "sha256": "69c46d30b3d37836605b6a8ac494912a43dd209b462793fc28111ed3249a41d4",
+      "source_blob": "85ad11e75088c38804ba47117acae4a2c1e7caa0"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-keine-aenderungen-contrast.png",
+      "sha256": "b867b9e6119d25c164cadf817a2738d446e6b63dbf5cfb75e43801b5cb2627fe",
+      "source_blob": "01e10551c4e75d8da6dc1bb1f5745b2b645ab47e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-keine-aenderungen-dark.png",
+      "sha256": "2ebe506da0cb5fb11d689765fbae70ac90f94895663a7c864cc1c490660568fd",
+      "source_blob": "414868974e0af3af673725590ba25396b1f191a6"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-keine-aenderungen-light.png",
+      "sha256": "3fd5b48cf5739f114a87bca1d0f47685eb95828182f66e11ce8ba978fd2702f2",
+      "source_blob": "f8e0a6e7ddf49bc2c5cffe8cd03fc8436874a034"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-nicht-lesbar-contrast.png",
+      "sha256": "7755443725ae293d7a57fd6daab09261d30bd1da0fee8599af65515445fc92af",
+      "source_blob": "58183a6cb19bad6a3bc67cc3e73840c61b63556a"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-nicht-lesbar-dark.png",
+      "sha256": "f8e21fb87068b9adecc07ba2c1326a21fdc58743bb7d2c39c8fac08f1d39c542",
+      "source_blob": "ce22b8f0100c73d2368f0406878fb9d97c09dc4b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-nicht-lesbar-light.png",
+      "sha256": "98840b9f2460e4985c46bae912434a3577ca1834676d01db74149333fb572102",
+      "source_blob": "f27168fbad9f85e4e8abc0f5fb9cfc113a9e888c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-ungelesen-contrast.png",
+      "sha256": "fb9e22db6df10d800e1da616b56c07b14e8950e0a1006d97fae58774b9a2a71b",
+      "source_blob": "b18dfcea857ac9d32b6093829d57f6b3ef514306"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-ungelesen-dark.png",
+      "sha256": "ff0af2eedac01f68653021e353d9a42c7ed6fee971a5510f3cb7c503ece34ca0",
+      "source_blob": "fc02b71a91b740f8c9278d5e2e63a879abd2f5ed"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-ungelesen-light.png",
+      "sha256": "6a25a5ed7fc336c6078023a461e02ef571c98534cc521261eebeb37d5731a4b5",
+      "source_blob": "9357604f73553973c168532f434720d8dde4ec4f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-wiederherstellen-laeuft-contrast.png",
+      "sha256": "90bc9d68661485ca2704d1e206075900b7c810d033940a39aff3892961d05def",
+      "source_blob": "c326112595fcd3b8c848ee7acf0fd57b0814c99d"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-wiederherstellen-laeuft-dark.png",
+      "sha256": "3d36a789225408e620dd534cfbc8b02d03caf40785bbff7bd2f62b7f959d52a2",
+      "source_blob": "a98413ca9d6b8df401f5f87d3284a8f7f4d8a11f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/verlauf-wiederherstellen-laeuft-light.png",
+      "sha256": "0db78df0a3fd37951102883ba2887432eb1685802ac45f4945be0a1961eaecc8",
+      "source_blob": "20c2d222869ec02c20df464c31a601a9635206d3"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/watchbook-aus-contrast.png",
@@ -5297,6 +6987,11 @@
       "source_blob": "69a84e14d9fe634050b71da3f543c1aee7593357"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/AppListRowTextTests.swift",
+      "sha256": "d1282e16ec744994201c77157614970e6f67947cffe109ac59e96a68c7a935cf",
+      "source_blob": "6235f2e485667ad4fc5401ba6e10e8e8d988d95a"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/AppOriginDetectorTests.swift",
       "sha256": "2b455e085bb260814d69469ca1fe18dc3e1b5a538dadc42c95ddbccfa71b9e5c",
       "source_blob": "0148a0abf8fc852c758d6a6157206b30a4a3b913"
@@ -5382,6 +7077,11 @@
       "source_blob": "1a4749c1599b6ca9a51a3aeb4f3a65893c579b93"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/AutostartVerdictTests.swift",
+      "sha256": "512c685c3c761246327d8b85aa66e9900b076b31f8459dcaa16cca341e5f0dac",
+      "source_blob": "c380f43c92c62f0e5a46d3f43508450b1236d371"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/BTMParserTests.swift",
       "sha256": "a7d9ea661469974c497c28393dc828b300219eefed9f2a91a7a79f64371a9ef4",
       "source_blob": "33fcff9052618aa57a2031eec0bbfcfe51865784"
@@ -5443,13 +7143,13 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ChipPresentationTests.swift",
-      "sha256": "dbdbb0a608618806601ce26b21dfa6ee51c3b5573e3e2bc5e9b041840abbbfc9",
-      "source_blob": "55b32d0e074dd9ad9064b11b9114f71e80439ac6"
+      "sha256": "63055728dae1ca3ce9920d4e49dd0bd0fe22b725c2c9c67731dd4aef5bac912c",
+      "source_blob": "af0768b58e8176e5940b3746eca30355cf5d1584"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ChipProfileTests.swift",
-      "sha256": "b2b7cf55448d9a7e4d11a2cddad1a4090190e6627ace33cc76570f7a9fee340e",
-      "source_blob": "dda423a6bd66e157673d94e8fcb02597df976004"
+      "sha256": "bb78017d04ac7d5901d6ade714cd5cbaacc3645c50ef7224c81dd3b9113cedcb",
+      "source_blob": "deacfadee5f32c0a95270bb0725dad8dce03cbaf"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/CleanupHintsTests.swift",
@@ -5517,9 +7217,24 @@
       "source_blob": "cdec511dee9315592f750ddeb938f1c11139e7c3"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/CoreKindTests.swift",
+      "sha256": "a4cd1493a01a41234c6465ad96d97bdbe0a31b31c8ceacad51fdc08799191ebb",
+      "source_blob": "830e4064a7b2a672c84453dc007f8d7ba96472bb"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/DashboardMetricsTests.swift",
       "sha256": "f482d06ff953befe563f6bfa2720e8ba6963ac3632156ebfbd01dc4e11e95bef",
       "source_blob": "ef4bb04908bef6cbde97a0c90092b1eab21f3799"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/DashboardTileTests.swift",
+      "sha256": "7576a797ab076c129cbe3a875888b92a0edf87048f153f355eba8d8036ece7fc",
+      "source_blob": "87119b3eebe9d5fe6ceb787c9bfd2340fa7d3940"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/DashboardVerdictTests.swift",
+      "sha256": "7837541bc6f0ce6b9f9bae16c62a725a6f6f789d1ecad7b1f34738a08cf9ef41",
+      "source_blob": "20f63ee0f6907decdac4719ac5009b3c533b6a76"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/DeepSignatureVerifierTests.swift",
@@ -5978,8 +7693,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/FlaggedBreakdownTests.swift",
-      "sha256": "9a4f6917eb30c655030d688da6beb5c015b002a82c1d3b58d8f8015a2528911b",
-      "source_blob": "74f27e76158bd240ebef99d7da8ae25f18d9b26d"
+      "sha256": "be2bfed4c67a76723d86b418c160a691e6660167dd37261264b503f2dd04320a",
+      "source_blob": "ff1ea1329d7ecce7c56b818be20019dbcfc04a56"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ForeignProcessUsageConsumerTests.swift",
@@ -6032,6 +7747,11 @@
       "source_blob": "88302275b7ba620bdc8370b12e8e816cf45a87fa"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/HistoryBoardPresentationTests.swift",
+      "sha256": "f5bceb7e9d519c630c7c72203affd686771622f32d2e5296406f36f4394a93a7",
+      "source_blob": "1c20e29f7b428afa6984c34b0afb68581f22a298"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/HistoryModelTests.swift",
       "sha256": "d51beb81d160f89bbc28bd3f77d32b5dc0ffbd4ab8f9e99b03e0b173f6b74d34",
       "source_blob": "e8ed7d53ce8f4e3ec7b7f38f098a0e6d74719d6a"
@@ -6080,6 +7800,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/InventoryPresenterTests.swift",
       "sha256": "5455d715470459f976ecf4b04fd24d72181c03555841c6c2024919b222abe009",
       "source_blob": "780f6727ba3b61fb498180122019405d912e47cc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/InventoryVerdictTests.swift",
+      "sha256": "8a148151ae8134d996141b5dc1d13d228e2b539a9bef72422962c84db45eab94",
+      "source_blob": "4887111380ba4fcbc6483ad58b964bbbafcfef59"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/JSONConfigParserTests.swift",
@@ -6140,6 +7865,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/LeftoverScannerTests.swift",
       "sha256": "afc85265aa0e6a7b3d88cb85d3d72ad6889203892f67d89ec58ec77a68e679a7",
       "source_blob": "b611e52d11ac8c5ee9f365095c6f8815ae7db06e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/LeftoverVerdictTests.swift",
+      "sha256": "ae6bb02393129dc9e86996b46bcac9648db02975f8a458093c83eb99f08e8cfe",
+      "source_blob": "10e5537910e48aef13557137ac6b35ebfd687f6d"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/LegacyDataMigrationTests.swift",
@@ -6222,6 +7952,11 @@
       "source_blob": "c95c1cf1a4aeb5d7a1db2e76b91704fa9b22c64e"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/MenuBarMenuTextsTests.swift",
+      "sha256": "0cfb0bd0fdb9ca258d7f930ace2665dd40111483d7ff24b8e58204229a1c00d3",
+      "source_blob": "bee7b2c1ef6ef21ec47195cb82c82feebbf5fce7"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/MenuBarMeterBoardTests.swift",
       "sha256": "0903501899f5784581f6c7875ed855706068b914f1774c000d6085535af63fbc",
       "source_blob": "2b6e894ea68fc3a9e443324a29f392c302181a4b"
@@ -6238,8 +7973,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/MenuBarOverviewPresentationTests.swift",
-      "sha256": "e735f50ff12c11998f22a9152d3d60d9aa424c0b73d90eb5c5b1844925f6d803",
-      "source_blob": "4f6116b36af4a049124e799fa408f436eac0cc2e"
+      "sha256": "1f23769fbe9a86e635415689cbcc6c6fd0729706959fc5bd4dc8164ed29f6d9a",
+      "source_blob": "420f351e2034899f70f27e7b07b6144de31eb36c"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/MenuBarSamplingCostTests.swift",
@@ -6447,6 +8182,11 @@
       "source_blob": "30d74537d9d3dcae346f5f30b51fd1dfcdd2a859"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/OnboardingSummaryTests.swift",
+      "sha256": "4f0ae1bdefb218da0459124ecd993a1768d2d4ffca49695096a2467dd55b42a8",
+      "source_blob": "4e3b07cb9c0ada6624e510f98ec650760ccab72a"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/OpenFileProbeTests.swift",
       "sha256": "1fa3e5b17e34961efb12f1ff8e720ccc9d34efb2dc691d6cdb5ed20bed51ca02",
       "source_blob": "b6a067aef33310148a191753a350c75ff7765495"
@@ -6543,8 +8283,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/PerformancePresentationTests.swift",
-      "sha256": "a0c9d7365c3ea87c03e2c96c4b7daa501e27b3db36c8af9bc5a7b67349e56ba3",
-      "source_blob": "e87a5275112430eb1410ca85a419e8eec0e9b2ce"
+      "sha256": "c2d80c70e5375d62f5721a4c5c6f3046c6a8c5a3b10cf54d6f3b6d137de3ef6d",
+      "source_blob": "8e9927427e282a50c3ca082fede95b9cc95fe8d7"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/PerformanceSourcesSystemTests.swift",
@@ -6605,6 +8345,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessCleanerTests.swift",
       "sha256": "acf02d32efec4b0907f908c3111c554f6156108d78d036521dcedb8bc64478b0",
       "source_blob": "4454727b1224edcc777b3f095e064bf5e37cdf4e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessCleanupBoardTests.swift",
+      "sha256": "de0ad9a916a14819b2eb392680612e289eed750c4ef85fdae8a394ec5f2191cd",
+      "source_blob": "bf7025e277530bca709bc243abb85894f17c6756"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessCleanupPresentationTests.swift",
@@ -6847,6 +8592,11 @@
       "source_blob": "4d25db87b6c3f96e34f0798bfdcac0fe5b1815a6"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/SetupCheckPresentationTests.swift",
+      "sha256": "9b0754cc08bf34db53cc57c0348077ceef646d1637fa3e893cdae70e64b8d22b",
+      "source_blob": "4a85f39e80b6e217c89d7f2cc55d7d88e78c0c10"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/SetupChecklistTests.swift",
       "sha256": "dc79c3e11560eaf8c9a22236c47e941ceeba1d1f619be5cdaf8852ef6bc316fe",
       "source_blob": "c8e8c5bb4f71f1f51dffdd8e7debe30ba5f9374e"
@@ -6915,6 +8665,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/StandardSourcesTests.swift",
       "sha256": "2693310ee84f1f91e1881324cd67baebded36b179bb0d4a177abb648f37bb0b0",
       "source_blob": "6b5326be1d5c49339b540a13772133c3c74fecc3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageBoardPresentationTests.swift",
+      "sha256": "190d8c17d470015f9b4dbb8713e7e335b762a4670ba3a4d74b01a31828f30024",
+      "source_blob": "e9022e2e5a6592dfd42cc050d0a05f1bea60b960"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/StorageCatalogTests.swift",
@@ -7242,6 +8997,11 @@
       "source_blob": "9ddb4e330a92c1dc221b385b71a894d94277a662"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/ThirdPartyNoticesTests.swift",
+      "sha256": "704069bdf97252436af1a19fa1fd2cabf2046b2517cfc992038dd6d41026d84d",
+      "source_blob": "d648c3f2fdb03b4245c8cdfb143bfd2230f2fdda"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/TimeMachineExclusionsTests.swift",
       "sha256": "62565842462b01d1a7a13eb9c53a013e1037688761f9a3dc9f866e7b780ffa16",
       "source_blob": "66f63ee4fa8adff6cc9c9bf4a9518943bba18a53"
@@ -7292,14 +9052,19 @@
       "source_blob": "570897646bd5706c4c9e1991d3592a17c07b0afa"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/UpdateSettingsDetailTests.swift",
+      "sha256": "1b644f74c3fffb200b8f072887922f90999eba5a02e9c94e34248ffa53525ab7",
+      "source_blob": "c51e50b290b1986c15e0f24102f57c3c26c38d5d"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/UserNameCacheTests.swift",
       "sha256": "5e9fa5df28c96751ea0e7aecf142cd6ba6c4e1042d1e32efc3c4aaf6cacbbc68",
       "source_blob": "e416dca437aa01ee14368e4c3b15183fe44be882"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/UserUsagePresenterTests.swift",
-      "sha256": "cc1c0882c861b4133fbff81b643a7799fb26f0dda0b78f3b79d921f252adf2bb",
-      "source_blob": "e011564a40c62054eb5f5883d6beae570e03aa74"
+      "sha256": "58a8afef4a7291ae2178186bbd55327769bf227228b5e19d7c91c21f113cd425",
+      "source_blob": "22c1bbb30c0b3f64d55d1a83da6257b5bd5f9520"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/VolumeFindingCheckTests.swift",
@@ -7320,6 +9085,11 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Watchbook/WatchbookConsumersTests.swift",
       "sha256": "0ac1fd7aa86ac03a484161d1eee1958dceb1ea1616f0577363e4db02c6c128b4",
       "source_blob": "d608b1610007d19d492372e41d98415add4a57a9"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/Watchbook/WatchbookCoreClassTests.swift",
+      "sha256": "3ab7d25b0a98c6732f16f15eafbf825700a21d9f0081a7f50b0c788f435bd67e",
+      "source_blob": "58cc68e98334848ba530b81d862c8b98a2585121"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Watchbook/WatchbookEventsTests.swift",

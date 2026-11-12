@@ -133,27 +133,11 @@ final class MainWindowModel {
 
     /// Zeigt den Eintrag, den `event` betrifft: vorhandene in ihrer Liste, entfernte im Verlauf.
     func show(_ event: ChangeEvent) {
-        guard event.kind != .removed else { return show(.history) }
-        switch event.subject {
-        case .grant:
-            show(.permissions)
-            permissionsGrouping = .byApp
-        case .autostartItem:
-            show(.autostart)
-        case .securityCheck:
-            show(.security)
-        case .installedApp:
-            show(.apps)
-        case .networkListener:
-            show(.network)
-            networkMode = .services
-        case .mcpServer, .agentAutoApproval:
-            show(.agents)
-        case .taskAction:
-            show(.taskManager)
-        case .extensionRecord:
-            show(.extensions)
-        }
+        let section = MainSection(showing: event)
+        show(section)
+        guard section != .history else { return }
+        if section == .permissions { permissionsGrouping = .byApp }
+        if section == .network { networkMode = .services }
         focusedRecordID = event.subject.recordID
     }
 
@@ -231,5 +215,26 @@ extension InventoryPresenter {
 
     static func filter(_ sections: [AutostartSection], query: String, filter: ListFilter) -> [AutostartSection] {
         Self.filter(sections, query: query, state: filter.state, scope: filter.scope, findings: filter.findings)
+    }
+}
+
+extension MainSection {
+    /// Bereich, in dem `event` seinen Eintrag zeigt: vorhandene in ihrer Liste, entfernte im Verlauf (`show(_:)`, Ziel der
+    /// Sprungzeilen in „Letzte Änderungen“).
+    init(showing event: ChangeEvent) {
+        guard event.kind != .removed else {
+            self = .history
+            return
+        }
+        self = switch event.subject {
+        case .grant: .permissions
+        case .autostartItem: .autostart
+        case .securityCheck: .security
+        case .installedApp: .apps
+        case .networkListener: .network
+        case .mcpServer, .agentAutoApproval: .agents
+        case .taskAction: .taskManager
+        case .extensionRecord: .extensions
+        }
     }
 }

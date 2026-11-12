@@ -126,7 +126,9 @@ private struct ExtensionFindingsGroup<Acceptance: View>: View {
     }
 }
 
-/// Herkunft als Zeilen: Titel links in der Sekundärfarbe, Wert rechts daneben; Kennungen in Festbreitenschrift.
+/// Herkunft als Zeilen: Titel links in der Sekundärfarbe, Wert rechts daneben; Kennungen in Festbreitenschrift. VoiceOver
+/// liest je Zeile ein Element mit Titel und Wert; `GridRow` fasst nicht zusammen, der auswählbare Wert stand sonst als
+/// AXUnknown ohne Titel da (#563).
 private struct ExtensionFactGrid: View {
     let facts: [ExtensionDetailContent.Fact]
 
@@ -139,6 +141,7 @@ private struct ExtensionFactGrid: View {
                 GridRow {
                     Text(verbatim: fact.title).font(InstrumentFont.label).foregroundStyle(.instrumentSecondary)
                         .lineLimit(1)
+                        .accessibilityHidden(true)
                     Text(verbatim: fact.value)
                         .font(fact.isCode ? InstrumentFont.code : InstrumentFont.body)
                         .foregroundStyle(fact.tone.flatMap {
@@ -147,8 +150,8 @@ private struct ExtensionFactGrid: View {
                         .lineLimit(1)
                         .truncationMode(.middle)
                         .textSelection(.enabled)
+                        .accessibilityReading(Text(verbatim: fact.title), value: Text(verbatim: fact.value))
                 }
-                .accessibilityElement(children: .combine)
             }
         }
     }

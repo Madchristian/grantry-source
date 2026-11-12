@@ -11,6 +11,8 @@ struct MenuBarMeterPopover: View {
     let measuredAt: Date
     let configured: Set<TaskManagerSource>
     var isLive = true
+    /// Laufzeit des Macs für die Kennzahl „Laufzeit“; fest nur in Sichtprüfungen.
+    var uptime: () -> TimeInterval = { SystemUptime.sinceBoot() }
     /// Sprung in den Task-Manager; in „Leistung“ auf diese Kachel.
     let open: (PerformanceMetric?) -> Void
 
@@ -47,7 +49,7 @@ struct MenuBarMeterPopover: View {
 
     private func tilePanel(_ tile: PerformanceTile) -> some View {
         let history = ChartHistory(history: frame.history, measuredAt: measuredAt)
-        let stats = TaskManagerMenuBarPresentation.stats(for: tile, in: frame.snapshot, uptime: SystemUptime.sinceBoot())
+        let stats = TaskManagerMenuBarPresentation.stats(for: tile, in: frame.snapshot, uptime: uptime())
         return MeterPopoverPanel(title: tile.title, detail: tile.detail, value: tile.value, hue: tile.metric.hue,
                                  fraction: history.level(of: tile.metric, in: frame.snapshot, sensorHistory: nil),
                                  fields: fields(stats), linkTitle: String(localized: "Im Task-Manager öffnen")) {

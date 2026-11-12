@@ -141,8 +141,7 @@ public struct WatchbookPoint: Hashable, Sendable {
                 thermalState: ProcessInfo.ThermalState?, power: WatchbookPower?) {
         var values = WatchbookValues()
         values[.cpuTotal] = snapshot.cpu?.total
-        values[.cpuPerformance] = Self.mean(snapshot.cpu?.cores.filter { $0.kind == .performance }.map(\.load))
-        values[.cpuEfficiency] = Self.mean(snapshot.cpu?.cores.filter { $0.kind == .efficiency }.map(\.load))
+        Self.writeCoreAverages(snapshot.cpu?.cores ?? [], into: &values)
         if let memory = snapshot.memory {
             // Nicht `.map(Double.init)`: Das wählt `Double(bitPattern:)` (siehe `TaskManagerAccumulator`).
             values[.memoryUsed] = memory.usedBytes.map { Double($0) }
@@ -169,9 +168,16 @@ public struct WatchbookPoint: Hashable, Sendable {
         return measured.isEmpty ? nil : measured.reduce(0, +)
     }
 
-    private static func mean(_ values: [Double?]?) -> Double? {
-        let measured = (values ?? []).compactMap { $0 }
-        return measured.isEmpty ? nil : measured.reduce(0, +) / Double(measured.count)
+    /// Mittlere Last je Kernklasse mit eigener Messgröße (`WatchbookMetric(averageOf:)`), in einem Durchgang; Kerne
+    /// ohne Messwert zählen nicht mit.
+    private static func writeCoreAverages(_ cores: [CoreLoad], into values: inout WatchbookValues) {
+        var totals: [WatchbookMetric: (sum: Double, count: Int)] = [:]
+        for core in cores {
+            guard let load = core.load, let metric = WatchbookMetric(averageOf: core.kind) else { continue }
+            totals[metric, default: (0, 0)].sum += load
+            totals[metric, default: (0, 0)].count += 1
+        }
+        for (metric, total) in totals { values[metric] = total.sum / Double(total.count) }
     }
 
     private static func level(_ pressure: MemoryStatus.Pressure) -> Double {

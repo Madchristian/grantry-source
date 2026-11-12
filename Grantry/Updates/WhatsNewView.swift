@@ -1,3 +1,4 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -22,50 +23,35 @@ struct ReleaseHighlights: Decodable {
     }()
 }
 
+/// Fenster „Was ist neu?“ im Lagebild (LB-5.3, #554; Entwurf LB-5.1, Spec 2026-11-10 § 11.5 h): Panel mit Peilkopf ohne
+/// Ring und Version, Einleitung, Höhepunkte als Zeilen mit Symbol im Kreis; unten die Aktionsleiste mit dem Link auf alle
+/// Änderungen und „Los geht’s“.
 struct WhatsNewView: View {
     let content: ReleaseHighlights
     let model: WhatsNewModel
     @Environment(\.dismissWindow) private var dismissWindow
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 10) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 32, weight: .medium))
-                    .foregroundStyle(.tint)
-                    .accessibilityHidden(true)
-                Text("Was ist neu?").font(.largeTitle.bold())
-                Text("Grantry \(content.version)").font(.subheadline).foregroundStyle(.secondary)
-                Text(verbatim: content.intro).font(.title3)
-            }
-            VStack(alignment: .leading, spacing: 22) {
-                ForEach(content.highlights.indices, id: \.self) { index in
-                    let highlight = content.highlights[index]
-                    HStack(alignment: .top, spacing: 16) {
-                        Image(systemName: highlight.symbol)
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundStyle(.tint)
-                            .frame(width: 42, height: 42)
-                            .background(.tint.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(verbatim: highlight.title).font(.headline)
-                            Text(verbatim: highlight.body).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                        }
+        WindowContent(width: WhatsNewLayout.width) {
+            SettingsPanel(String(localized: "Was ist neu?"), detail: String(localized: "Grantry \(content.version)")) {
+                Text(verbatim: content.intro)
+                    .font(InstrumentFont.body)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
+                    ForEach(content.highlights, id: \.title) { highlight in
+                        HighlightRow(symbol: highlight.symbol, title: highlight.title, text: highlight.body)
                     }
                 }
             }
-            Divider()
-            HStack {
+        } bar: {
+            WindowBar {
                 Link("Alle Änderungen", destination: URL(string: "https://grantry.cstrube.de/release-notes/\(content.version).html")!)
-                Spacer()
+                    .font(InstrumentFont.body)
+            } actions: {
                 Button("Los geht’s") { close() }
-                    .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }
         }
-        .padding(32)
-        .frame(width: 560)
         .onAppear { model.present() }
         .onDisappear { model.dismiss() }
         .onExitCommand { close() }
@@ -75,6 +61,11 @@ struct WhatsNewView: View {
         model.dismiss()
         dismissWindow(id: GrantryApp.whatsNewWindowID)
     }
+}
+
+/// Maße des Fensters „Was ist neu?“: Breite wie bisher (Entwurf LB-5.1).
+enum WhatsNewLayout {
+    static let width: CGFloat = 560
 }
 
 struct WhatsNewCommands: Commands {

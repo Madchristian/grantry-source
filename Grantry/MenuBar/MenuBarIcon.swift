@@ -38,13 +38,13 @@ enum MenuBarIcon {
             context.compositingOperation = .clear
             NSBezierPath(ovalIn: badgeRect.insetBy(dx: -gap, dy: -gap)).fill()
             context.compositingOperation = .sourceOver
-            NSColor.black.setFill()
+            NSColor.black.setFill() // design-token: Maske des Vorlagenbilds, macOS färbt
             NSBezierPath(ovalIn: badgeRect).fill()
             if let text = badge.text {
                 context.compositingOperation = .destinationOut
                 let string = NSAttributedString(string: text, attributes: [
                     .font: NSFont.monospacedDigitSystemFont(ofSize: 8.5, weight: .bold),
-                    .foregroundColor: NSColor.black,
+                    .foregroundColor: NSColor.black, // design-token: Maske des Vorlagenbilds
                 ])
                 let textSize = string.size()
                 string.draw(at: NSPoint(x: badgeRect.midX - textSize.width / 2, y: badgeRect.midY - textSize.height / 2))

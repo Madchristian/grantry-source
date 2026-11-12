@@ -66,10 +66,10 @@ struct ListenerTerminationActions<Extra: View>: View {
             }
         }
         if let reason = termination.disabledReason {
-            NetworkNote(text: reason, kind: .locked)
+            InstrumentNote(reason, kind: .locked)
         }
         if let notice = termination.notice(for: listener) {
-            NetworkNote(text: notice)
+            InstrumentNote(notice)
         }
     }
 }

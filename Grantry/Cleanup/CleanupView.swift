@@ -1,9 +1,27 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
 /// Segment im Bereich „Aufräumen“; die Wahl merkt sich `MainWindowModel.cleanupSegment`.
 enum CleanupSegment: Hashable {
     case leftovers, storage, processes, occupancy
+
+    /// Segmente des Umschalters in dieser Reihenfolge.
+    static var options: [(value: Self, label: String)] {
+        [(.leftovers, String(localized: "App-Reste")), (.storage, String(localized: "Speicher")),
+         (.processes, String(localized: "Prozesse")), (.occupancy, String(localized: "Belegung"))]
+    }
+}
+
+/// Umschalter der Aufräumen-Segmente im Inhalt (`InstrumentSegments`, Standard § 3.9; Spec 2026-11-10 § 11.4).
+struct CleanupSegmentSwitcher: View {
+    @Environment(MainWindowModel.self) private var window
+
+    var body: some View {
+        @Bindable var window = window
+        InstrumentSegments(String(localized: "Bereich"), selection: $window.cleanupSegment,
+                           options: CleanupSegment.options)
+    }
 }
 
 /// Bereich „Aufräumen“: Segmente „App-Reste“ (Reste gelöschter Apps), „Speicher“ (Speicherfresser, #215),
@@ -18,45 +36,35 @@ struct CleanupView: View {
         @Bindable var window = window
         let openFullDiskAccess: (() -> Void)? = prerequisites.isFullDiskAccessMissing
             ? { Task { await prerequisites.perform(.openFullDiskAccessSettings) } } : nil
-        VStack(spacing: 0) {
-            Picker("Bereich", selection: $window.cleanupSegment) {
-                Text("App-Reste").tag(CleanupSegment.leftovers)
-                Text("Speicher").tag(CleanupSegment.storage)
-                Text("Prozesse").tag(CleanupSegment.processes)
-                Text("Belegung").tag(CleanupSegment.occupancy)
+        // Jedes Segment zeigt den Umschalter `CleanupSegmentSwitcher` unter seiner Zustandszeile (Spec § 11.4).
+        switch window.cleanupSegment {
+        case .leftovers: OrphanCleanupView(appModel: appModel)
+        case .storage:
+            StorageCleanupView(model: appModel.storageCleanup, openFullDiskAccess: openFullDiskAccess,
+                               focusedCategoryID: $window.storageFocusCategoryID) {
+                onboarding.present()
             }
-            .pickerStyle(.segmented)
-            .labelsHidden()
-            .fixedSize()
-            .padding(.top, 12)
-            switch window.cleanupSegment {
-            case .leftovers: OrphanCleanupView(appModel: appModel)
-            case .storage:
-                StorageCleanupView(model: appModel.storageCleanup, openFullDiskAccess: openFullDiskAccess,
-                                   focusedCategoryID: $window.storageFocusCategoryID) {
-                    onboarding.present()
-                }
-            case .processes:
-                ProcessCleanupView(model: appModel.processCleanup, openFullDiskAccess: openFullDiskAccess) {
-                    onboarding.present()
-                }
-            case .occupancy:
-                // Ohne bestätigten Festplattenvollzugriff lässt der Scan die Orte aus, die sonst eine Rückfrage auslösen.
-                OccupancyView(model: appModel.occupancy, findings: appModel.taskManager.findings,
-                              isFullDiskAccessMissing: prerequisites.fullDiskAccess != true,
-                              openFullDiskAccess: { Task { await prerequisites.perform(.openFullDiskAccessSettings) } }) {
-                    window.storageFocusCategoryID = $0
-                    window.cleanupSegment = .storage
-                }
+        case .processes:
+            ProcessCleanupView(model: appModel.processCleanup, openFullDiskAccess: openFullDiskAccess) {
+                onboarding.present()
+            }
+        case .occupancy:
+            // Ohne bestätigten Festplattenvollzugriff lässt der Scan die Orte aus, die sonst eine Rückfrage auslösen.
+            OccupancyView(model: appModel.occupancy, findings: appModel.taskManager.findings,
+                          isFullDiskAccessMissing: prerequisites.fullDiskAccess != true,
+                          openFullDiskAccess: { Task { await prerequisites.perform(.openFullDiskAccessSettings) } }) {
+                window.storageFocusCategoryID = $0
+                window.cleanupSegment = .storage
             }
         }
     }
 }
 
-/// Segment „App-Reste“ (Spec v3 §3/§5): Reste gelöschter Apps auf Knopfdruck, gruppiert mit Auswahl, darüber
-/// Erweiterungen ohne App aus dem Inventar (`ExtensionLeftoversBox`), verwaiste Autostart-Einträge auswählbar,
-/// Berechtigungen entfernter Apps je Dienst mit „Für alle Apps zurücksetzen …“ (`ServiceReset`); „In den Papierkorb
-/// legen …“ mit Bestätigung (Return und Escape brechen ab).
+/// Segment „App-Reste“ (Spec v3 §3/§5) im Lagebild (LB-4.2, #548; Entwurf LB-4.1, Spec 2026-11-10 § 11.4): Reste
+/// gelöschter Apps auf Knopfdruck, gruppiert mit Häkchenzeilen, darüber Erweiterungen ohne App aus dem Inventar
+/// (`ExtensionLeftoversBox`), verwaiste Autostart-Einträge auswählbar, Berechtigungen entfernter Apps je Dienst mit „Für
+/// alle Apps zurücksetzen …“ (`ServiceReset`); unten die Aktionsleiste mit „In den Papierkorb legen …“ und Bestätigung
+/// (Return und Escape brechen ab). Ergebnis, veraltet, Abbruch und fehlende Abdeckung stehen als Banner über den Funden.
 struct OrphanCleanupView: View {
     let appModel: AppModel
     @State private var pendingPlan: RemovalPlan?
@@ -67,30 +75,25 @@ struct OrphanCleanupView: View {
 
     var body: some View {
         @Bindable var cleanup = cleanup
-        ActionResultContainer(actions: actions, context: .cleanup) {
-            VStack(alignment: .leading, spacing: 0) {
-                header
-                SearchStatusView(search: cleanup.search, searchingTitle: "Reste gelöschter Apps werden gesucht …",
-                                 retry: startSearch)
-                    .padding([.horizontal, .bottom], 12)
-                if isOutdated {
-                    outdatedNotice
-                }
-                if let presentation = cleanup.presentation {
-                    notes(presentation)
-                }
-                if !extensionLeftovers.isEmpty {
-                    ExtensionLeftoversBox(leftovers: extensionLeftovers, appModel: appModel)
-                }
-                Divider()
-                // Volle Restfläche, damit Leerzustände wie in den anderen Bereichen mittig stehen statt oben links.
-                content(selection: $cleanup.selection)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .scanProgressAboveTable(cleanup.search.progress)
-            }
+        let presentation = cleanup.presentation
+        let isOutdated = isOutdated
+        CleanupBoard(
+            head: LeftoversBoardMapping.head(LeftoverVerdict(
+                phase: LeftoversBoardMapping.phase(cleanup.search.phase), presentation: presentation,
+                extensionLeftovers: extensionLeftovers.count)),
+            progress: LeftoversBoardMapping.progress(running: cleanup.search.progress.current, presentation: presentation,
+                                                     isOutdated: isOutdated)
+        ) {
+            CleanupSegmentSwitcher()
+        } banner: {
+            banners(presentation, isOutdated: isOutdated)
+        } content: {
+            content(presentation, selection: $cleanup.selection)
+        } bar: {
+            actionBar(presentation, isOutdated: isOutdated)
         }
         .actionConfirmation(for: $pendingPlan, confirmation: { ActionConfirmation.removal($0) }) { plan in
-            guard !isOutdated else { return }
+            guard !self.isOutdated else { return }
             Task {
                 // Nur nach tatsächlich ausgeführter Aktion neu suchen – sonst bliebe das Ergebnis der verworfenen
                 // Aktion stehen, ohne dass etwas passiert ist.
@@ -130,159 +133,150 @@ struct OrphanCleanupView: View {
         cleanup.isOutdated(comparedTo: appModel.monitoring.snapshot)
     }
 
-    private var outdatedNotice: some View {
-        HStack(spacing: 8) {
-            NoticeList(notices: [String(localized: "Das Ergebnis ist veraltet – Apps haben sich seit der Suche geändert oder sie liegt länger zurück. Bitte erneut suchen.")])
-            Button("Erneut suchen", action: startSearch)
-                .disabled(cleanup.search.isSearching || appModel.monitoring.snapshot == nil)
-        }
-        .padding([.horizontal, .bottom], 12)
+    /// Suchen ist ohne Scan, während der Suche und während einer Aktion gesperrt.
+    private var canSearch: Bool {
+        appModel.monitoring.snapshot != nil && !cleanup.search.isSearching && actions.canStart
     }
 
-    // MARK: - Kopf
+    // MARK: - Banner
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            Button("Reste gelöschter Apps suchen", action: startSearch)
-                .disabled(cleanup.search.isSearching || appModel.monitoring.snapshot == nil)
-                .help(appModel.monitoring.snapshot == nil ? "Erst nach dem ersten Scan möglich" : "Sucht nur – entfernt nichts")
-            Spacer(minLength: 8)
-            if let presentation = cleanup.presentation, !presentation.isEmpty {
-                Text(verbatim: presentation.summary(for: cleanup.selection))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(2)
-            }
-            trashButton
-        }
-        .padding(12)
-    }
-
+    /// Ergebnis der letzten Aktion, „veraltet“, Abbruch und fehlende Abdeckung über den Funden (§ 11.4 d).
     @ViewBuilder
-    private var trashButton: some View {
+    private func banners(_ presentation: CleanupPresentation?, isOutdated: Bool) -> some View {
+        if let result = actions.result(in: .cleanup) {
+            ActionResultBanner(result: result, dismiss: actions.dismissResult)
+        }
+        if isOutdated {
+            InstrumentBanner(String(localized: "Ergebnis veraltet"),
+                             message: String(localized: "Das Ergebnis ist veraltet – Apps haben sich seit der Suche geändert oder sie liegt länger zurück. Bitte erneut suchen."),
+                             tone: .finding) {
+                Button("Erneut suchen", action: startSearch).disabled(!canSearch)
+            }
+        }
+        if cleanup.search.phase == .cancelled {
+            InstrumentBanner(String(localized: "Suche abgebrochen"),
+                             message: String(localized: "Suche abgebrochen – es wird nichts angeboten."), tone: .neutral)
+        }
+        if let note = presentation?.coverageNote {
+            InstrumentBanner(String(localized: "Suche unvollständig"), message: note, tone: .finding)
+        }
+    }
+
+    // MARK: - Leiste
+
+    private func actionBar(_ presentation: CleanupPresentation?, isOutdated: Bool) -> some View {
         let plan = cleanup.plan
         let title = plan.map { ActionConfirmation.removal($0).confirmTitle } ?? String(localized: "In den Papierkorb legen")
-        HStack(spacing: 6) {
+        let isTrashing = actions.runningRecordID == RemovalPlan.cleanupID
+        return InstrumentActionBar(scope: LeftoversBoardMapping.scope(presentation, selection: cleanup.selection),
+                                   runningText: isTrashing ? String(localized: "Wird in den Papierkorb gelegt …") : nil) {
+            if cleanup.search.isSearching {
+                Button("Suche abbrechen", action: cleanup.search.cancel)
+            } else {
+                Button(presentation == nil ? "Reste gelöschter Apps suchen" : "Erneut suchen", action: startSearch)
+                    .disabled(!canSearch)
+                    .help(appModel.monitoring.snapshot == nil ? "Erst nach dem ersten Scan möglich" : "Sucht nur – entfernt nichts")
+            }
+        } trailing: {
+            // Ohne Auswahl, ohne Ergebnis, bei veraltetem Ergebnis und während einer Aktion sichtbar gesperrt
+            // (Korrektur 2 der Abnahme LB-4.1).
             Button(role: .destructive) { pendingPlan = plan } label: { Text(verbatim: title + " …") }
                 .disabled(plan?.isEmpty != false || !actions.canStart || cleanup.search.isSearching || isOutdated)
-            if actions.runningRecordID == RemovalPlan.cleanupID {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel("Aktion läuft")
-            }
-        }
-    }
-
-    private func notes(_ presentation: CleanupPresentation) -> some View {
-        let notes = [presentation.coverageNote, presentation.unreadableNote].compactMap(\.self)
-        return Group {
-            if !notes.isEmpty {
-                NoticeList(notices: notes)
-                    .padding([.horizontal, .bottom], 12)
-            }
         }
     }
 
     // MARK: - Inhalt
 
     @ViewBuilder
-    private func content(selection: Binding<RemovalSelection>) -> some View {
-        if let presentation = cleanup.presentation {
-            if presentation.isEmpty {
-                ContentUnavailableView("Keine Reste gefunden", systemImage: "checkmark.circle",
-                                       description: extensionLeftovers.isEmpty
-                                           ? Text("Grantry hat keine Reste gelöschter Apps gefunden.")
-                                           : Text("Außer den Erweiterungen oben hat Grantry keine Reste gelöschter Apps gefunden."))
-            } else {
-                CleanupList(presentation: presentation, selection: selection, actions: actions,
-                            requestServiceReset: requestServiceReset)
-            }
+    private func content(_ presentation: CleanupPresentation?, selection: Binding<RemovalSelection>) -> some View {
+        let extensions = extensionLeftovers
+        if let presentation, !presentation.isEmpty || !extensions.isEmpty {
+            CleanupList(presentation: presentation, extensionLeftovers: extensions, appModel: appModel,
+                        selection: selection, requestServiceReset: requestServiceReset)
+        } else if presentation != nil {
+            InstrumentEmptyState(symbol: "checkmark.circle", title: String(localized: "Keine Reste gefunden"),
+                                 message: String(localized: "Grantry hat keine Reste gelöschter Apps gefunden."))
+        } else if !extensions.isEmpty {
+            CleanupList(presentation: nil, extensionLeftovers: extensions, appModel: appModel, selection: selection,
+                        requestServiceReset: requestServiceReset)
         } else if cleanup.search.phase == .idle {
-            ContentUnavailableView(
-                "Noch nicht gesucht", systemImage: MainSection.cleanup.systemImage,
-                description: Text("Die Suche startet nur, wenn du sie anstößt. Entfernt wird erst nach deiner Bestätigung.")
-            )
-        } else {
-            Spacer()
+            InstrumentEmptyState(symbol: MainSection.cleanup.systemImage, title: String(localized: "Noch nicht gesucht"),
+                                 message: String(localized: "Die Suche startet nur, wenn du sie anstößt. Entfernt wird erst nach deiner Bestätigung."))
         }
     }
 }
 
-/// Fundliste des Aufräumens: Gruppen je Kennung, verwaiste Autostart-Einträge, Berechtigungen entfernter Apps.
+/// Fundliste des Aufräumens im Fund-Panel: Erweiterungen ohne App, Gruppen je Kennung, verwaiste Autostart-Einträge,
+/// Berechtigungen entfernter Apps je Dienst als Einträge auf der Mulde. Während einer Aktion sind die Häkchen sichtbar,
+/// aber gesperrt und blass (§ 11.4 e).
 private struct CleanupList: View {
-    let presentation: CleanupPresentation
+    let presentation: CleanupPresentation?
+    let extensionLeftovers: [ExtensionLeftover]
+    let appModel: AppModel
     @Binding var selection: RemovalSelection
-    let actions: ActionRunner
     /// Fordert die Bestätigung an, den Dienst für alle Apps zurückzusetzen.
     let requestServiceReset: (String) -> Void
     @Environment(\.openURL) private var openURL
 
+    private var actions: ActionRunner { appModel.actions }
+
     var body: some View {
-        List {
+        CleanupFindingList {
+            if !extensionLeftovers.isEmpty {
+                ExtensionLeftoversBox(leftovers: extensionLeftovers, appModel: appModel)
+            }
+            if let presentation {
+                findings(presentation)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func findings(_ presentation: CleanupPresentation) -> some View {
+        Group {
             ForEach(presentation.groups) { group in
-                Section {
-                    ForEach(group.sections) { section in
-                        ForEach(section.rows) { row in
-                            SelectionToggleRow(row: row, kindTitle: section.title, selection: $selection)
-                        }
+                SelectionGroupHeader(title: group.identifier, count: group.sections.reduce(0) { $0 + $1.rows.count },
+                                     size: group.sizeText)
+                ForEach(group.sections) { section in
+                    ForEach(section.rows) { row in
+                        SelectionToggleRow(row: row, kindTitle: section.title, selection: $selection)
                     }
-                } header: {
-                    SectionHeader(title: group.identifier, trailing: group.sizeText)
                 }
             }
             if !presentation.autostartItems.isEmpty {
-                Section("Autostart-Einträge ohne Programm") {
-                    ForEach(presentation.autostartItems) { item in
-                        SelectionToggleRow(autostartItem: item, selection: $selection)
-                    }
-                }
-            }
-            ForEach(presentation.grantServices) { group in
-                Section {
-                    ForEach(group.grants) { grant in
-                        Text(verbatim: grant.client.displayName)
-                    }
-                } header: {
-                    grantServiceHeader(group)
-                } footer: {
-                    if group == presentation.grantServices.last, let note = presentation.grantsNote {
-                        Text(verbatim: note).font(.caption).foregroundStyle(.secondary)
-                    }
+                SelectionGroupHeader(title: String(localized: "Autostart-Einträge ohne Programm"),
+                                     count: presentation.autostartItems.count)
+                ForEach(presentation.autostartItems) { item in
+                    SelectionToggleRow(autostartItem: item, selection: $selection)
                 }
             }
         }
-        .listStyle(.inset)
+        .disabled(!actions.canStart)
+        if !presentation.grantServices.isEmpty {
+            SelectionGroupHeader(title: String(localized: "Berechtigungen entfernter Apps"),
+                                 count: presentation.grants.count)
+            ForEach(presentation.grantServices) { group in
+                grantService(group, note: presentation.grantsNote)
+            }
+        }
+        if let note = presentation.unreadableNote {
+            InstrumentNote(note).padding(InstrumentSpacing.group)
+        }
     }
 
     /// Einzeln lässt sich eine Berechtigung entfernter Apps nicht zurücksetzen (`tccutil` braucht die installierte
     /// App), nur der ganze Dienst – die Bestätigung nennt, wer die Berechtigung noch verliert.
-    private func grantServiceHeader(_ group: CleanupPresentation.GrantService) -> some View {
-        HStack(spacing: 8) {
-            Text("Berechtigungen entfernter Apps: \(group.serviceName)")
-            Spacer(minLength: 8)
+    private func grantService(_ group: CleanupPresentation.GrantService, note: String?) -> some View {
+        let isRunning = actions.runningRecordID == ServiceReset.recordID(for: group.service)
+        return DetailItem(LeftoversBoardMapping.grantContent(group),
+                          runningText: isRunning ? String(localized: "Wird zurückgesetzt …") : nil) {
+            if let note { InstrumentNote(note) }
+        } actions: {
             if let url = PermissionCatalog.service(for: group.service).settingsURL {
                 Button("In Systemeinstellungen öffnen") { openURL(url) }
-                    .buttonStyle(.link)
             }
             Button("Für alle Apps zurücksetzen …") { requestServiceReset(group.service) }
                 .disabled(!actions.canStart)
-            if actions.runningRecordID == ServiceReset.recordID(for: group.service) {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityLabel("Aktion läuft")
-            }
         }
     }
-}
-
-#Preview("App-Reste – Leiste über den Funden") {
-    List {
-        Section("ai.openclaw.mac") {
-            Text(verbatim: "~/Library/Caches/ai.openclaw.mac")
-            Text(verbatim: "~/Library/Preferences/ai.openclaw.mac.plist")
-        }
-    }
-    .listStyle(.inset)
-    .scanProgressAboveTable(.preview(ScanProgress(fraction: 0.35)))
-    .frame(width: 720, height: 220)
 }

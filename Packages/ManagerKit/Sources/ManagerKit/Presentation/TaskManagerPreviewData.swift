@@ -131,28 +131,54 @@ public enum TaskManagerPreviewData {
 }
 
 extension TaskManagerPreviewData {
-    /// Übersicht der Menüleiste (#495): Stand, Chip und Kontext eines Macs mit `performance` Leistungs- und `efficiency`
-    /// Effizienzkernen (Cluster zu je höchstens sechs Leistungskernen wie beim M4 Max), mit Prozessen, Akku, Startvolume,
-    /// fester Laufzeit und Durchschnittslast.
+    /// Übersicht der Menüleiste (#495): Stand, Chip und Kontext eines Macs mit den Stufen `levels` (schnellste zuerst),
+    /// mit Prozessen, Akku, Startvolume, fester Laufzeit und Durchschnittslast.
     public struct OverviewSample {
         public let frame: TaskManagerFrame
         public let profile: ChipProfile
         public let context: MenuBarOverviewContext
     }
 
+    /// Eine Leistungsstufe der Vorschau: Name laut System (`hw.perflevelN.name`), Typ im Gerätebaum, Kernzahl.
+    public struct SampleLevel {
+        public let name: String?
+        public let type: String
+        public let count: Int
+
+        public init(name: String?, type: String, count: Int) {
+            self.name = name
+            self.type = type
+            self.count = count
+        }
+    }
+
+    /// Cluster zu je höchstens sechs Kernen wie beim M4 Max.
+    static let sampleClusterSize = 6
+
+    /// Mac mit `performance` Leistungs- und `efficiency` Effizienzkernen.
     public static func overviewSample(performance: Int, efficiency: Int, name: String) -> OverviewSample {
-        let kinds = Array(repeating: CoreKind.efficiency, count: efficiency)
-            + Array(repeating: CoreKind.performance, count: performance)
-        var frame = frames(count: 1, processes: true, coreKinds: kinds)[0]
-        frame.snapshot.battery = BatteryReading(charge: 0.82, source: .externalPower, isCharging: true)
-        let clusterSize = performance > 6 ? 6 : performance
-        let cpus = (0..<efficiency).map { ChipFacts.CPU(logicalID: $0, clusterID: 0, clusterType: "E") }
-            + (0..<performance).map { ChipFacts.CPU(logicalID: efficiency + $0, clusterID: 1 + $0 / max(clusterSize, 1),
-                                                    clusterType: "P") }
+        overviewSample(levels: [SampleLevel(name: "Performance", type: "P", count: performance),
+                                SampleLevel(name: "Efficiency", type: "E", count: efficiency)], name: name)
+    }
+
+    /// Kernnummern wie auf Apple-Chips von der langsamsten Stufe an; die Kernarten liest der Stand aus dem Profil wie
+    /// `CPULoadSampler` im Betrieb.
+    public static func overviewSample(levels: [SampleLevel], name: String) -> OverviewSample {
+        var cpus: [ChipFacts.CPU] = []
+        var clusterID = 0
+        for level in levels.reversed() {
+            let size = min(level.count, sampleClusterSize)
+            for core in 0..<level.count {
+                cpus.append(ChipFacts.CPU(logicalID: cpus.count, clusterID: clusterID + core / max(size, 1),
+                                          clusterType: level.type))
+            }
+            clusterID += size > 0 ? (level.count + size - 1) / size : 0
+        }
         let facts = ChipFacts(brand: name, memoryBytes: physicalBytes,
-                              levels: [ChipFacts.Level(name: "Performance", logicalCPUs: performance),
-                                       ChipFacts.Level(name: "Efficiency", logicalCPUs: efficiency)],
-                              cpus: cpus)
+                              levels: levels.map { ChipFacts.Level(name: $0.name, logicalCPUs: $0.count) }, cpus: cpus)
+        let profile = ChipProfile(facts: facts)
+        var frame = frames(count: 1, processes: true, coreKinds: profile.coreKinds(coreCount: cpus.count))[0]
+        frame.snapshot.battery = BatteryReading(charge: 0.82, source: .externalPower, isCharging: true)
         let apps = [RunningApp(pid: 100, bundleID: "com.apple.Safari", bundlePath: "/Applications/Safari.app",
                                name: "Safari"),
                     RunningApp(pid: 137, bundleID: "com.apple.dt.Xcode", bundlePath: "/Applications/Xcode.app",
@@ -161,7 +187,7 @@ extension TaskManagerPreviewData {
             startupVolume: VolumeUsage(totalBytes: 994_662_584_320, availableBytes: 412_884_131_840), apps: apps,
             currentUID: 501, loadAverage: LoadAverage(one: 3.42, five: 2.87, fifteen: 2.51), uptime: uptime
         )
-        return OverviewSample(frame: frame, profile: ChipProfile(facts: facts), context: context)
+        return OverviewSample(frame: frame, profile: profile, context: context)
     }
 }
 #endif

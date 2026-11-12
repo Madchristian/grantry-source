@@ -35,11 +35,6 @@ public struct ProcessCounters: Hashable, Sendable {
     }
 }
 
-/// Kerntyp auf Apple Silicon (`hw.perflevel*`); `unknown` bei Intel oder nicht lesbar.
-public enum CoreKind: Hashable, Sendable {
-    case performance, efficiency, unknown
-}
-
 /// Kumulative Ticks eines Kerns seit Systemstart (`host_processor_info`); `busy` = Benutzer + System + nice, `system`
 /// davon der Systemanteil (Übersicht der Menüleiste, #495).
 public struct CoreTicks: Hashable, Sendable {

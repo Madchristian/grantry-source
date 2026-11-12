@@ -50,18 +50,6 @@ extension AppUsageMetric {
     }
 }
 
-extension PresentationTone {
-    /// Ton der Instrumententafel: „Warnung“ heißt dort „auffällig“ (Bernstein des Befund-Punkts).
-    var statusTone: StatusTone {
-        switch self {
-        case .positive: .positive
-        case .neutral: .neutral
-        case .warning: .finding
-        case .critical: .critical
-        }
-    }
-}
-
 extension SystemVerdict {
     var statusItems: [StatusItem] { items.map { StatusItem($0.text, tone: $0.tone.statusTone) } }
     var hasFinding: Bool { level != .calm }

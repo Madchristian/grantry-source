@@ -1,50 +1,23 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Eine automatische Freigabe im Detail (Spec Agenten §7): Tool, Einstellung mit Wert, Erklärung, Hinweise,
-/// Konfigurationsdatei und Geltungsbereich. Ohne Bearbeiten/Entfernen (Stufe 2).
+/// Eine automatische Freigabe im Detail (Spec Agenten §7; LB-2.4, #541): Tool, Hinweise direkt unter dem Kopf, Einstellung
+/// mit Wert und Erklärung, Konfigurationsdatei mit „Im Finder zeigen“ und „Öffnen“ und Geltungsbereich. Ohne
+/// Bearbeiten/Entfernen (Stufe 2).
 struct AgentApprovalDetailView: View {
     let approval: AgentAutoApproval
     let findings: [RiskFinding]
     let badges: [RecordBadge]
 
     var body: some View {
-        Form {
-            Section {
-                HStack(spacing: 12) {
-                    Image(systemName: "exclamationmark.shield")
-                        .font(.system(size: 32))
-                        .foregroundStyle(PresentationTone.warning.color)
-                        .frame(width: 48, height: 48)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Automatische Freigabe")
-                            .font(.title2.weight(.semibold))
-                        Text(verbatim: approval.toolName)
-                            .foregroundStyle(.secondary)
-                        RecordBadgesRow(badges: badges)
-                    }
-                }
-            }
-            if !findings.isEmpty {
-                Section("Hinweise") { RecordHints(findings: findings) }
-            }
-            Section("Einstellung") {
-                LabeledContent("Einstellung") {
-                    Text(verbatim: approval.settingText)
-                        .font(.body.monospaced())
-                        .textSelection(.enabled)
-                }
-                Text(verbatim: approval.message)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Section("Konfiguration") {
-                ConfigFileSection(path: approval.configPath,
-                                  pathText: PathDisplay.abbreviatingHome(approval.configPath))
-                LabeledContent("Geltungsbereich") { Text(verbatim: AgentPresenter.scopeText(approval.scope)) }
-            }
+        RecordDetailPanel(content: AgentsBoardMapping.approvalDetail(approval, findings: findings, badges: badges)) {
+            InstrumentRowIcon(symbol: AgentAutoApproval.symbol, size: InstrumentSize.shield)
+        } actions: {
+            EmptyView()
+        } accessory: { group in
+            if group.id == AgentsBoardMapping.GroupID.configuration { ConfigFileControls(path: approval.configPath) }
         }
-        .formStyle(.grouped)
     }
 }
 

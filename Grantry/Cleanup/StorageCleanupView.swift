@@ -1,13 +1,14 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Segment „Speicher“ (Spec Speicher §2): Knopf „Scannen“, Kategorien nach Größe mit Risiko und Status, aufklappbar
-/// mit Einzelauswahl, Sammeldialog vor dem Aufräumen, Ergebnis und „Zuletzt aufgeräumt“. Fehlt der
-/// Festplattenvollzugriff, weist `PrerequisitesBanner` schon vor dem Scan darauf hin; nach dem Scan nennen Hinweise
-/// nicht erfassbare Ordner und den keiner Kategorie zugeordneten Platz (#226) sowie, bei Agenten-Arbeitsordnern, dass ein
-/// Neustart `/private/tmp` leert (#229). Darunter die Time-Machine-Vorschläge mit eigenem Bestätigungsdialog; jede
-/// Kategorie nennt, ob Time Machine sie sichert (#227).
+/// Segment „Speicher“ im Lagebild (LB-4.3, #549; Entwurf LB-4.1, #547, Spec Speicher §2): Zustandszeile mit der
+/// aufräumbaren Größe, Umschalter mit Scan-Fortschritt bzw. Stand als Spur, Banner für fehlenden Festplattenvollzugriff
+/// (schon vor dem Scan) und das Ergebnis der letzten Aktion, im Panel Hinweise (nicht erfasste Ordner, keiner Kategorie
+/// zugeordneter Platz #226, Neustart #229), Ausgänge je Eintrag, Kategorien nach Größe mit Spur des Anteils, aufklappbar
+/// mit Häkchenzeilen, Time-Machine-Vorschläge mit eigenem Bestätigungsdialog (#227) und „Zuletzt aufgeräumt“; unten die
+/// Aktionsleiste mit Scannen bzw. Abbrechen, Optionen, Umfang der Auswahl und „Aufräumen …“ mit Sammeldialog.
 struct StorageCleanupView: View {
     @Bindable var model: StorageCleanupModel
     /// Öffnet die Einstellungen zum Festplattenvollzugriff; `nil`, wenn er nicht fehlt.
@@ -19,63 +20,32 @@ struct StorageCleanupView: View {
     @State private var isConfirming: Bool?
     /// Aufgeklappte Kategorien.
     @State private var expanded: Set<String> = []
+    @State private var showsUncovered = false
     @State private var timeMachineChange: TimeMachineChange?
     @State private var showsOptions = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            header
-            if needsFullDiskAccess {
-                PrerequisitesBanner(
-                    text: String(localized: "Ohne Festplattenvollzugriff erfasst Grantry geschützte Ordner nicht – ihre Größen fehlen in den Summen."),
-                    openFullDiskAccess: openFullDiskAccess, showSetup: showSetup
-                )
-                .padding([.horizontal, .bottom], 12)
-            }
-            coverage
-            if let restart = StoragePresentation.restartNote(model.reports) {
-                Text(verbatim: restart).font(.callout).foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding([.horizontal, .bottom], 12)
-            }
-            if !model.lastOutcomes.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    NoticeList(notices: [StoragePresentation.summary(model.lastOutcomes)])
-                    OutcomeDetails(outcomes: model.lastOutcomes)
-                    if let note = TimeMachinePresentation.snapshotNote(after: model.lastOutcomes, reports: model.reports) {
-                        CopyableCommandNote(note: note)
-                    }
-                }
-                .padding([.horizontal, .bottom], 12)
-            }
-            Divider()
+        CleanupBoard(head: StorageBoardMapping.head(reports: model.reports, timeMachine: model.timeMachine,
+                                                    isScanning: model.phase == .scanning),
+                     progress: StorageBoardMapping.progress(model.scanProgress.current, reports: model.reports)) {
+            CleanupSegmentSwitcher()
+        } banner: {
+            banners
+        } content: {
             content
-                .scanProgressAboveTable(model.scanProgress)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } bar: {
+            actionBar
         }
         .actionConfirmation(for: $isConfirming, confirmation: { _ in
             StoragePresentation.confirmation(reports: model.reports, selection: model.selection)
         }) { _ in model.clean() }
+        .actionConfirmation(for: $timeMachineChange, confirmation: { change in
+            TimeMachinePresentation.confirmation(change, targets: timeMachineTargets(change))
+        }) { model.changeTimeMachine($0) }
         .onChange(of: focusedCategoryID, initial: true) { _, id in
             // Noch nicht gescannt: erst lesen, dann springen.
             if id != nil, model.reports.isEmpty, model.phase == .idle { model.scan() }
         }
-    }
-
-    /// Zeile in „Zuletzt aufgeräumt“; bei Übersprungenem und Fehlgeschlagenem mit Grund.
-    private func recentLogRow(_ entry: CleanupLogEntry) -> some View {
-        let isRemoved = entry.outcome.result == .removed
-        return HStack(alignment: .firstTextBaseline, spacing: 6) {
-            OutcomeMarker(result: entry.outcome.result)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: "\(entry.date.formatted(date: .abbreviated, time: .shortened)) – \(abbreviatedTarget(entry.outcome.target))")
-                if !isRemoved {
-                    Text(verbatim: StoragePresentation.resultText(entry.outcome)).foregroundStyle(.secondary)
-                }
-            }
-        }
-        .font(.caption)
-        .help(Text(verbatim: StoragePresentation.resultText(entry.outcome)))
     }
 
     /// Der Zugriff fehlt (auch vor dem Scan), oder eine Kategorie meldet ihn als nötig.
@@ -83,71 +53,90 @@ struct StorageCleanupView: View {
         openFullDiskAccess != nil || model.reports.contains { $0.status == .needsFullDiskAccess }
     }
 
-    /// „Nicht erfassbar: N Ordner“ mit den Pfaden zum Aufklappen und, nach einem vollständigen Scan, der keiner
-    /// Kategorie zugeordnete Platz.
-    @ViewBuilder
-    private var coverage: some View {
-        let paths = StoragePresentation.uncoveredPaths(model.reports)
-        let unassigned = model.volume.flatMap { StoragePresentation.unassignedNote(model.reports, volume: $0) }
-        if !paths.isEmpty || unassigned != nil {
-            VStack(alignment: .leading, spacing: 6) {
-                if let note = StoragePresentation.coverageNote(model.reports) {
-                    NoticeList(notices: [note])
-                    DisclosureGroup("Nicht erfasste Ordner") {
-                        VStack(alignment: .leading, spacing: 2) {
-                            ForEach(paths, id: \.self) { Text(verbatim: abbreviatedTarget($0)).textSelection(.enabled) }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .font(.caption)
-                }
-                if let unassigned {
-                    Text(verbatim: unassigned).font(.callout).foregroundStyle(.secondary)
-                }
-            }
-            .padding([.horizontal, .bottom], 12)
-        }
-    }
-
     private var hasSelection: Bool {
         !StoragePresentation.selectedItems(in: model.reports, selection: model.selection).isEmpty
     }
 
-    private var header: some View {
-        HStack(spacing: 12) {
-            Button("Scannen", action: model.scan)
-                .disabled(model.scanProgress.isRunning || model.phase == .cleaning)
-                .help("Liest nur – entfernt nichts")
+    // MARK: - Banner
+
+    @ViewBuilder
+    private var banners: some View {
+        if needsFullDiskAccess {
+            PrerequisitesBanner(
+                text: String(localized: "Ohne Festplattenvollzugriff erfasst Grantry geschützte Ordner nicht – ihre Größen fehlen in den Summen."),
+                openFullDiskAccess: openFullDiskAccess, showSetup: showSetup
+            )
+        }
+        if !model.lastOutcomes.isEmpty {
+            InstrumentBanner(StoragePresentation.outcomeTitle(model.lastOutcomes),
+                             message: StoragePresentation.summary(model.lastOutcomes),
+                             tone: StoragePresentation.outcomeTone(model.lastOutcomes).statusTone)
+        }
+    }
+
+    // MARK: - Aktionsleiste
+
+    private var actionBar: some View {
+        InstrumentActionBar(scope: StoragePresentation.selectionText(reports: model.reports, selection: model.selection),
+                            runningText: model.phase == .cleaning ? String(localized: "Wird aufgeräumt …") : nil) {
             if model.phase == .scanning {
-                ProgressView().controlSize(.small).accessibilityLabel("Scan läuft")
                 Button("Abbrechen", action: model.cancel)
+            } else {
+                Button("Scannen", action: model.scan)
+                    .disabled(model.scanProgress.isRunning || model.phase == .cleaning)
+                    .help("Liest nur – entfernt nichts")
             }
             Button("Optionen …") { showsOptions = true }
                 .popover(isPresented: $showsOptions) { StorageOptionsView(preferences: model.preferences) }
-            Spacer(minLength: 8)
-            if model.phase == .cleaning {
-                ProgressView().controlSize(.small).accessibilityLabel("Aufräumen läuft")
-            }
+        } trailing: {
             Button(role: .destructive) { isConfirming = true } label: { Text("Aufräumen …") }
                 .disabled(model.phase != .scanned || !hasSelection)
         }
-        .padding(12)
     }
+
+    // MARK: - Inhalt
 
     @ViewBuilder
     private var content: some View {
         if model.reports.isEmpty, model.phase == .idle {
-            ContentUnavailableView(
-                "Noch nicht gescannt", systemImage: "internaldrive",
-                description: Text("Der Scan startet nur, wenn du ihn anstößt. Gelöscht wird erst nach deiner Bestätigung.")
-            )
+            InstrumentEmptyState(symbol: "internaldrive", title: String(localized: "Noch nicht gescannt"),
+                                 message: String(localized: "Der Scan startet nur, wenn du ihn anstößt. Gelöscht wird erst nach deiner Bestätigung."))
         } else {
             ScrollViewReader { proxy in
-                categoryList
-                    .onChange(of: model.reports.map(\.id), initial: true) { focus(using: proxy) }
-                    .onChange(of: focusedCategoryID) { focus(using: proxy) }
+                CleanupFindingList {
+                    StorageNotes(reports: model.reports, volume: model.volume, showsUncovered: $showsUncovered)
+                    if !model.lastOutcomes.isEmpty {
+                        StorageOutcomes(outcomes: model.lastOutcomes, reports: model.reports)
+                    }
+                    ForEach(model.sortedReports) { report in
+                        categorySection(report)
+                    }
+                    if let report = model.timeMachine, !report.suggestions.isEmpty || report.failure != nil {
+                        TimeMachineSuggestionsGroup(report: report, selection: $model.timeMachineSelection,
+                                                    canChange: model.phase == .scanned) { timeMachineChange = $0 }
+                    }
+                    if !model.recentLog.isEmpty {
+                        RecentLogGroup(entries: model.recentLog, logURL: model.logURL)
+                    }
+                }
+                .onChange(of: model.reports.map(\.id), initial: true) { focus(using: proxy) }
+                .onChange(of: focusedCategoryID) { focus(using: proxy) }
             }
         }
+    }
+
+    private func categorySection(_ report: StorageCategoryReport) -> some View {
+        let timeMachineNote = model.timeMachine.flatMap {
+            TimeMachinePresentation.categoryNote(report.id, in: $0.suggestions)
+        }
+        return StorageCategorySection(report: report, share: StoragePresentation.share(of: report, in: model.reports),
+                                      summary: StorageBoardMapping.summary(report, timeMachineNote: timeMachineNote),
+                                      selection: $model.selection,
+                                      isExpanded: Binding(get: { expanded.contains(report.id) }, set: { isExpanded in
+                                          if isExpanded { expanded.insert(report.id) } else { expanded.remove(report.id) }
+                                      }),
+                                      isLocked: model.phase == .cleaning)
+            .id(report.id)
     }
 
     /// Springt zur gewünschten Kategorie und klappt sie auf, sobald ihr Bericht da ist; fehlt er nach dem Scan, entfällt
@@ -163,228 +152,116 @@ struct StorageCleanupView: View {
         focusedCategoryID = nil
     }
 
-    private var categoryList: some View {
-        List {
-            ForEach(model.sortedReports) { report in
-                StorageCategoryRow(report: report, selection: $model.selection,
-                                   isExpanded: Binding(get: { expanded.contains(report.id) }, set: { isExpanded in
-                                       if isExpanded { expanded.insert(report.id) } else { expanded.remove(report.id) }
-                                   }),
-                                   timeMachineNote: model.timeMachine.flatMap {
-                                       TimeMachinePresentation.categoryNote(report.id, in: $0.suggestions)
-                                   },
-                                   isLocked: model.phase == .cleaning)
-            }
-            if let report = model.timeMachine, !report.suggestions.isEmpty || report.failure != nil {
-                TimeMachineSuggestionsSection(report: report, selection: $model.timeMachineSelection,
-                                              canChange: model.phase == .scanned) { timeMachineChange = $0 }
-            }
-            if !model.recentLog.isEmpty {
-                Section("Zuletzt aufgeräumt") {
-                    ForEach(Array(model.recentLog.enumerated()), id: \.offset) { _, entry in
-                        recentLogRow(entry)
-                    }
-                    Button("Protokoll im Finder zeigen") {
-                        NSWorkspace.shared.activateFileViewerSelecting([model.logURL])
-                    }
-                    .buttonStyle(.link)
-                }
-            }
-        }
-        .listStyle(.inset)
-        .actionConfirmation(for: $timeMachineChange, confirmation: { change in
-            TimeMachinePresentation.confirmation(change, targets: timeMachineTargets(change))
-        }) { model.changeTimeMachine($0) }
-    }
-
     private func timeMachineTargets(_ change: TimeMachineChange) -> [TimeMachineSuggestion] {
         TimeMachinePresentation.targets(of: change, in: model.timeMachine?.suggestions ?? [],
                                         selection: model.timeMachineSelection)
     }
 }
 
-/// „Time-Machine-Vorschläge“ (#227): Ordner, die sich neu erzeugen oder laden lassen, mit Status, Größe und Risiko;
-/// vorausgewählt nur Risiko „gering“. Die Knöpfe ändern nur gewählte Ordner, deren Status die Änderung betrifft.
-private struct TimeMachineSuggestionsSection: View {
-    let report: TimeMachineReport
-    @Binding var selection: Set<String>
-    let canChange: Bool
-    let confirm: (TimeMachineChange) -> Void
+/// Hinweise oben im Panel: „Nicht erfassbar: N Ordner“ mit den Pfaden zum Aufklappen, nach einem vollständigen Scan der
+/// keiner Kategorie zugeordnete Platz (#226) und bei Agenten-Arbeitsordnern der Neustart (#229).
+private struct StorageNotes: View {
+    let reports: [StorageCategoryReport]
+    let volume: VolumeUsage?
+    @Binding var showsUncovered: Bool
 
     var body: some View {
-        Section {
-            if let failure = report.failure {
-                Text(verbatim: "Status nicht lesbar: \(failure)").font(.caption).foregroundStyle(.orange)
-            }
-            ForEach(report.suggestions) { suggestion in
-                HStack {
-                    Toggle(isOn: isSelected(suggestion)) { label(suggestion) }
-                        .disabled(!canChange || suggestion.state == .unknown)
-                    Spacer()
-                    Text(verbatim: StoragePresentation.riskText(suggestion.candidate.risk)).font(.caption)
-                        .padding(.horizontal, 6).background(.quaternary, in: Capsule())
-                    Text(verbatim: suggestion.sizeText).foregroundStyle(.secondary)
+        let paths = StoragePresentation.uncoveredPaths(reports)
+        if let note = StoragePresentation.coverageNote(reports) {
+            InstrumentNote(note, kind: .finding)
+                .padding(.horizontal, InstrumentSpacing.group)
+            DisclosureSection(String(localized: "Nicht erfasste Ordner"),
+                              value: paths.count == 1 ? String(localized: "1 Ordner") : String(localized: "\(paths.count) Ordner"),
+                              isExpanded: $showsUncovered, togglesOnHead: true) {
+                Text("Nicht erfasste Ordner").font(InstrumentFont.label)
+            } content: {
+                ForEach(paths, id: \.self) { path in
+                    Text(verbatim: StorageBoardMapping.abbreviated(path)).font(InstrumentFont.code)
+                        .textSelection(.enabled)
+                        .accessibilityReading(Text("Nicht erfasster Ordner"),
+                                              value: Text(verbatim: StorageBoardMapping.abbreviated(path)))
                 }
             }
-            HStack {
-                Button("Aus Time Machine ausnehmen …") { confirm(.exclude) }
-                    .disabled(!canChange || targets(.exclude).isEmpty)
-                Button("Wieder sichern …") { confirm(.include) }
-                    .disabled(!canChange || targets(.include).isEmpty)
-            }
-        } header: {
-            Text("Time-Machine-Vorschläge")
-        } footer: {
-            Text("Lässt sich neu erzeugen oder herunterladen. Grantry ändert nur die Sicherung, nicht die Ordner.")
+            .padding(.horizontal, InstrumentSpacing.group)
         }
-    }
-
-    private func targets(_ change: TimeMachineChange) -> [TimeMachineSuggestion] {
-        TimeMachinePresentation.targets(of: change, in: report.suggestions, selection: selection)
-    }
-
-    private func label(_ suggestion: TimeMachineSuggestion) -> some View {
-        VStack(alignment: .leading) {
-            Text(verbatim: suggestion.candidate.title)
-            Text(verbatim: "\(abbreviatedTarget(suggestion.candidate.path)) · \(TimeMachinePresentation.stateText(suggestion.state))")
-                .font(.caption).foregroundStyle(.secondary)
+        if let unassigned = volume.flatMap({ StoragePresentation.unassignedNote(reports, volume: $0) }) {
+            InstrumentNote(unassigned).padding(.horizontal, InstrumentSpacing.group)
         }
-    }
-
-    private func isSelected(_ suggestion: TimeMachineSuggestion) -> Binding<Bool> {
-        Binding(get: { selection.contains(suggestion.id) },
-                set: { if $0 { selection.insert(suggestion.id) } else { selection.remove(suggestion.id) } })
-    }
-}
-
-/// Hinweis mit kopierbarem Terminal-Befehl; Grantry führt ihn nicht aus (lokale Snapshots: nur Bericht).
-private struct CopyableCommandNote: View {
-    let note: TimeMachinePresentation.SnapshotNote
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(verbatim: note.text).font(.callout).foregroundStyle(.secondary)
-            HStack {
-                Text(verbatim: note.command).font(.caption.monospaced()).textSelection(.enabled)
-                Button("Befehl kopieren") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(note.command, forType: .string)
-                }
-                .buttonStyle(.link)
-            }
+        if let restart = StoragePresentation.restartNote(reports) {
+            InstrumentNote(restart).padding(.horizontal, InstrumentSpacing.group)
         }
     }
 }
 
-/// Ausgänge des letzten Aufräumens je Eintrag: Ziel, Weg und Ergebnis mit Grund (Spec Speicher §2.5).
-private struct OutcomeDetails: View {
+/// Ausgänge des letzten Aufräumens je Eintrag mit Zustandschip, Weg und Grund (Spec Speicher §2.5, § 11.4 d); danach der
+/// Hinweis auf lokale Snapshots mit kopierbarem Befehl (Grantry führt ihn nicht aus).
+private struct StorageOutcomes: View {
     let outcomes: [StorageCleanOutcome]
+    let reports: [StorageCategoryReport]
 
     var body: some View {
-        DisclosureGroup("Details") {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(outcomes.enumerated()), id: \.offset) { _, outcome in
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            OutcomeMarker(result: outcome.result)
-                            Text(verbatim: "\(abbreviatedTarget(outcome.target)) (\(StoragePresentation.methodText(outcome.method))): "
-                                 + StoragePresentation.resultText(outcome))
-                                .textSelection(.enabled)
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+        SelectionGroupHeader(title: String(localized: "Details"), count: outcomes.count)
+        ForEach(Array(outcomes.enumerated()), id: \.offset) { _, outcome in
+            OutcomeRow(StorageBoardMapping.outcomeChip(outcome), target: StorageBoardMapping.outcomeTarget(outcome),
+                       reason: StoragePresentation.outcomeReason(outcome))
+        }
+        if let note = TimeMachinePresentation.snapshotNote(after: outcomes, reports: reports) {
+            DetailItem(InstrumentRowContent(symbol: "clock.arrow.circlepath", title: String(localized: "Lokale Snapshots"),
+                                            detail: note.text)) {
+                DetailEntry(String(localized: "Befehl"), value: note.command, isCode: true)
+            } actions: {
+                Button("Befehl kopieren") { copy(note.command) }
             }
-            .frame(maxHeight: 160)
-        }
-        .font(.caption)
-    }
-}
-
-/// Symbol für das Ergebnis eines Eintrags, mit Ergebnis als Bedienungshilfe-Text.
-private struct OutcomeMarker: View {
-    let result: StorageCleanOutcome.Result
-
-    var body: some View {
-        switch result {
-        case .removed:
-            Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).accessibilityLabel("aufgeräumt")
-        case .skipped:
-            Image(systemName: "minus.circle.fill").foregroundStyle(.secondary).accessibilityLabel("übersprungen")
-        case .failed:
-            Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange).accessibilityLabel("fehlgeschlagen")
+            .padding(.horizontal, InstrumentSpacing.group)
         }
     }
 }
 
-/// Pfade mit `~` statt des Benutzerordners; Befehlszeilen bleiben unverändert.
-private func abbreviatedTarget(_ target: String) -> String { (target as NSString).abbreviatingWithTildeInPath }
-
-/// Eine Kategorie: Kopfzeile mit Größe, Risiko und Status; aufgeklappt die Einträge.
-private struct StorageCategoryRow: View {
+/// Eine Kategorie (§ 11.4 c): Kopf mit Satz, Status, Risiko, Größe und Spur des Anteils als Aufklapp-Knopf; aufgeklappt
+/// die Einträge als Häkchenzeilen, Einträge ohne Häkchen mit Verweis (Befehl kopieren, Im Finder zeigen). Während einer
+/// Aktion bleiben die Häkchen sichtbar, gesperrt und blass (e).
+private struct StorageCategorySection: View {
     let report: StorageCategoryReport
+    let share: Double?
+    let summary: String
     @Binding var selection: Set<String>
     @Binding var isExpanded: Bool
-    /// „Time Machine: gesichert/ausgenommen/teilweise gesichert“ (#227); `nil` ohne Vorschlag der Kategorie.
-    let timeMachineNote: String?
     let isLocked: Bool
 
     var body: some View {
-        DisclosureGroup(isExpanded: $isExpanded) {
+        let risk = StorageBoardMapping.risk(report.category.risk)
+        let status = StorageBoardMapping.status(report.status)
+        DisclosureSection(report.category.title,
+                          value: StorageCategoryHead.spokenValue(size: report.sizeText, share: share, risk: risk,
+                                                                 status: status, summary: summary),
+                          isExpanded: $isExpanded, togglesOnHead: true) {
+            StorageCategoryHead(title: report.category.title, summary: summary, risk: risk, status: status,
+                                size: report.sizeText, share: share)
+        } content: {
             ForEach(report.items) { item in
                 itemRow(item)
             }
-        } label: {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(verbatim: report.category.title)
-                    Text(verbatim: report.category.summary).font(.caption).foregroundStyle(.secondary)
-                    if let timeMachineNote {
-                        Text(verbatim: timeMachineNote).font(.caption).foregroundStyle(.secondary)
-                    }
-                }
-                Spacer()
-                if let status = StoragePresentation.statusText(report.status) {
-                    Text(verbatim: status).font(.caption).foregroundStyle(.orange)
-                }
-                Text(verbatim: StoragePresentation.riskText(report.category.risk)).font(.caption)
-                    .padding(.horizontal, 6).background(.quaternary, in: Capsule())
-                Text(verbatim: report.sizeText).monospacedDigit()
-            }
         }
+        .padding(.leading, InstrumentSpacing.group)
     }
 
+    @ViewBuilder
     private func itemRow(_ item: StorageItem) -> some View {
-        HStack {
-            if item.isSelectable {
-                Toggle(isOn: isSelected(item)) { itemLabel(item) }
-                    .disabled(isLocked)
-            } else {
-                itemLabel(item)
+        if item.isSelectable {
+            SelectionCheckRow(item.title, detail: StorageBoardMapping.detail(item), size: item.sizeText,
+                              isOn: isSelected(item))
+                .disabled(isLocked)
+        } else if let hint = item.hint {
+            ReportRow(symbol: "terminal", title: item.title, detail: item.detail ?? "", size: item.sizeText) {
+                Button("Befehl kopieren") { copy(hint) }
+                    .accessibilityLabel(Text("Befehl für \(item.title) kopieren"))
             }
-            Spacer()
-            Text(verbatim: item.sizeText).foregroundStyle(.secondary)
-            if let hint = item.hint {
-                Button("Befehl kopieren") {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(hint, forType: .string)
+        } else {
+            ReportRow(symbol: "lock", title: item.title, detail: item.detail ?? "", size: item.sizeText) {
+                if let path = item.path {
+                    Button("Im Finder zeigen") { NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "") }
+                        .accessibilityLabel(Text("\(item.title) im Finder zeigen"))
                 }
-                .buttonStyle(.link)
-                .accessibilityLabel(Text("Befehl für \(item.title) kopieren"))
-            } else if let path = item.path, !item.isSelectable {
-                Button("Im Finder zeigen") { NSWorkspace.shared.selectFile(path, inFileViewerRootedAtPath: "") }
-                    .buttonStyle(.link)
-                    .accessibilityLabel(Text("\(item.title) im Finder zeigen"))
-            }
-        }
-    }
-
-    /// Titel, darunter ggf. die Zusatzzeile („Zuletzt benutzt …“, „Wird gerade benutzt von …“).
-    private func itemLabel(_ item: StorageItem) -> some View {
-        VStack(alignment: .leading) {
-            Text(verbatim: item.title)
-            if let detail = item.detail {
-                Text(verbatim: detail).font(.caption).foregroundStyle(.secondary)
             }
         }
     }
@@ -393,6 +270,77 @@ private struct StorageCategoryRow: View {
         Binding(get: { selection.contains(item.id) },
                 set: { if $0 { selection.insert(item.id) } else { selection.remove(item.id) } })
     }
+}
+
+/// „Time-Machine-Vorschläge“ (#227): Ordner, die sich neu erzeugen oder laden lassen, mit Status, Größe und Risiko;
+/// vorausgewählt nur Risiko „gering“. Die Knöpfe ändern nur gewählte Ordner, deren Status die Änderung betrifft.
+private struct TimeMachineSuggestionsGroup: View {
+    let report: TimeMachineReport
+    @Binding var selection: Set<String>
+    let canChange: Bool
+    let confirm: (TimeMachineChange) -> Void
+
+    var body: some View {
+        SelectionGroupHeader(title: String(localized: "Time-Machine-Vorschläge"), count: report.suggestions.count)
+        if let failure = report.failure {
+            InstrumentNote(String(localized: "Status nicht lesbar: \(failure)"), kind: .critical)
+                .padding(.horizontal, InstrumentSpacing.group)
+        }
+        ForEach(report.suggestions) { suggestion in
+            SelectionCheckRow(suggestion.candidate.title,
+                              detail: "\(StorageBoardMapping.abbreviated(suggestion.candidate.path)) · "
+                                  + TimeMachinePresentation.stateText(suggestion.state),
+                              size: suggestion.sizeText, isOn: isSelected(suggestion),
+                              hint: StorageBoardMapping.risk(suggestion.candidate.risk))
+                .disabled(!canChange || suggestion.state == .unknown)
+        }
+        HStack(spacing: InstrumentSpacing.group) {
+            Button("Aus Time Machine ausnehmen …") { confirm(.exclude) }
+                .disabled(!canChange || targets(.exclude).isEmpty)
+            Button("Wieder sichern …") { confirm(.include) }
+                .disabled(!canChange || targets(.include).isEmpty)
+            Spacer(minLength: 0)
+        }
+        .controlSize(.small)
+        .padding(.horizontal, InstrumentSpacing.group)
+        InstrumentNote(String(localized: "Lässt sich neu erzeugen oder herunterladen. Grantry ändert nur die Sicherung, nicht die Ordner."))
+            .padding(.horizontal, InstrumentSpacing.group)
+    }
+
+    private func targets(_ change: TimeMachineChange) -> [TimeMachineSuggestion] {
+        TimeMachinePresentation.targets(of: change, in: report.suggestions, selection: selection)
+    }
+
+    private func isSelected(_ suggestion: TimeMachineSuggestion) -> Binding<Bool> {
+        Binding(get: { selection.contains(suggestion.id) },
+                set: { if $0 { selection.insert(suggestion.id) } else { selection.remove(suggestion.id) } })
+    }
+}
+
+/// „Zuletzt aufgeräumt“ mit Zustandschip je Eintrag, bei Übersprungenem und Fehlgeschlagenem mit Grund, und Sprung zum
+/// Protokoll.
+private struct RecentLogGroup: View {
+    let entries: [CleanupLogEntry]
+    let logURL: URL
+
+    var body: some View {
+        SelectionGroupHeader(title: String(localized: "Zuletzt aufgeräumt"), count: entries.count)
+        ForEach(Array(entries.enumerated()), id: \.offset) { _, entry in
+            OutcomeRow(StorageBoardMapping.outcomeChip(entry.outcome), target: StorageBoardMapping.logTarget(entry),
+                       reason: StoragePresentation.outcomeReason(entry.outcome))
+                .help(Text(verbatim: StoragePresentation.resultText(entry.outcome)))
+        }
+        Button("Protokoll im Finder zeigen") { NSWorkspace.shared.activateFileViewerSelecting([logURL]) }
+            .buttonStyle(.link)
+            .font(InstrumentFont.label)
+            .padding(.horizontal, InstrumentSpacing.group)
+    }
+}
+
+/// Legt einen Befehl in die Zwischenablage; Grantry führt ihn nicht aus.
+private func copy(_ command: String) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(command, forType: .string)
 }
 
 /// Code-Wurzeln und Altersgrenze der Projektsuche; wirken beim nächsten Scan.
@@ -433,19 +381,19 @@ private struct StorageOptionsContent: View {
     let addRoot: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
             Text("Code-Ordner")
                 .font(.headline)
                 .accessibilityAddTraits(.isHeader)
             if roots.isEmpty {
                 Text("Keine Code-Ordner ausgewählt.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.instrumentSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
                         ForEach(roots, id: \.self) { root in
-                            HStack(alignment: .top, spacing: 12) {
+                            HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
                                 Text(verbatim: (root as NSString).abbreviatingWithTildeInPath)
                                     .lineLimit(2)
                                     .truncationMode(.middle)
@@ -459,7 +407,7 @@ private struct StorageOptionsContent: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.trailing, 8)
+                    .padding(.trailing, InstrumentSpacing.group)
                 }
                 .frame(maxHeight: 240)
                 .fixedSize(horizontal: false, vertical: true)
@@ -471,18 +419,7 @@ private struct StorageOptionsContent: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(20)
+        .padding(InstrumentSpacing.bar)
         .frame(width: 380, alignment: .leading)
     }
-}
-
-#Preview("Speicher – Leiste über den Kategorien") {
-    List {
-        ForEach(["Xcode DerivedData – 12,8 GB", "Caches – 4,2 GB", "Simulator-Laufzeiten – 3,1 GB"], id: \.self) {
-            Text(verbatim: $0)
-        }
-    }
-    .listStyle(.inset)
-    .scanProgressAboveTable(.preview())
-    .frame(width: 720, height: 220)
 }

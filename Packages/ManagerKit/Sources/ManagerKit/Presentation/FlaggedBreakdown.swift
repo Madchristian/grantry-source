@@ -60,10 +60,13 @@ public struct FlaggedBreakdown: Hashable, Sendable {
         public let flagged: Int
         /// Höchster Befund niedrig.
         public let hints: Int
+        /// Davon (in `flagged`) mit hohem Befund – Chip „kritisch“ der Lagezeile.
+        public let critical: Int
 
-        public init(flagged: Int, hints: Int) {
+        public init(flagged: Int, hints: Int, critical: Int = 0) {
             self.flagged = flagged
             self.hints = hints
+            self.critical = critical
         }
 
         /// Einträge mit Befund, die `filter` durchlässt; Einträge ohne Befund zählen nie.
@@ -88,7 +91,8 @@ public struct FlaggedBreakdown: Hashable, Sendable {
     init(recordIDs: [FlaggedArea: [String]], severities: SeverityIndex) {
         self.init(recordIDs.mapValues { ids in
             let area = severities.restricted(to: ids)
-            return Counts(flagged: area.recordIDs { $0 >= .medium }.count, hints: area.recordIDs { $0 == .low }.count)
+            return Counts(flagged: area.recordIDs { $0 >= .medium }.count, hints: area.recordIDs { $0 == .low }.count,
+                          critical: area.recordIDs { $0 == .high }.count)
         })
     }
 
@@ -104,6 +108,8 @@ public struct FlaggedBreakdown: Hashable, Sendable {
 
     /// Auffällige Einträge (mittel oder hoch) über alle Bereiche.
     public var flaggedCount: Int { total(for: .flagged) }
+    /// Auffällige Einträge mit hohem Befund über alle Bereiche.
+    public var criticalCount: Int { countsByArea.values.reduce(0) { $0 + $1.critical } }
     /// Einträge, deren höchster Befund niedrig ist, über alle Bereiche.
     public var hintCount: Int { countsByArea.values.reduce(0) { $0 + $1.hints } }
 

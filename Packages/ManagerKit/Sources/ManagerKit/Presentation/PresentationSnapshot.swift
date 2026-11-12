@@ -21,6 +21,9 @@ public struct PresentationSnapshot: Hashable, Sendable {
     public let agents: AgentPresentationState
     /// Erweiterungen im App-Detail, beim Entfernen und als Reste in „Aufräumen“ (TM-13.6).
     public let extensions: ExtensionReferences
+    /// Schwerster Befund (mittel oder hoch) eines Eintrags, den eine Liste zeigt – Grund der Lagezeile; bei Gleichstand
+    /// der erste. `nil` ohne auffälligen Eintrag.
+    public let leadingFinding: RiskFinding?
     private let appLinksByID: [String: AppLinks]
     private let findingsByRecordID: [String: [RiskFinding]]
     private let cleanupHintsByRecordID: [String: CleanupHint]
@@ -102,19 +105,18 @@ public struct PresentationSnapshot: Hashable, Sendable {
         let agents = AgentPresentationState(snapshot: snapshot)
         let extensions = ExtensionReferences(records: snapshot.extensions)
         // Je Bereich genau die Einträge, die seine Liste zeigt (#275).
-        let flagged = FlaggedBreakdown(
-            recordIDs: [
-                .permissions: serviceGroups.flatMap(\.grants).map(\.id),
-                .autostart: autostartSections.flatMap(\.items).map(\.id),
-                .extensions: extensions.recordIDs,
-                .apps: installedApps.map(\.id),
-                .agents: agents.groups.flatMap(\.recordIDs),
-                .network: NetworkListenerPresenter.rows(
-                    network.listeners, severity: { _ in nil }, query: "", filter: .flagged
-                ).map(\.id),
-            ],
-            severities: SeverityIndex(findings)
-        )
+        let listedIDs: [FlaggedArea: [String]] = [
+            .permissions: serviceGroups.flatMap(\.grants).map(\.id),
+            .autostart: autostartSections.flatMap(\.items).map(\.id),
+            .extensions: extensions.recordIDs,
+            .apps: installedApps.map(\.id),
+            .agents: agents.groups.flatMap(\.recordIDs),
+            .network: NetworkListenerPresenter.rows(
+                network.listeners, severity: { _ in nil }, query: "", filter: .flagged
+            ).map(\.id),
+        ]
+        let flagged = FlaggedBreakdown(recordIDs: listedIDs, severities: SeverityIndex(findings))
+        let listed = Set(listedIDs.values.joined())
         return PresentationSnapshot(
             appGroups: InventoryPresenter.appGroups(snapshot: snapshot, findings: findings),
             serviceGroups: serviceGroups,
@@ -128,6 +130,8 @@ public struct PresentationSnapshot: Hashable, Sendable {
             network: network,
             agents: agents,
             extensions: extensions,
+            leadingFinding: findings.filter { $0.severity >= .medium && listed.contains($0.recordID) }
+                .max { $0.severity < $1.severity },
             appLinksByID: AppLinks.index(snapshot.installedApps, in: snapshot),
             findingsByRecordID: Dictionary(grouping: findings, by: \.recordID).mapValues { findings in
                 findings.enumerated()

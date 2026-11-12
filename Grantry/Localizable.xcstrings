@@ -9,6 +9,12 @@
     "Leistungsaufnahme, %@" : {},
     "Aus dem Wachbuch: gemessen, solange Leistung, Chip oder Übersicht offen war. Lücken bleiben leer." : {},
 
+    "Drittanbieter-Lizenzen" : {},
+    "Lizenztexte der Komponenten anderer Anbieter, die Grantry enthält." : {},
+    "Lizenzen anzeigen …" : {},
+    "Grantry enthält die folgenden Komponenten. Ihre Lizenzen verlangen, dass dieser Text jeder Kopie beiliegt." : {},
+    "Die Lizenztexte fehlen im App-Paket. Bitte Grantry neu laden und installieren." : {},
+    "Projektseite" : {},
     "Befunde" : {},
     "Alle Einträge" : {},
     "Auffällige und Hinweise" : {},
@@ -111,6 +117,28 @@
     "%lld Server" : {
 
     },
+    "%lld Werkzeuge" : {
+      "localizations" : {
+        "de" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Werkzeug"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Werkzeuge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld neue Einträge sind nicht mehr (oder nicht mehr unverändert) vorhanden." : {
 
     },
@@ -155,9 +183,6 @@
 
     },
     "Abschließender Scan läuft" : {
-
-    },
-    "Abschließender Scan läuft …" : {
 
     },
     "Adresse kopieren" : {
@@ -289,9 +314,6 @@
     "Auslastung" : {
 
     },
-    "Auslastung je Kern" : {
-
-    },
     "1 von %lld Prozessen" : {
 
     },
@@ -388,9 +410,6 @@
     "Berechtigungen" : {
 
     },
-    "Berechtigungen entfernter Apps: %@" : {
-
-    },
     "Berechtigungen zurücksetzen" : {
 
     },
@@ -407,9 +426,6 @@
 
     },
     "CPU-Last aller Prozesse, letzte 60 Sekunden" : {
-
-    },
-    "CPU-Verlauf und Speicher neben dem Grantry-Schild; gemessen wird nur, solange die Anzeige an ist." : {
 
     },
     "DMG-Prüfsumme …" : {
@@ -440,9 +456,6 @@
 
     },
     "Der abschließende Scan ist ausgeblieben – bitte erneut versuchen." : {
-
-    },
-    "Der erste Scan dient als Ausgangsbasis und meldet nichts; erst Änderungen danach erscheinen im Verlauf und als Benachrichtigung." : {
 
     },
     "Der erste Scan ist noch nicht abgeschlossen." : {
@@ -521,9 +534,6 @@
 
     },
     "Empfangen gesamt" : {
-
-    },
-    "Empfangen pro Sekunde" : {
 
     },
     "Energie" : {
@@ -614,9 +624,6 @@
 
     },
     "Gesendet gesamt" : {
-
-    },
-    "Gesendet pro Sekunde" : {
 
     },
     "Gestartet aus" : {
@@ -715,9 +722,6 @@
     "In „Autostart“ zeigen" : {
 
     },
-    "In „Berechtigungen“ zeigen" : {
-
-    },
     "Installation beobachten" : {
 
     },
@@ -757,9 +761,6 @@
     "Kein Programm nimmt Verbindungen an (Systemdienste ausgeblendet)." : {
 
     },
-    "Kein Prozess belegt dauerhaft mehr als 80 % eines Kerns." : {
-
-    },
     "Kein Prozess passt zu den gewählten Filtern." : {
 
     },
@@ -782,9 +783,6 @@
 
     },
     "Keine Berechtigungen" : {
-
-    },
-    "Keine Dienste aus dem Netz erreichbar" : {
 
     },
     "Keine Einträge" : {
@@ -829,9 +827,6 @@
     "Label oder PID" : {
 
     },
-    "Lauschende Dienste oder aktuelle Netzwerkaktivität zeigen" : {
-
-    },
     "Leistung" : {
 
     },
@@ -860,12 +855,6 @@
 
     },
     "Messe Netzwerkaktivität …" : {
-
-    },
-    "Mit Homebrew installiert – solange Homebrew die App verwaltet, sucht Grantry keine Reste. Zum Entfernen im Terminal:" : {
-
-    },
-    "Mit Homebrew installiert. Entferne die App im Terminal:" : {
 
     },
     "Mit Resten entfernen …" : {
@@ -970,9 +959,6 @@
     "Nur aktive" : {
 
     },
-    "Nur auf diesem Mac erreichbar" : {
-
-    },
     "Nur auffällige" : {
 
     },
@@ -1066,13 +1052,7 @@
     "Reste gelöschter Apps suchen" : {
 
     },
-    "Reste gelöschter Apps werden gesucht …" : {
-
-    },
     "Reste von „%@“" : {
-
-    },
-    "Reste werden gesucht …" : {
 
     },
     "SHA-256 des DMG" : {
@@ -1252,12 +1232,6 @@
     "Verlauf anzeigen" : {
 
     },
-    "Verlauf der letzten 2 Minuten: empfangen (farbig) und gesendet (grau)" : {
-
-    },
-    "Verlauf dieses Programms (bis 2 Minuten): empfangen (farbig) und gesendet (grau)" : {
-
-    },
     "Verlauf filtern" : {
 
     },
@@ -1288,9 +1262,6 @@
     "Wer diesen Mac erreichen kann" : {
 
     },
-    "Wert steht im Klartext in der Konfigurationsdatei – Grantry zeigt ihn nicht an." : {
-
-    },
     "Wie oft gemessen wird" : {
 
     },
@@ -1306,9 +1277,6 @@
     "Wähle einen Socket, um Adressen, Verkehr und Programm zu sehen." : {
 
     },
-    "Wähle links eine App, um Details zu sehen." : {
-
-    },
     "Wähle links eine App, um ihre Berechtigungen zu sehen." : {
 
     },
@@ -1319,9 +1287,6 @@
 
     },
     "Wähle links einen Autostart-Eintrag, um Details und Aktionen zu sehen." : {
-
-    },
-    "Wähle links einen Dienst, um Details zu sehen." : {
 
     },
     "Wähle links einen MCP-Server oder eine Freigabe, um Details zu sehen." : {
@@ -1339,13 +1304,7 @@
     "Zeigt den Verlauf." : {
 
     },
-    "Zeigt die Berechtigung im Bereich „Berechtigungen“." : {
-
-    },
     "Zeigt die Berechtigungen nach App." : {
-
-    },
-    "Zeigt die von außen erreichbaren Netzwerkdienste." : {
 
     },
     "Zeitraum" : {
@@ -1432,9 +1391,6 @@
     "neu" : {
 
     },
-    "neue Apps, Berechtigungen, Autostart und Agenten" : {
-
-    },
     "und %lld weitere" : {
 
     },
@@ -1471,12 +1427,6 @@
     "„%@“ entfernen" : {
 
     },
-    "„%@“ läuft und hat das Beenden abgelehnt – bitte selbst beenden." : {
-
-    },
-    "„%@“ läuft – zum Entfernen zuerst beenden." : {
-
-    },
     "„%@“ sofort beenden …" : {
 
     },
@@ -1501,9 +1451,6 @@
     "Nur mit Helper messbar" : {
 
     },
-    "Auslastung je Kern, nach Cluster" : {
-
-    },
     "Prozessname" : {
 
     },
@@ -1525,19 +1472,10 @@
     "Ohne nettop zeigt Grantry keine Verbindungen." : {
 
     },
-    "Messe Verbindungen …" : {
-
-    },
-    "Keine Verbindung passt zum gewählten Filter." : {
-
-    },
     "%lld von %lld angezeigt" : {
 
     },
     "nettop zeigt die Sockets aller Benutzer. Prozesse anderer Benutzer beendet Grantry nur über den Helper." : {
-
-    },
-    "Wähle eine Verbindung, um Details zu sehen." : {
 
     },
     "Offene Sockets" : {
@@ -1546,19 +1484,7 @@
     "Lauschend" : {
 
     },
-    "Offene TCP-Ports" : {
-
-    },
     "Öffentlich" : {
-
-    },
-    "Alle Schnittstellen oder öffentliche Adresse" : {
-
-    },
-    "Mit offenen Sockets" : {
-
-    },
-    "Verlauf der letzten 2 Minuten: empfangen und gesendet" : {
 
     },
     "Systemverkehr" : {
@@ -1571,12 +1497,6 @@
 
     },
     "Protokoll" : {
-
-    },
-    "Lokaler Endpunkt" : {
-
-    },
-    "Entfernter Endpunkt" : {
 
     },
     "Netzwerkdienst" : {
@@ -1684,13 +1604,7 @@
     "In „Erweiterungen“ zeigen" : {
 
     },
-    "Zeigt die Erweiterung im Bereich „Erweiterungen“." : {
-
-    },
     "Alle im Bereich „Erweiterungen“ zeigen" : {
-
-    },
-    "Außer den Erweiterungen oben hat Grantry keine Reste gelöschter Apps gefunden." : {
 
     },
     "1 Erweiterung ohne App" : {

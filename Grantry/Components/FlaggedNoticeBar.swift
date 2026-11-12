@@ -1,3 +1,4 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -17,8 +18,8 @@ struct FlaggedNoticeBar: View {
                 accessibilityLabel: notice.accessibilityLabel, isEmphasized: false
             ) {
                 ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 6) { links(notice) }
-                    VStack(alignment: .leading, spacing: 4) { links(notice) }
+                    HStack(spacing: InstrumentSpacing.item) { links(notice) }
+                    VStack(alignment: .leading, spacing: InstrumentSpacing.inline) { links(notice) }
                 }
             }
             Divider()

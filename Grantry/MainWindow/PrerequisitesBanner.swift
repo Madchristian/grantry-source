@@ -1,3 +1,4 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
@@ -10,10 +11,7 @@ struct PrerequisitesBanner: View {
     let showSetup: () -> Void
 
     var body: some View {
-        DashboardBanner(
-            systemImage: PresentationTone.warning.systemImage, tint: PresentationTone.warning.color,
-            title: String(localized: "Voraussetzungen fehlen"), text: text
-        ) {
+        InstrumentBanner(String(localized: "Voraussetzungen fehlen"), message: text, tone: PresentationTone.warning.statusTone) {
             if let openFullDiskAccess {
                 Button("Festplattenvollzugriff öffnen …", action: openFullDiskAccess)
             }

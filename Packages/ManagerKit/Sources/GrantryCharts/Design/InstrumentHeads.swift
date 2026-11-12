@@ -112,25 +112,50 @@ public struct FindingDot: View {
     }
 }
 
-/// Zustandsschild (§3.10): Kreis im Grantry-Verlauf mit weißem Schild; bei offenem Befund der Bernstein-Punkt oben
-/// rechts.
+/// Form des Zustandsschilds (§3.10, Spec 2026-11-10 § 11.3 c): Häkchen nur beim Urteil „ruhig“, Ausrufezeichen mit
+/// Bernstein-Punkt beim Befund, ohne Zeichen („offen“) für Zustände ohne Urteil – noch nicht geprüft, unvollständig
+/// geprüft, nicht lesbar, noch nicht gesucht –, damit nichts wie eine Entwarnung wirkt.
+public enum ShieldForm: Hashable, Sendable {
+    case calm, finding, open
+
+    public init(finding: Bool) {
+        self = finding ? .finding : .calm
+    }
+
+    var symbolName: String {
+        switch self {
+        case .calm: "checkmark.shield.fill"
+        case .finding: "exclamationmark.shield.fill"
+        case .open: "shield.fill"
+        }
+    }
+
+    var showsFindingDot: Bool { self == .finding }
+}
+
+/// Zustandsschild (§3.10): Kreis im Grantry-Verlauf mit weißem Schild in einer der drei Formen; beim Befund der
+/// Bernstein-Punkt oben rechts. Dekorativ, das Urteil daneben sagt den Zustand.
 public struct ShieldBadge: View {
-    let finding: Bool
+    let form: ShieldForm
     let size: CGFloat
 
-    public init(finding: Bool, size: CGFloat = InstrumentSize.shield) {
-        self.finding = finding
+    public init(form: ShieldForm, size: CGFloat = InstrumentSize.shield) {
+        self.form = form
         self.size = size
     }
 
+    public init(finding: Bool, size: CGFloat = InstrumentSize.shield) {
+        self.init(form: ShieldForm(finding: finding), size: size)
+    }
+
     public var body: some View {
-        Image(systemName: finding ? "exclamationmark.shield.fill" : "checkmark.shield.fill")
+        Image(systemName: form.symbolName)
             .font(.system(size: size * 0.5, weight: .semibold))
             .foregroundStyle(.white)
             .frame(width: size, height: size)
             .background(Circle().fill(GrantryBrand.fill))
             .overlay(alignment: .topTrailing) {
-                if finding {
+                if form.showsFindingDot {
                     FindingDot(size: max(size * 0.22, 5)).offset(x: size * 0.08, y: -size * 0.08)
                 }
             }
@@ -191,24 +216,30 @@ public struct StatusChip: View {
 public struct VerdictBar: View {
     let verdict: String
     let reason: String
-    let finding: Bool
+    let shield: ShieldForm
     let items: [StatusItem]
     let facts: String
 
-    public init(verdict: String, reason: String, finding: Bool, items: [StatusItem], facts: String) {
+    public init(verdict: String, reason: String, shield: ShieldForm, items: [StatusItem], facts: String) {
         self.verdict = verdict
         self.reason = reason
-        self.finding = finding
+        self.shield = shield
         self.items = items
         self.facts = facts
     }
 
+    public init(verdict: String, reason: String, finding: Bool, items: [StatusItem], facts: String) {
+        self.init(verdict: verdict, reason: reason, shield: ShieldForm(finding: finding), items: items, facts: facts)
+    }
+
     public var body: some View {
         HStack(spacing: InstrumentSpacing.page) {
-            ShieldBadge(finding: finding)
+            ShieldBadge(form: shield)
             VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
                 Text(verbatim: verdict).font(InstrumentFont.verdict).accessibilityAddTraits(.isHeader)
-                Text(verbatim: reason).font(InstrumentFont.body).foregroundStyle(.instrumentSecondary).lineLimit(2)
+                // Bis zu vier Zeilen: Im 380 breiten Menüleisten-Menü (#555) braucht derselbe Grund wie in der Übersicht
+                // drei Zeilen; breit bleibt es bei einer oder zwei.
+                Text(verbatim: reason).font(InstrumentFont.body).foregroundStyle(.instrumentSecondary).lineLimit(4)
             }
             Spacer(minLength: InstrumentSpacing.panel)
             VStack(alignment: .trailing, spacing: InstrumentSpacing.item) {
@@ -226,20 +257,24 @@ public struct VerdictBar: View {
 /// Zustandszeile aller Tabs außer der Übersicht (§3.1): kleines Schild, Urteil, Chips, Kenndaten – eine Zeile oben.
 public struct StatusLine: View {
     let verdict: String
-    let finding: Bool
+    let shield: ShieldForm
     let items: [StatusItem]
     let facts: String
 
-    public init(verdict: String, finding: Bool, items: [StatusItem], facts: String) {
+    public init(verdict: String, shield: ShieldForm, items: [StatusItem], facts: String) {
         self.verdict = verdict
-        self.finding = finding
+        self.shield = shield
         self.items = items
         self.facts = facts
     }
 
+    public init(verdict: String, finding: Bool, items: [StatusItem], facts: String) {
+        self.init(verdict: verdict, shield: ShieldForm(finding: finding), items: items, facts: facts)
+    }
+
     public var body: some View {
         HStack(spacing: InstrumentSpacing.cell) {
-            ShieldBadge(finding: finding, size: InstrumentSize.shieldSmall)
+            ShieldBadge(form: shield, size: InstrumentSize.shieldSmall)
             Text(verbatim: verdict).font(InstrumentFont.body.weight(.semibold)).lineLimit(1)
             ForEach(items, id: \.self) { StatusChip($0) }
             Spacer(minLength: InstrumentSpacing.group)

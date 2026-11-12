@@ -47,35 +47,3 @@ final class CancellableSearch {
         if phase == .searching { phase = .cancelled }
     }
 }
-
-/// Fortschritt mit „Suche abbrechen“ bzw. nach einem Abbruch „Erneut suchen“; leer in den übrigen Phasen.
-struct SearchStatusView: View {
-    let search: CancellableSearch
-    let searchingTitle: LocalizedStringKey
-    let retry: () -> Void
-
-    var body: some View {
-        switch search.phase {
-        case .searching:
-            HStack(spacing: 8) {
-                ProgressView()
-                    .controlSize(.small)
-                    .accessibilityHidden(true)
-                Text(searchingTitle)
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 8)
-                Button("Suche abbrechen", action: search.cancel)
-            }
-            .accessibilityElement(children: .contain)
-        case .cancelled:
-            HStack(spacing: 8) {
-                Text("Suche abgebrochen – es wird nichts angeboten.")
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: 8)
-                Button("Erneut suchen", action: retry)
-            }
-        case .idle, .finished:
-            EmptyView()
-        }
-    }
-}

@@ -119,8 +119,8 @@ import Testing
         #expect(page.engines == "Media Engine: 4 Videoencoder · 2 Videodecoder · 4 ProRes-Engines · Neural Engine: 2 Blöcke")
     }
 
-    /// Künftige Stufennamen erscheinen mit Rückfall; die mittlere Stufe hat keine Kernart. Ohne Gerätebaum kennt die
-    /// Stufe ihre Cluster nicht – dann zählt `cpusperl2`.
+    /// Künftige Stufennamen erscheinen mit Rückfall; die mittlere Stufe ohne Namen ist eine neutrale Klasse. Ohne
+    /// Gerätebaum kennt die Stufe ihre Cluster nicht – dann zählt `cpusperl2`.
     @Test func unknownLevelNamesAndClustersFallBack() {
         let facts = ChipFacts(brand: "Apple M9", levels: [
             ChipFacts.Level(name: "Super", logicalCPUs: 2, l2CacheBytes: 8 << 20, cpusPerL2: 2),
@@ -130,7 +130,7 @@ import Testing
         let page = ChipPresentation.page(profile: ChipProfile(facts: facts), snapshot: Self.snapshot(loads: []),
                                          sensors: nil, thermalState: .nominal)
         #expect(page.levels.map(\.title) == ["Super-Kerne", "Kerne der Stufe 2", "Effizienzkerne"])
-        #expect(page.levels.map(\.kind) == [.performance, .unknown, .efficiency])
+        #expect(page.levels.map(\.kind) == [.super, .other(level: 1, name: nil), .efficiency])
         #expect(page.levels.map(\.detail) == ["2 Kerne · 1 Cluster · 8 MB L2", "4 Kerne · 2 Cluster à 2 Kerne · je 8 MB L2",
                                               "2 Kerne"])
         #expect(page.levels.allSatisfy { $0.clusters.isEmpty })

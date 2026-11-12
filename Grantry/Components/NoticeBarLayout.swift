@@ -1,9 +1,10 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Gestaltung der Hinweisleiste über einer Liste (#142): Symbol in Zustandsfarbe, Überschrift, bis zu zwei Gründe
-/// (weitere als „und n weitere“ mit Tooltip), Schaltflächen und ruhige Notizen. Hervorgehoben (fett, getönter
-/// Hintergrund) nur bei `isEmphasized`. Gemeinsam für die Scan-Abdeckung (`AreaCoverageBar`) und die
+/// Gestaltung der Hinweisleiste über einer Liste (#142): Symbol im Zustandston (`StatusTone`), Überschrift, bis zu zwei
+/// Gründe (weitere als „und n weitere“ mit Tooltip), Schaltflächen und ruhige Notizen. Hervorgehoben (fett, Mulde im
+/// Zustandston) nur bei `isEmphasized`. Gemeinsam für die Scan-Abdeckung (`AreaCoverageBar`) und die
 /// Netzwerkaktivität (`NetworkActivityNoticeBar`); lange Gründe werden gekürzt, ohne `fixedSize(vertical:)` (d342e9b).
 struct NoticeBarLayout<Actions: View>: View {
     let systemImage: String
@@ -16,41 +17,44 @@ struct NoticeBarLayout<Actions: View>: View {
     var notes: [String] = []
     @ViewBuilder let actions: Actions
 
+    @Environment(\.self) private var environment
+
     /// So viele Gründe stehen ausgeschrieben da, weitere fasst „und n weitere“ zusammen.
     private var visibleReasonCount: Int { 2 }
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
+        let color = environment.statusColor(tone.statusTone)
+        HStack(alignment: .firstTextBaseline, spacing: InstrumentSpacing.group) {
             Image(systemName: systemImage)
-                .foregroundStyle(tone.color)
+                .foregroundStyle(color)
                 .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: InstrumentSpacing.inline) {
                 Text(verbatim: headline)
                     .fontWeight(isEmphasized ? .semibold : .regular)
-                    .foregroundStyle(isEmphasized ? .primary : .secondary)
+                    .foregroundStyle(isEmphasized ? AnyShapeStyle(.primary) : AnyShapeStyle(.instrumentSecondary))
                     .lineLimit(2)
                     .accessibilityLabel(Text(verbatim: accessibilityLabel))
                     .accessibilityAddTraits(.isHeader)
                 if let explanation {
                     Text(verbatim: explanation)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.instrumentSecondary)
                         .lineLimit(3)
                 }
                 reasonList
                 actions
                 ForEach(notes, id: \.self) { note in
                     Text(verbatim: note)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(InstrumentFont.label)
+                        .foregroundStyle(.instrumentSecondary)
                         .lineLimit(2)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .font(.callout)
+        .font(InstrumentFont.body)
         .textSelection(.enabled)
-        .padding(8)
-        .background(isEmphasized ? tone.color.opacity(0.08) : Color.clear)
+        .padding(InstrumentSpacing.group)
+        .background(isEmphasized ? color.opacity(InstrumentOpacity.well) : Color.clear)
         .accessibilityElement(children: .contain)
     }
 
@@ -58,14 +62,14 @@ struct NoticeBarLayout<Actions: View>: View {
     private var reasonList: some View {
         ForEach(reasons.prefix(visibleReasonCount), id: \.self) { reason in
             Text(verbatim: reason)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.instrumentSecondary)
                 .lineLimit(3)
                 .help(Text(verbatim: reason))
         }
         let hidden = reasons.dropFirst(visibleReasonCount)
         if !hidden.isEmpty {
             Text("und \(hidden.count) weitere")
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.instrumentSecondary)
                 .help(Text(verbatim: hidden.joined(separator: "\n")))
                 .accessibilityLabel(Text(verbatim: hidden.joined(separator: ". ")))
         }

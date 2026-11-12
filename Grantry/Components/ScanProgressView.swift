@@ -2,10 +2,12 @@ import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Darstellende Scan-Anzeige mit genau einer abbrechbaren Warteaufgabe je Prognose.
-/// Kein Polling; SwiftUI beendet die Aufgabe beim Ausblenden und bei neuer Prognose.
+/// Darstellende Scan-Anzeige als Spur (§3.5) mit Anteil und Restdauer darunter; mit genau einer abbrechbaren
+/// Warteaufgabe je Prognose. Kein Polling und kein Lauflicht: Ohne bekannten Anteil bleibt die Bahn leer, der Text sagt
+/// „Scan läuft …“. SwiftUI beendet die Aufgabe beim Ausblenden und bei neuer Prognose.
 struct ScanProgressView: View {
     let progress: ScanProgress
+    @Environment(\.self) private var environment
 
     static func valueText(_ progress: ScanProgress, at now: ContinuousClock.Instant = .now) -> String {
         if progress.isIndeterminate { return String(localized: "Scan läuft …") }
@@ -17,56 +19,18 @@ struct ScanProgressView: View {
 
     var body: some View {
         ScanProgressText(progress: progress) { text in
-            VStack(alignment: .leading, spacing: 3) {
-                Group {
-                    if progress.isIndeterminate {
-                        ProgressView()
-                    } else {
-                        ProgressView(value: progress.fraction, total: 1)
-                    }
-                }
-                .progressViewStyle(.linear)
+            VStack(alignment: .leading, spacing: InstrumentSpacing.inline) {
+                Spur(fraction: progress.isIndeterminate ? nil : progress.fraction,
+                     color: environment.statusColor(.info))
+                    .frame(height: InstrumentSize.spurList)
                 Text(verbatim: text)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(InstrumentFont.label.monospacedDigit())
+                    .foregroundStyle(.instrumentSecondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
             .frame(idealWidth: 180)
             .accessibilityReading(Text("Scan"), value: Text(verbatim: text))
-        }
-    }
-}
-
-/// Leiste direkt über einer Tabelle, solange der Scan ihres Segments läuft (#262, #270): Balken über die gesamte
-/// Tabellenbreite, Restdauer darunter.
-struct ScanProgressStrip: View {
-    let progress: ScanProgress
-
-    var body: some View {
-        ScanProgressView(progress: progress)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(.bar)
-            .overlay(alignment: .bottom) { Divider() }
-    }
-}
-
-extension View {
-    /// Setzt die Scan-Leiste des Segments über diese Tabelle, solange `progress` einen Lauf zeigt.
-    func scanProgressAboveTable(_ progress: SegmentScanProgress) -> some View {
-        modifier(ScanProgressAboveTable(progress: progress))
-    }
-}
-
-private struct ScanProgressAboveTable: ViewModifier {
-    let progress: SegmentScanProgress
-
-    func body(content: Content) -> some View {
-        VStack(spacing: 0) {
-            if let current = progress.current { ScanProgressStrip(progress: current) }
-            content
         }
     }
 }

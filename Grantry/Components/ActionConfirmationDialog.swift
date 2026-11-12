@@ -1,9 +1,10 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
 extension View {
     /// Bestätigung vor einer verändernden Aktion (Spec §5): Titel, Klartext und Hinweis aus `ActionConfirmation`,
-    /// destruktive Aktionen rot. `item` wird beim Schließen zurückgesetzt.
+    /// destruktive Aktionen mit Warnsymbol im Ton „auffällig“ und rotem Knopf. `item` wird beim Schließen zurückgesetzt.
     ///
     /// Bewusst ein eigenes Blatt statt `confirmationDialog`: Dort macht macOS die erste Aktion zur Standardtaste,
     /// sodass Return die (destruktive) Aktion auslöst. Hier lösen Return **und** Escape nur „Abbrechen“ aus; die
@@ -40,22 +41,24 @@ private struct RetainingConfirmationSheet<Item>: View {
     }
 }
 
-/// Inhalt des Bestätigungsblatts; Knöpfe und Tastenbelegung aus `ConfirmationButtonRow`.
+/// Inhalt des Bestätigungsblatts; Knöpfe und Tastenbelegung aus `ConfirmationButtonRow`. Gestaltung nur über Tokens
+/// und Zustandstöne (Spec 2026-11-10 §10, Entscheidung 5): Aufbau, Texte und Standardknopf bleiben.
 struct ActionConfirmationSheet: View {
     let confirmation: ActionConfirmation
     let confirm: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.self) private var environment
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 14) {
+        VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
+            HStack(alignment: .top, spacing: InstrumentSpacing.page) {
                 Image(systemName: confirmation.isDestructive ? "exclamationmark.triangle.fill" : "questionmark.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundStyle(confirmation.isDestructive ? Color.orange : Color.accentColor)
+                    .font(InstrumentFont.display)
+                    .foregroundStyle(environment.statusColor(confirmation.isDestructive ? .finding : .info))
                     .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: InstrumentSpacing.group) {
                     Text(verbatim: confirmation.title)
-                        .font(.headline)
+                        .font(InstrumentFont.title)
                     if let message = confirmation.message {
                         Text(verbatim: message)
                     }
@@ -74,7 +77,7 @@ struct ActionConfirmationSheet: View {
                 cancel: { dismiss() }
             )
         }
-        .padding(20)
+        .padding(InstrumentSpacing.empty)
         .frame(width: 440)
     }
 }
@@ -101,7 +104,7 @@ struct ConfirmationButtonRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: InstrumentSpacing.group) {
             Spacer()
             Button(cancelTitle, role: .cancel, action: cancel)
                 .keyboardShortcut(.defaultAction)

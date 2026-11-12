@@ -3,7 +3,9 @@ import ManagerKit
 import SwiftUI
 
 // Bausteine der Ansichten im Bereich Netzwerk, Gestaltung „Lagebild“ (docs/design/instrumententafel.md): Verbindungen,
-// Dienste und Aktivität teilen sich Verkehrsspiegel, Detailfelder, Hinweise und die Zuordnung zu Zustandstönen.
+// Dienste und Aktivität teilen sich Verkehrsspiegel, Programmangaben und die Zuordnung zu Zustandstönen. Detail-Panel,
+// Schlüssel-Wert-Zeilen, Hinweise und Badges kommen zentral aus GrantryCharts (`DetailPanel`, `DetailEntry`,
+// `InstrumentNote`, `BadgeChips`; LB-1.2, #536).
 
 /// Datenverkehr als Spiegel (§3.4): oben empfangen, unten gesendet, darüber die aktuellen Raten in den Farben der
 /// Messgrößen und die Legende. Zeichnet nur, wenn ein neuer Messpunkt kommt.
@@ -41,21 +43,6 @@ struct TrafficMirror: View {
     }
 }
 
-/// Feld im Detail: Titel klein und sekundär, darunter der Inhalt.
-struct DetailEntry<Content: View>: View {
-    let title: String
-    @ViewBuilder let content: Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
-            Text(verbatim: title).font(InstrumentFont.label).foregroundStyle(.instrumentSecondary)
-            content
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-}
-
 /// Pfad und Signatur eines Programms im Detail eines Sockets oder Dienstes; bei einem Interpreter auf Wunsch der Hinweis,
 /// dass die Signatur nichts über das Skript sagt.
 struct ProgramDetailEntries: View {
@@ -63,64 +50,14 @@ struct ProgramDetailEntries: View {
     var notesInterpreter = false
 
     var body: some View {
-        DetailEntry(title: String(localized: "Pfad")) {
+        DetailEntry(String(localized: "Pfad"), value: program.executablePath) {
             PathText(path: program.executablePath).font(InstrumentFont.body)
         }
-        DetailEntry(title: String(localized: "Signatur")) {
+        DetailEntry(String(localized: "Signatur"), value: program.signing.fullText) {
             SigningLabel(signing: program.signing).font(InstrumentFont.body)
         }
         if notesInterpreter && program.isInterpreter {
-            NetworkNote(text: String(localized: "Interpreter – die Signatur sagt nichts über das ausgeführte Skript."))
-        }
-    }
-}
-
-/// Hinweis im Inhalt (§3.12): `info.circle` und Text klein in Sekundärfarbe; ein Befund mit Befund-Punkt, ein Fehler mit
-/// Symbol in `critical`, beide mit Text in `font.body`.
-struct NetworkNote: View {
-    enum Kind {
-        case info, locked, finding, critical
-    }
-
-    let text: String
-    var kind = Kind.info
-
-    @Environment(\.self) private var environment
-
-    var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: InstrumentSpacing.item) {
-            switch kind {
-            case .info, .locked:
-                Image(systemName: kind == .info ? "info.circle" : "lock").foregroundStyle(.instrumentSecondary)
-                    .accessibilityHidden(true)
-            case .finding:
-                FindingDot(size: InstrumentSize.findingDotSmall)
-            case .critical:
-                Image(systemName: "exclamationmark.octagon.fill").foregroundStyle(environment.statusColor(.critical))
-                    .accessibilityHidden(true)
-            }
-            Text(verbatim: text)
-                .foregroundStyle(kind == .info || kind == .locked ? AnyShapeStyle(.instrumentSecondary)
-                    : AnyShapeStyle(.primary))
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .font(kind == .info || kind == .locked ? InstrumentFont.label : InstrumentFont.body)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-/// Badges eines Eintrags als kleine Zustandschips (§3.8): „prüfen“ im Ton des Schweregrads, „neu“ und „aufräumen“
-/// neutral. VoiceOver liest den Schweregrad mit.
-struct RecordBadgeChips: View {
-    let badges: [RecordBadge]
-
-    var body: some View {
-        HStack(spacing: InstrumentSpacing.inline) {
-            ForEach(badges, id: \.self) { badge in
-                StatusChip(badge.title, tone: badge.tone.statusTone, isSmall: true)
-                    .accessibilityLabel(Text(verbatim: badge.accessibilityLabel))
-            }
+            InstrumentNote(String(localized: "Interpreter – die Signatur sagt nichts über das ausgeführte Skript."))
         }
     }
 }
@@ -138,5 +75,5 @@ extension NetworkListener {
 
 extension RiskFinding.Severity {
     /// Art des Hinweises im Inhalt: hoch als Fehler, sonst als Befund.
-    var noteKind: NetworkNote.Kind { self == .high ? .critical : .finding }
+    var noteKind: InstrumentNote.Kind { self == .high ? .critical : .finding }
 }

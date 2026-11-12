@@ -94,6 +94,11 @@ public struct InstalledAppRow: Identifiable, Hashable, Sendable {
     public let lastUsedText: String
     /// Alles Sichtbare als Satz für VoiceOver – inklusive Schweregrad, der in der Liste nur als Badge erscheint.
     public let accessibilityLabel: String
+    /// Kurztext der Zeile im Lagebild (LB-2.5): „Google LLC · 1,2 GB · vor 3 Tagen“; Unbekanntes fehlt.
+    public let listDetail: String
+
+    /// Gruppe „Mit Befund“: höchster Befund mittel oder hoch wie die Kachel „Auffällig“ (`FindingFilter.flagged`).
+    public var isFlagged: Bool { FindingFilter.flagged.includes(severity) }
 
     public var id: String { app.id }
 
@@ -106,6 +111,12 @@ public struct InstalledAppRow: Identifiable, Hashable, Sendable {
         let size = details.size.map(AppTexts.formattedSize)
         sizeText = size ?? "–"
         lastUsedText = AppTexts.lastUsed(details.lastUsed, now: now, calendar: calendar)
+        let lastUsed = details.lastUsed.map { date in
+            CalendarDays.since(date, now: now, calendar: calendar) <= 0
+                ? "heute benutzt" : AppTexts.lastUsedValue(date, now: now, calendar: calendar)
+        }
+        listDetail = [app.signing.developerName ?? app.origin.displayName, size, lastUsed].compactMap(\.self)
+            .joined(separator: " · ")
         accessibilityLabel = [
             app.name, app.versionText.map { "Version \($0)" }, app.originDetail, app.architecture.displayName,
             "Größe " + (size ?? "unbekannt"), lastUsedText, severity.map { "Befund mit Schweregrad \($0.displayName)" },

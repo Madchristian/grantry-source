@@ -77,11 +77,9 @@ public struct ChipProfile: Hashable, Sendable {
     /// Apple-Chip mit Leistungsstufen; Intel und virtuelle Maschinen haben keine.
     public var isAppleSilicon: Bool { !levels.isEmpty }
 
-    /// Kernart einer Stufe: die schnellste Leistungs-, die langsamste Effizienzkerne; weitere Stufen und Chips mit nur
-    /// einer Stufe `unknown`.
+    /// Kernklasse einer Stufe nach ihrem Namen laut System (`CoreKind(levelName:level:levelCount:)`, #589).
     public func kind(ofLevel index: Int) -> CoreKind {
-        guard levels.count >= 2 else { return .unknown }
-        return index == 0 ? .performance : index == levels.count - 1 ? .efficiency : .unknown
+        CoreKind(levelName: levels[index].name, level: index, levelCount: levels.count)
     }
 
     /// Kernart je logischer Nummer (`kind(ofLevel:)`); unbekannte Kerne `unknown`.

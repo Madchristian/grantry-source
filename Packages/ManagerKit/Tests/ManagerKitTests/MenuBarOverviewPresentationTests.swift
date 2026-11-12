@@ -72,6 +72,32 @@ import Testing
         #expect(averages.map(\.value) == ["9 %", "2 %"])
     }
 
+    /// Super- und Leistungskerne wie M5 Max (#589): Kürzel, Titel, VoiceOver und Reihenfolge wie im Chip-Tab.
+    @Test func superAndPerformanceCoresKeepTheirClass() throws {
+        let profile = CoreKindTests.superAndPerformance
+        var snapshot = TaskManagerSnapshot()
+        snapshot.cpu = Self.cpu(profile.coreKinds(coreCount: 18))
+        let cores = try #require(Self.overview(snapshot, profile: profile).cores)
+        #expect(cores.groups.map(\.kind) == [.super, .performance])
+        #expect(cores.groups.map(\.label) == ["S", "P"])
+        #expect(cores.averages.map(\.title) == ["Super-Kerne", "Leistungskerne"])
+        #expect(cores.averages.map(\.tag) == ["S", "P"])
+        #expect(cores.averages.map(\.coreCount) == [6, 12])
+        let rings = cores.groups.flatMap(\.rings)
+        #expect(rings.first { $0.id == 12 }?.accessibilityLabel == "Super-Kern 12")
+        #expect(rings.first { $0.id == 0 }?.accessibilityLabel == "Leistungskern 0")
+    }
+
+    @Test func threeClassesAreAveragedFromFastest() throws {
+        let profile = CoreKindTests.threeClasses
+        var snapshot = TaskManagerSnapshot()
+        snapshot.cpu = Self.cpu(profile.coreKinds(coreCount: 14))
+        let cores = try #require(Self.overview(snapshot, profile: profile).cores)
+        #expect(cores.groups.map(\.kind) == [.super, .performance, .efficiency])
+        #expect(cores.averages.map(\.tag) == ["S", "P", "E"])
+        #expect(cores.averages.map(\.coreCount) == [4, 6, 4])
+    }
+
     @Test func smallerChipHasOneClusterPerKind() throws {
         var snapshot = TaskManagerSnapshot()
         snapshot.cpu = Self.cpu([.efficiency, .efficiency, .efficiency, .efficiency,

@@ -227,11 +227,14 @@ public struct CleanupPresentation: Hashable, Sendable {
     public let coverageNote: String?
     public let unreadableNote: String?
     public let initialSelection: RemovalSelection
+    /// Ende der Suche („Suche 14:32“ in der Zustandszeile).
+    public let searchedAt: Date
 
     /// Nichts gefunden (weder Reste noch verwaiste Einträge).
     public var isEmpty: Bool { groups.isEmpty && autostartItems.isEmpty && grants.isEmpty }
 
-    public init(result: OrphanScanResult, home: String = NSHomeDirectory()) {
+    public init(result: OrphanScanResult, home: String = NSHomeDirectory(), searchedAt: Date = Date()) {
+        self.searchedAt = searchedAt
         let treatAsUncertain: Bool
         switch result.coverage {
         case .complete:

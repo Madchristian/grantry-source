@@ -14,13 +14,9 @@ struct TaskManagerTabBar: View {
         InstrumentTabs(String(localized: "Ansicht"), selection: $tab,
                        options: TaskManagerTab.available.map { ($0, $0.title) }) {
             HStack(spacing: InstrumentSpacing.panel) {
-                Picker("Takt", selection: $interval) {
-                    ForEach(TaskManagerInterval.allCases) { interval in
-                        Text(interval.title).tag(interval)
-                    }
-                }
-                .pickerStyle(.menu)
-                .help("Wie oft gemessen wird")
+                TitledMenuPicker(String(localized: "Takt"), selection: $interval,
+                                 options: TaskManagerInterval.allCases.map { ($0, $0.title) })
+                    .help("Wie oft gemessen wird")
                 Button("Autostart", systemImage: MainSection.autostart.systemImage, action: showAutostart)
                     .help("Autostart-Einträge anzeigen")
             }

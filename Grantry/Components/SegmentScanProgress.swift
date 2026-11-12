@@ -3,7 +3,7 @@ import ManagerKit
 import Observation
 
 /// Gemeinsame Fortschrittsquelle der „Scannen“-Buttons in „Aufräumen“ (#270): App-Reste, Speicher und Prozesse halten
-/// je eine und setzen ihre Leiste mit `scanProgressAboveTable(_:)` über die eigene Tabelle. Die Leiste zeigt nur den
+/// je eine; ihre Spur zeigt `CleanupProgress.scanning` unter der Zustandszeile (LB-4.2, #548). Sie zeigt nur den
 /// laufenden Scan dieses Segments, nie den Monitoring-Vollscan („Aktualisieren“).
 ///
 /// Gewichtet wird mit den Schrittdauern des letzten erfolgreichen Laufs (`ScanStepTracker`); sie bleiben nur im

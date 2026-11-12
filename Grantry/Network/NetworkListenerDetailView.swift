@@ -22,29 +22,23 @@ struct NetworkListenerDetailView: View {
     private var listener: NetworkListener { row.listener }
 
     var body: some View {
-        ChartScrollView(showsIndicators: true) {
-            VStack(alignment: .leading, spacing: InstrumentSpacing.bar) {
-                header
-                Divider()
-                actionGroup
-                if !findings.isEmpty {
-                    DetailGroup(title: String(localized: "Hinweise")) {
-                        ForEach(findings) { NetworkNote(text: $0.message, kind: $0.severity.noteKind) }
-                    }
+        DetailPanel {
+            header
+            actionGroup
+            if !findings.isEmpty {
+                DetailGroup(String(localized: "Hinweise")) {
+                    ForEach(findings) { InstrumentNote($0.message, kind: $0.severity.noteKind) }
                 }
-                serviceGroup
-                if let activity {
-                    NetworkListenerActivitySection(model: activity, executablePath: listener.executablePath)
-                }
-                DetailGroup(title: String(localized: "Programm")) {
-                    ProgramDetailEntries(program: listener.program, notesInterpreter: true)
-                }
-                launchGroup
             }
-            .padding(InstrumentSpacing.bar)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            serviceGroup
+            if let activity {
+                NetworkListenerActivitySection(model: activity, executablePath: listener.executablePath)
+            }
+            DetailGroup(String(localized: "Programm")) {
+                ProgramDetailEntries(program: listener.program, notesInterpreter: true)
+            }
+            launchGroup
         }
-        .instrumentPanel(padding: 0)
     }
 
     private var header: some View {
@@ -65,7 +59,7 @@ struct NetworkListenerDetailView: View {
             }
             HStack(spacing: InstrumentSpacing.item) {
                 StatusChip(listener.reachItem)
-                RecordBadgeChips(badges: badges)
+                BadgeChips(badges.map(\.instrumentBadge))
                 Spacer(minLength: InstrumentSpacing.group)
                 Button("Im Finder zeigen") { listener.revealInFinder() }
             }
@@ -78,7 +72,7 @@ struct NetworkListenerDetailView: View {
     @ViewBuilder
     private var actionGroup: some View {
         if let termination {
-            DetailGroup(title: String(localized: "Aktionen")) {
+            DetailGroup(String(localized: "Aktionen")) {
                 ListenerTerminationActions(listener: listener, termination: termination) {
                     if let launchedBy, let window {
                         Button("Zum Autostart-Eintrag") { window.show(launchedBy) }
@@ -89,42 +83,37 @@ struct NetworkListenerDetailView: View {
     }
 
     private var serviceGroup: some View {
-        DetailGroup(title: String(localized: "Dienst")) {
+        DetailGroup(String(localized: "Dienst")) {
             entry(String(localized: "Port"), listener.portText)
             entry(String(localized: "Adressen"), listener.addresses.isEmpty
                   ? String(localized: "Unbekannt") : listener.addresses.joined(separator: ", "))
             entry(String(localized: "Erreichbarkeit"), listener.reachabilityText)
             entry(String(localized: "Benutzer"), ListenerUser(uid: listener.uid, currentUID: getuid()).displayName)
-            DetailEntry(title: String(localized: "Gesehen seit")) {
-                Text(listener.firstSeenAt, format: .dateTime.day().month().year().hour().minute())
-                    .font(InstrumentFont.body)
-            }
+            DetailEntry(String(localized: "Gesehen seit"),
+                        value: listener.firstSeenAt.formatted(.dateTime.day().month().year().hour().minute()))
         }
     }
 
     private func entry(_ title: String, _ value: String) -> some View {
-        DetailEntry(title: title) {
-            Text(verbatim: value).font(InstrumentFont.code).textSelection(.enabled).lineLimit(2).truncationMode(.middle)
-        }
+        DetailEntry(title, value: value, isCode: true)
     }
 
     /// Ein Autostart-Eintrag mit gleichem Programm startet den Lauscher sicher; über das eigene Bundle oder die
     /// Eltern-App ist die Zuordnung nur eine Vermutung und wird so beschriftet. Die Eltern-App steht zusätzlich als
     /// „Gestartet aus“ da.
     private var launchGroup: some View {
-        DetailGroup(title: String(localized: "Gestartet von")) {
+        DetailGroup(String(localized: "Gestartet von")) {
             if let launchedBy {
-                DetailEntry(title: launchedBy.program == listener.executablePath
-                            ? String(localized: "Autostart-Eintrag") : String(localized: "Vermutlich über Autostart-Eintrag")) {
-                    autostartLink(launchedBy)
-                }
+                DetailEntry(launchedBy.program == listener.executablePath
+                            ? String(localized: "Autostart-Eintrag") : String(localized: "Vermutlich über Autostart-Eintrag"),
+                            control: { autostartLink(launchedBy) })
             }
             if let launchingApp = row.launchingAppPath, let name = row.launchingAppName {
-                DetailEntry(title: String(localized: "Gestartet aus")) {
+                DetailEntry(String(localized: "Gestartet aus"), value: name) {
                     BundleAppLabel(path: launchingApp, name: name, signing: .unknown).font(InstrumentFont.body)
                 }
             } else if launchedBy == nil, let bundle = row.bundlePath {
-                DetailEntry(title: String(localized: "App")) {
+                DetailEntry(String(localized: "App"), value: row.title) {
                     BundleAppLabel(path: bundle, name: row.title, signing: listener.signing).font(InstrumentFont.body)
                 }
             } else if launchedBy == nil {

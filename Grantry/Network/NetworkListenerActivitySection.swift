@@ -13,14 +13,14 @@ struct NetworkListenerActivitySection: View {
 
     var body: some View {
         let activity = model.listenerActivity(forProgramAt: executablePath)
-        DetailGroup(title: String(localized: "Netzwerkaktivität")) {
+        DetailGroup(String(localized: "Netzwerkaktivität")) {
             if let notice = model.notice {
                 NetworkActivityNoticeBar(notice: notice, retry: model.retry)
             }
             if model.status.failure == nil {
                 content(activity)
             }
-            NetworkNote(text: String(localized: "Live über nettop, alle Prozesse dieses Programms. Summen seit Beginn der Messung."))
+            InstrumentNote(String(localized: "Live über nettop, alle Prozesse dieses Programms. Summen seit Beginn der Messung."))
         }
         if model.status.failure == nil, !activity.isEmpty {
             if activity.processes.count > 1 || activity.processes.contains(where: \.isGone) {
@@ -57,9 +57,7 @@ struct NetworkListenerActivitySection: View {
             (String(localized: "Gegenstellen"), "\(activity.remoteHostCount)"),
         ])
         if activity.processes.count == 1, let process = activity.processes.first {
-            DetailEntry(title: String(localized: "Prozess")) {
-                Text(verbatim: "\(process.shortName) · PID \(process.pid)").font(InstrumentFont.code)
-            }
+            DetailEntry(String(localized: "Prozess"), value: "\(process.shortName) · PID \(process.pid)", isCode: true)
         }
     }
 
@@ -73,7 +71,7 @@ struct NetworkListenerActivitySection: View {
     }
 
     private func processGroup(_ processes: [ListenerActivity.Process]) -> some View {
-        DetailGroup(title: String(localized: "Prozesse")) {
+        DetailGroup(String(localized: "Prozesse")) {
             ForEach(processes) { process in
                 HStack(spacing: InstrumentSpacing.group) {
                     Text(verbatim: "\(process.shortName) · PID \(process.pid)")
@@ -93,7 +91,7 @@ struct NetworkListenerActivitySection: View {
     }
 
     private func connectionGroup(_ activity: ListenerActivity) -> some View {
-        DetailGroup(title: String(localized: "Verbindungen")) {
+        DetailGroup(String(localized: "Verbindungen")) {
             if activity.connections.isEmpty {
                 Text("Keine offenen Verbindungen.").font(InstrumentFont.body).foregroundStyle(.instrumentSecondary)
             } else {

@@ -1,0 +1,10 @@
+[
+  {
+    "name": "Sparkle",
+    "version": "2.10.0",
+    "revision": "eef1a539a373c1f1a320624b1130fc5de7b2e100",
+    "projectURL": "https://github.com/sparkle-project/Sparkle",
+    "licenseFile": "Sparkle-LICENSE.txt",
+    "licenseSHA256": "389a4e4e9a32f059775b13a06e25a591445ba229d2838d26dd3e7c0c45127cfe"
+  }
+]

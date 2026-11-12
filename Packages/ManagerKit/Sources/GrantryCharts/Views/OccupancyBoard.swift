@@ -206,21 +206,26 @@ public struct OccupancyBoardActions {
 /// Ansicht „Belegung“ im Lagebild: Zustandszeile; Volumes mit Belegungsband neben den Datenträgern; Ordnerleiter neben
 /// dem Detail; unten die Aktionsleiste. Kein Takt: Gezeichnet wird bei neuem Inhalt, der Fortschritt höchstens einmal
 /// je Sekunde (Spec § 4.4).
-public struct OccupancyBoard: View {
+/// `controls` steht unter der Zustandszeile, etwa der Umschalter der Aufräumen-Segmente (LB-4.2, #548).
+public struct OccupancyBoard<Controls: View>: View {
     let content: OccupancyBoardContent
     @Binding var scope: OccupancyBoardScope
     let actions: OccupancyBoardActions
+    let controls: Controls
 
-    public init(content: OccupancyBoardContent, scope: Binding<OccupancyBoardScope>, actions: OccupancyBoardActions) {
+    public init(content: OccupancyBoardContent, scope: Binding<OccupancyBoardScope>, actions: OccupancyBoardActions,
+                @ViewBuilder controls: () -> Controls) {
         self.content = content
         _scope = scope
         self.actions = actions
+        self.controls = controls()
     }
 
     public var body: some View {
         VStack(spacing: 0) {
             VStack(spacing: InstrumentSpacing.panel) {
                 StatusLine(verdict: content.verdict, finding: content.finding, items: content.items, facts: content.facts)
+                controls.frame(maxWidth: .infinity, alignment: .leading)
                 HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
                     VStack(spacing: InstrumentSpacing.panel) {
                         ForEach(content.volumes) { OccupancyVolumePanel(volume: $0) }
@@ -244,6 +249,12 @@ public struct OccupancyBoard: View {
             OccupancyActionBar(bar: content.bar, scope: $scope, scan: actions.scan, cancel: actions.cancel)
         }
         .instrumentBackground()
+    }
+}
+
+extension OccupancyBoard where Controls == EmptyView {
+    public init(content: OccupancyBoardContent, scope: Binding<OccupancyBoardScope>, actions: OccupancyBoardActions) {
+        self.init(content: content, scope: scope, actions: actions) { EmptyView() }
     }
 }
 

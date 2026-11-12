@@ -79,7 +79,7 @@ struct NetworkListenerRowView: View {
                     HStack(spacing: InstrumentSpacing.item) {
                         if row.severity != nil { FindingDot(size: InstrumentSize.findingDotSmall) }
                         Text(verbatim: row.title).font(InstrumentFont.body).lineLimit(1).truncationMode(.middle)
-                        RecordBadgeChips(badges: badges)
+                        BadgeChips(badges.map(\.instrumentBadge))
                     }
                     Text(verbatim: origin)
                         .font(InstrumentFont.label)

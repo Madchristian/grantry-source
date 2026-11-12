@@ -193,6 +193,34 @@ import Testing
         #expect(clusters[0].detail == "3 Kerne · CPU 2–4")
     }
 
+    /// Kennzahl „Kerne“ im Popover der CPU-Messanzeige und in „Leistung“ (#589): je Klasse mit Kürzel, schnellste zuerst.
+    @Test(arguments: [
+        (CoreKindTests.classic, 16, "12 P · 4 E"),
+        (CoreKindTests.superAndPerformance, 18, "6 S · 12 P"),
+        (CoreKindTests.threeClasses, 14, "4 S · 6 P · 4 E"),
+    ])
+    func coreCountPerClass(profile: ChipProfile, count: Int, expected: String) {
+        var snapshot = TaskManagerSnapshot()
+        snapshot.cpu = CPULoad(total: nil, cores: profile.coreKinds(coreCount: count).map { CoreLoad(kind: $0, load: nil) })
+        #expect(P.stats(for: .cpu, in: snapshot, uptime: 0)[1].value == expected)
+    }
+
+    /// Klassen ohne Kürzel oder Kerne ohne Klasse: nur die Gesamtzahl.
+    @Test func coreCountWithoutTagsIsTheTotal() {
+        var snapshot = TaskManagerSnapshot()
+        snapshot.cpu = CPULoad(total: nil, cores: [CoreLoad(kind: .other(level: 0, name: "Turbo"), load: nil),
+                                                   CoreLoad(kind: .efficiency, load: nil)])
+        #expect(P.stats(for: .cpu, in: snapshot, uptime: 0)[1].value == "2")
+    }
+
+    @Test func coreClustersShowSuperCoresFirst() {
+        let cores = CoreKindTests.threeClasses.coreKinds(coreCount: 14).map { CoreLoad(kind: $0, load: nil) }
+        let clusters = P.coreClusters(cores)
+        #expect(clusters.map(\.kind) == [.super, .performance, .efficiency])
+        #expect(clusters.map(\.title) == ["Super-Kerne", "Leistungskerne", "Effizienzkerne"])
+        #expect(clusters.map(\.cores) == [Array(10...13), Array(4...9), Array(0...3)])
+    }
+
     @Test func coresWithoutKindsShareOneCluster() {
         let clusters = P.coreClusters([CoreLoad(kind: .unknown, load: nil), CoreLoad(kind: .unknown, load: nil)])
         #expect(clusters.map(\.kind) == [.unknown])

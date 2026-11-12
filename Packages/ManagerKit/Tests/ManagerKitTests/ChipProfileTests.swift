@@ -52,16 +52,15 @@ import Testing
         #expect(chip.mediaEngine == ChipProfile.MediaEngine(videoEncoders: 1, videoDecoders: 1, proResEngines: 0))
     }
 
-    /// Künftige Chips mit drei Stufen und eigenen Namen: Zuordnung über Kernzahl und Anfangsbuchstaben; die mittlere
-    /// Stufe ist weder Leistungs- noch Effizienzkern.
+    /// Chips mit drei Stufen: Zuordnung über Kernzahl und Anfangsbuchstaben, Kernarten nach den Namen (#589).
     @Test func threeLevelsAreMappedByCountAndInitial() {
         let facts = ChipFacts(levels: [Self.level("Super", 2), Self.level("Performance", 4), Self.level("Efficiency", 2)],
                               cpus: Self.cpus([("E", 2), ("S", 2), ("P", 4)]))
         let chip = ChipProfile(facts: facts)
         #expect(chip.levels.map(\.cores) == [[2, 3], [4, 5, 6, 7], [0, 1]])
         #expect(chip.levels.map { $0.clusters.map(\.label) } == [["S"], ["P"], ["E"]])
-        #expect(chip.coreKinds(coreCount: 8) == [.efficiency, .efficiency, .performance, .performance,
-                                                 .unknown, .unknown, .unknown, .unknown])
+        #expect(chip.coreKinds(coreCount: 8) == [.efficiency, .efficiency, .super, .super,
+                                                 .performance, .performance, .performance, .performance])
     }
 
     /// Typen ohne passenden Namen, aber mit eindeutiger Kernzahl.

@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// „Jetzt scannen“ als schlichter Aktualisieren-Button, während eines Vollscans gesperrt. Den Fortschritt zeigt die
-/// Leiste über dem Inhalt (`ScanProgressStrip`, #262), nicht der Button.
+/// „Jetzt scannen“ als schlichter Aktualisieren-Button, während eines Vollscans gesperrt. Den Fortschritt zeigt der
+/// Bereich selbst als Spur (`ProgressSpur`), nicht der Button.
 struct ScanToolbarItem: ToolbarContent {
     let isEnabled: Bool
     var pendingSignatureChecks = 0

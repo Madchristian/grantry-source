@@ -10,15 +10,24 @@ public enum ProcessCleanupPresentation {
 
     /// „Arbeitsspeicher 36,9 GB von 64 GB · Swap 4,3 GB von 5,4 GB · Speicherdruck normal · 933 Prozesse“.
     public static func statusLine(_ status: MemoryStatus) -> String {
+        statusParts(status, includesPressure: true).joined(separator: " · ")
+    }
+
+    /// Wie `statusLine(_:)`, aber ohne Speicherdruck – den zeigt die Zustandszeile im Lagebild als Chip (#550).
+    public static func statusFacts(_ status: MemoryStatus) -> String {
+        statusParts(status, includesPressure: false).joined(separator: " · ")
+    }
+
+    private static func statusParts(_ status: MemoryStatus, includesPressure: Bool) -> [String] {
         var parts: [String] = []
         let total = memoryText(status.physicalBytes)
         parts.append(status.usedBytes.map { "Arbeitsspeicher \(memoryText($0)) von \(total)" } ?? "Arbeitsspeicher \(total)")
         if let used = status.swapUsedBytes, let swapTotal = status.swapTotalBytes {
             parts.append(swapTotal == 0 ? "kein Swap" : "Swap \(memoryText(used)) von \(memoryText(swapTotal))")
         }
-        if let pressure = status.pressure { parts.append("Speicherdruck \(pressureText(pressure))") }
-        parts.append(status.processCount == 1 ? "1 Prozess" : "\(status.processCount) Prozesse")
-        return parts.joined(separator: " · ")
+        if includesPressure, let pressure = status.pressure { parts.append("Speicherdruck \(pressureText(pressure))") }
+        parts.append(processCountText(status.processCount))
+        return parts
     }
 
     public static func pressureText(_ pressure: MemoryStatus.Pressure) -> String {
@@ -31,21 +40,34 @@ public enum ProcessCleanupPresentation {
 
     /// „~/Projekte/app · läuft seit 3 Tagen · 12 Prozesse · 1,2 GB“.
     public static func subtitle(_ tree: AgentProcessTree, now: Date) -> String {
+        detail(tree, now: now) + " · " + memoryText(tree.memoryBytes)
+    }
+
+    /// „~/Projekte/app · läuft seit 3 Tagen · 12 Prozesse“ – Zeile im Lagebild, der Speicher steht rechts (#550).
+    public static func detail(_ tree: AgentProcessTree, now: Date) -> String {
         var parts: [String] = []
         if let workspace = tree.workspace { parts.append((workspace as NSString).abbreviatingWithTildeInPath) }
         parts.append("läuft seit \(age(since: tree.startDate, now: now))")
         parts.append(processCountText(tree.processCount))
-        parts.append(memoryText(tree.memoryBytes))
         return parts.joined(separator: " · ")
     }
 
     /// „gebootet seit 8 Stunden · 230 Prozesse · 12 GB“ (fehlende Angaben entfallen).
     public static func subtitle(_ simulator: BootedSimulator, now: Date) -> String {
+        (detailParts(simulator, now: now) + [simulator.memoryBytes.map(memoryText) ?? "Speicher unbekannt"])
+            .joined(separator: " · ")
+    }
+
+    /// „gebootet seit 8 Stunden · 230 Prozesse“ – Zeile im Lagebild, der Speicher steht rechts (#550).
+    public static func detail(_ simulator: BootedSimulator, now: Date) -> String {
+        detailParts(simulator, now: now).joined(separator: " · ")
+    }
+
+    private static func detailParts(_ simulator: BootedSimulator, now: Date) -> [String] {
         var parts: [String] = []
         if let bootedAt = simulator.bootedAt { parts.append("gebootet seit \(age(since: bootedAt, now: now))") }
         if simulator.processCount > 0 { parts.append(processCountText(simulator.processCount)) }
-        parts.append(simulator.memoryBytes.map(memoryText) ?? "Speicher unbekannt")
-        return parts.joined(separator: " · ")
+        return parts
     }
 
     /// Hinweis zu ausgelassenen Bäumen; `nil` ohne solche.
@@ -130,7 +152,7 @@ public enum ProcessCleanupPresentation {
             + "unter Aufräumen › Prozesse nach Bestätigung."
     }
 
-    private static func processCountText(_ count: Int) -> String {
+    static func processCountText(_ count: Int) -> String {
         count == 1 ? "1 Prozess" : "\(count) Prozesse"
     }
 

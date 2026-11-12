@@ -16,9 +16,12 @@ import Testing
     }
 
     private func present(_ processes: [ProcessMeasurement], sessions: [LoginSession],
-                         network: [ProcessKey: Double]? = nil) -> UserUsagePresentation {
+                         network: [ProcessKey: Double]? = nil, system: CPULoad? = nil,
+                         memory: MemoryStatus? = nil) -> UserUsagePresentation {
         var snapshot = TaskManagerSnapshot()
         snapshot.processes = processes
+        snapshot.cpu = system
+        snapshot.memory = memory
         return UserUsagePresenter.present(snapshot, sessions: sessions, currentUID: 501, network: network,
                                           userName: { Self.names[$0] ?? String($0) }, physicalMemory: 16 << 30)
     }
@@ -77,6 +80,27 @@ import Testing
         #expect(presentation.headerValue(.name) == "2 Benutzer")
         #expect(presentation.cpuShare(of: presentation.rows[0]) == 0.75)
         #expect(presentation.cpuShareText(of: presentation.rows[1]) == "25\u{A0}% der CPU-Last")
+    }
+
+    /// #561 (Abnahme 1572 und 1599): Der Kopf zeigte die Systemlast aus den Host-Ticks, 14,9 gegen 9,2 % in den Zeilen.
+    /// Die Zeilen teilen alle Prozesse auf; Kernel- und nicht zugeordnete Zeit gehören zu keinem Benutzer (Mangel 10).
+    @Test func headerCPUIsTheSumOfTheRowsNotTheSystemLoad() {
+        let memory = MemoryStatus(physicalBytes: 16 << 30, usedBytes: 8 << 30, swapUsedBytes: nil, swapTotalBytes: nil,
+                                  pressure: .normal, processCount: 3)
+        let presentation = present([process(10, uid: 501, cpu: 0.05, memory: 100), process(1, uid: 0, cpu: 0.042, memory: 50)],
+                                   sessions: [], system: CPULoad(total: 0.149, cores: []), memory: memory)
+        let rows = presentation.rows.compactMap(\.figures.cpuLoad).reduce(0, +)
+        #expect(presentation.totals.cpuLoad == rows)
+        #expect(presentation.headerValue(.cpu) == "9,2\u{A0}%")
+        // Speicher bleibt systemweit wie im Tab „Prozesse“: Die Zeilen fremder Konten sind RSS aus ps und zählen
+        // geteilte Seiten mehrfach.
+        #expect(presentation.totals.memoryBytes == 8 << 30)
+    }
+
+    @Test func headerCPUOfTheRowsStaysWithinAllCores() {
+        let presentation = present([process(10, uid: 501, cpu: 0.7, memory: 1), process(1, uid: 0, cpu: 0.35, memory: 1)],
+                                   sessions: [], system: CPULoad(total: 0.9, cores: []))
+        #expect(presentation.totals.cpuLoad == 1)
     }
 
     @Test func includesNetworkRates() {

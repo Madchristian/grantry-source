@@ -41,7 +41,8 @@ public struct UserUsagePresentation: Hashable, Sendable {
     private static let locale = Locale(identifier: "de_DE")
 
     public let rows: [UserUsageRow]
-    /// Werte der Spaltenköpfe wie im Tab „Prozesse“.
+    /// Werte der Spaltenköpfe: Summe der Zeilen, nur der Speicher systemweit wie im Tab „Prozesse“
+    /// (`UserUsagePresenter.totals`).
     public let totals: ProcessFigures
     /// Bezug der Speicher-Heatmap.
     public let physicalMemory: UInt64
@@ -110,10 +111,20 @@ public enum UserUsagePresenter {
                                      figures: .sum(accounts.map(\.figures)), isCurrentUser: false,
                                      accounts: accounts.map(\.name)))
         }
-        return UserUsagePresentation(
-            rows: rows, totals: ProcessListPresenter.totals(snapshot, measured: .sum(rows.map(\.figures))),
-            physicalMemory: snapshot.memory?.physicalBytes ?? physicalMemory
-        )
+        return UserUsagePresentation(rows: rows, totals: totals(snapshot, rows: rows),
+                                     physicalMemory: snapshot.memory?.physicalBytes ?? physicalMemory)
+    }
+
+    /// Spaltenköpfe (#561, Mangel 10): Die Zeilen teilen alle Prozesse auf Benutzer auf, der Kopf ist ihre Summe – auch
+    /// die CPU, damit Kopf, Zeilen und die Anteile „… der CPU-Last“ zusammenpassen. Die Systemlast aus den Host-Ticks
+    /// enthält Kernel- und nicht zugeordnete Zeit, die keinem Benutzer gehört; sie steht in „Leistung“ und „Prozesse“.
+    /// Der Speicher bleibt systemweit belegt wie in „Prozesse“: Die Zeilen fremder Konten sind RSS aus `ps` und zählen
+    /// geteilte Seiten mehrfach, ihre Summe läge über dem Speicher des Macs.
+    static func totals(_ snapshot: TaskManagerSnapshot, rows: [UserUsageRow]) -> ProcessFigures {
+        let measured = ProcessFigures.sum(rows.map(\.figures))
+        var totals = ProcessListPresenter.totals(snapshot, measured: measured)
+        totals.cpuLoad = ProcessListPresenter.cappedLoad(measured.cpuLoad)
+        return totals
     }
 
     /// „root, _windowserver, _spotlight und 4 weitere“.

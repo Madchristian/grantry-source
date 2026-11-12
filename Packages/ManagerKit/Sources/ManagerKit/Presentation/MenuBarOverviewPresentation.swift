@@ -84,7 +84,7 @@ public struct MenuBarOverview: Equatable, Sendable {
     public struct CoreAverage: Equatable, Sendable, Identifiable {
         public let kind: CoreKind
         public let title: String
-        /// „P“, „E“; ohne Kerntypen `nil`.
+        /// „S“, „P“, „E“ (`CoreKind.tag`); ohne Kerntypen `nil`.
         public let tag: String?
         public let coreCount: Int
         public let load: Double?
@@ -266,7 +266,7 @@ public enum MenuBarOverviewPresentation {
         )
     }
 
-    /// Gruppen wie im Chip-Tab: Stufen (Leistungskerne zuerst), darin die physischen Cluster. Passt das Profil nicht zu
+    /// Gruppen wie im Chip-Tab: Stufen (schnellste Klasse zuerst), darin die physischen Cluster. Passt das Profil nicht zu
     /// den gemessenen Kernen, je Kernart eine Gruppe wie in „Pro Kern“.
     static func cores(_ cores: [CoreLoad], profile: ChipProfile) -> MenuBarOverview.Cores? {
         guard !cores.isEmpty else { return nil }
@@ -284,7 +284,7 @@ public enum MenuBarOverviewPresentation {
                 MenuBarOverview.CoreGroup(kind: cluster.kind, label: nil, rings: cluster.cores.map(ring))
             }
         let averages = PerformancePresentation.coreClusters(cores).map { cluster in
-            MenuBarOverview.CoreAverage(kind: cluster.kind, title: cluster.title, tag: tag(of: cluster.kind),
+            MenuBarOverview.CoreAverage(kind: cluster.kind, title: cluster.title, tag: cluster.kind.tag,
                                         coreCount: cluster.cores.count, load: cluster.load,
                                         value: percent(cluster.load))
         }
@@ -292,22 +292,9 @@ public enum MenuBarOverviewPresentation {
     }
 
     private static func coreRing(_ index: Int, of core: CoreLoad) -> MenuBarOverview.CoreRing {
-        let name = switch core.kind {
-        case .performance: "Leistungskern"
-        case .efficiency: "Effizienzkern"
-        case .unknown: "Kern"
-        }
-        return MenuBarOverview.CoreRing(id: index, kind: core.kind, load: core.load,
-                                        accessibilityLabel: "\(name) \(index)",
-                                        accessibilityValue: core.load.map { percent($0) } ?? "keine Messung")
-    }
-
-    private static func tag(of kind: CoreKind) -> String? {
-        switch kind {
-        case .performance: "P"
-        case .efficiency: "E"
-        case .unknown: nil
-        }
+        MenuBarOverview.CoreRing(id: index, kind: core.kind, load: core.load,
+                                 accessibilityLabel: "\(core.kind.coreName) \(index)",
+                                 accessibilityValue: core.load.map { percent($0) } ?? "keine Messung")
     }
 
     // MARK: - Prozesse

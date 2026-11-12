@@ -72,7 +72,7 @@ extension ChipPresentation {
         return ChipPage.Clock(
             title: "Takt und Thermik",
             detail: profile.levels.indices.map { index in
-                "\(title(of: profile.levels[index], index: index)): "
+                "\(profile.kind(ofLevel: index).title): "
                     + detailParts(of: profile.levels[index]).joined(separator: ", ")
             }.joined(separator: " · "),
             value: head.map { gigahertz($0.megahertz) + " GHz" } ?? missing,
@@ -111,7 +111,7 @@ extension ChipPresentation {
         profile.levels.indices.flatMap { index in
             let level = profile.levels[index]
             return level.clusters.map { cluster in
-                let title = cluster.label.map { "Cluster \($0)" } ?? title(of: level, index: index)
+                let title = cluster.label.map { "Cluster \($0)" } ?? profile.kind(ofLevel: index).title
                 let steps = sensorCluster(for: cluster, in: sensors).map { distribution.steps(ofCluster: $0.name) } ?? []
                 return band(id: cluster.label ?? "\(index)", title: title, kind: profile.kind(ofLevel: index),
                             steps: steps)

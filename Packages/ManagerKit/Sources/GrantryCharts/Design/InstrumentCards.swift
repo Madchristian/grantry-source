@@ -134,6 +134,63 @@ public struct CountTile: View {
     }
 }
 
+/// Zählkachel mit Sprung (§3.6, LB-3.2 #544): `CountTile` als Knopf mit Pfeil oben rechts; ein Klick zeigt den Bereich
+/// (Übersicht). Für VoiceOver ein Knopf mit dem Titel als Beschriftung, Zahl und Detail als Wert und dem Ziel als Hinweis.
+public struct JumpTile: View {
+    let title: String
+    let value: Int
+    let detail: String
+    let tone: StatusTone
+    let destination: String
+    let hint: String?
+    let action: () -> Void
+
+    /// - Parameter hint: VoiceOver-Hinweis; `nil`: „Zeigt den Bereich „destination“.“
+    public init(title: String, value: Int, detail: String, tone: StatusTone, destination: String,
+                hint: String? = nil, action: @escaping () -> Void) {
+        self.title = title
+        self.value = value
+        self.detail = detail
+        self.tone = tone
+        self.destination = destination
+        self.hint = hint
+        self.action = action
+    }
+
+    static func spokenValue(value: Int, detail: String) -> String {
+        detail.isEmpty ? value.formatted() : "\(value.formatted()). \(detail)"
+    }
+
+    static func helpText(destination: String) -> String {
+        String(localized: "In „\(destination)“ zeigen")
+    }
+
+    static func defaultHint(destination: String) -> String {
+        String(localized: "Zeigt den Bereich „\(destination)“.")
+    }
+
+    public var body: some View {
+        Button(action: action) {
+            CountTile(title: title, value: value, detail: detail, tone: tone)
+                .overlay(alignment: .topTrailing) {
+                    Image(systemName: "chevron.right").font(InstrumentFont.micro.weight(.semibold))
+                        .foregroundStyle(.instrumentSecondary)
+                        .padding(InstrumentSpacing.panel)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(.rect)
+        }
+        .buttonStyle(.plain)
+        .help(Text(verbatim: Self.helpText(destination: destination)))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(verbatim: title))
+        // ax-value: Knopf behält Rolle und Wert (wie `JumpRow`).
+        .accessibilityValue(Text(verbatim: Self.spokenValue(value: value, detail: detail)))
+        .accessibilityHint(Text(verbatim: hint ?? Self.defaultHint(destination: destination)))
+        .accessibilityAddTraits(.isButton)
+    }
+}
+
 /// Kennzahl als Messfeld (§3.6): Titel klein, Wert in runden Ziffern, auf der Mulde.
 public struct MeasureField: View {
     let title: String

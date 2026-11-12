@@ -146,7 +146,7 @@ struct AppIconView: View {
             } else {
                 Image(systemName: "app.dashed")
                     .resizable()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.instrumentSecondary)
                     .padding(size * 0.1)
             }
         }

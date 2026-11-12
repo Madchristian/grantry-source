@@ -1,11 +1,12 @@
 import AppKit
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Eine App im Detail (Spec v3 §5): Angaben aus dem Kit (`InstalledAppDetail`) samt Hinweis zur Signaturprüfung, Pfad
-/// mit „Im Finder zeigen“, Prüfhinweise sowie Berechtigungen, Autostart-Einträge und mitgebrachte Erweiterungen mit Sprung
-/// in ihre Bereiche;
-/// „App entfernen …“ und „Reste anzeigen“ öffnen das Entfernen-Blatt.
+/// Eine App im Detail (Spec v3 §5; LB-2.5, #542): `RecordDetailPanel` mit Kopf, Knopfzeile „App entfernen …“ und „Reste
+/// anzeigen“ (beide öffnen nur das Entfernen-Blatt), Hinweisen, eigener Einschätzung, Angaben aus dem Kit
+/// (`InstalledAppDetail`), Pfad mit „Im Finder zeigen“ sowie Berechtigungen, Autostart-Einträgen und mitgebrachten
+/// Erweiterungen als Sprungzeilen in ihre Bereiche.
 struct InstalledAppDetailView: View {
     let detail: InstalledAppDetail
     let presentation: PresentationSnapshot
@@ -20,196 +21,75 @@ struct InstalledAppDetailView: View {
     private var app: InstalledApp { detail.app }
 
     var body: some View {
-        Form {
-            header
-            actionSection
-            riskAcceptanceSection
-            factsSection
-            placeSection
-            findingsSection
-            grantsSection
-            autostartSection
-            if !detail.extensions.isEmpty {
-                AppExtensionsSection(extensions: detail.extensions, badges: presentation.badges)
-            }
-        }
-        .formStyle(.grouped)
-    }
-
-    private var riskAcceptanceSection: some View {
-        Section("Eigene Einschätzung") {
-            if isRiskAccepted {
-                Label("Risiko akzeptiert", systemImage: "checkmark.circle")
-                Text("Du vertraust dieser App. Ihre App-Warnungen sind ausgeblendet. Bei einem Wechsel des Entwicklerteams wird erneut gewarnt.")
-                    .font(.callout).foregroundStyle(.secondary)
-            } else {
-                Text("Wenn du diese App kennst und ihr vertraust, kannst du ihre App-Warnungen ausblenden. Die Prüfergebnisse bleiben einsehbar.")
-                    .font(.callout).foregroundStyle(.secondary)
-            }
-            Button(isRiskAccepted ? "Akzeptanz aufheben" : "Risiko akzeptieren") {
-                let accepted = !isRiskAccepted
-                isSavingAcceptance = true
-                saveError = nil
-                Task {
-                    defer { isSavingAcceptance = false }
-                    do { try await setRiskAccepted(accepted) }
-                    catch { saveError = "Entscheidung nicht gespeichert: \(error.readableDescription)" }
+        let isRunning = actions.runningRecordID == app.id
+        RecordDetailPanel(content: AppsBoardMapping.detail(detail, presentation: presentation,
+                                                           isRiskAccepted: isRiskAccepted)) {
+            AppIconView(app: app.identity, size: InstrumentSize.shield)
+        } actions: {
+            // „App entfernen …“ (Spec v3 §3, Einstiegspunkt 1) und „Reste anzeigen“.
+            DetailActions(runningText: isRunning ? String(localized: "Wird entfernt …") : nil) {
+                Group {
+                    Button("App entfernen …") { window.requestRemoval(of: app) }
+                    Button("Reste anzeigen") { window.requestRemoval(of: app, mode: .leftovers) }
                 }
+                .disabled(isRunning)
             }
-            .disabled(isSavingAcceptance)
-            if let error = saveError ?? acceptanceError {
-                Text(verbatim: error).foregroundStyle(.red)
-            }
-        }
-    }
-
-    private var header: some View {
-        Section {
-            HStack(spacing: 12) {
-                AppIconView(app: app.identity, size: 48)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(verbatim: app.name)
-                        .font(.title2.weight(.semibold))
-                        .textSelection(.enabled)
-                    Text(verbatim: app.originDetail)
-                        .foregroundStyle(.secondary)
-                    RecordBadgesRow(badges: presentation.badges.badges(for: app.id))
-                }
-            }
-        }
-    }
-
-    /// „App entfernen …“ (Spec v3 §3, Einstiegspunkt 1) und „Reste anzeigen“; beide öffnen nur das Entfernen-Blatt.
-    private var actionSection: some View {
-        Section {
-            HStack(spacing: 8) {
-                Button("App entfernen …") { window.requestRemoval(of: app) }
-                Button("Reste anzeigen") { window.requestRemoval(of: app, mode: .leftovers) }
-                if actions.runningRecordID == app.id {
-                    ProgressView()
-                        .controlSize(.small)
-                        .accessibilityLabel("Aktion läuft")
-                }
-            }
-            .disabled(actions.runningRecordID == app.id)
-        }
-    }
-
-    private var factsSection: some View {
-        Section("Angaben") {
-            ForEach(detail.facts) { fact in
-                LabeledContent {
-                    HStack(spacing: 4) {
-                        if let tone = fact.tone {
-                            Image(systemName: tone.systemImage).foregroundStyle(tone.color)
-                        }
-                        Text(verbatim: fact.value).textSelection(.enabled)
-                    }
-                } label: {
-                    Text(verbatim: fact.label)
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(verbatim: fact.accessibilityLabel))
-            }
-            if let note = detail.signingNote {
-                HintLabel(text: note, systemImage: "clock", color: .secondary)
-            }
-        }
-    }
-
-    private var placeSection: some View {
-        Section("Ort") {
-            LabeledContent("Pfad") { PathText(path: detail.pathText) }
-            Button("Im Finder zeigen") { app.revealInFinder() }
+        } accessory: { group in
+            accessory(group.id)
         }
     }
 
     @ViewBuilder
-    private var findingsSection: some View {
-        if !detail.findings.isEmpty {
-            Section(isRiskAccepted ? "Akzeptierte Prüfhinweise" : "Hinweise") {
-                if isRiskAccepted {
-                    ForEach(detail.findings) { finding in
-                        Text(verbatim: finding.message).foregroundStyle(.secondary)
-                    }
-                } else {
-                    RecordHints(findings: detail.findings)
+    private func accessory(_ groupID: String) -> some View {
+        switch groupID {
+        case AppsBoardMapping.GroupID.acceptance:
+            RiskAcceptanceControls(AppsBoardMapping.acceptance(isRiskAccepted: isRiskAccepted,
+                                                               error: saveError ?? acceptanceError)) {
+                Button(isRiskAccepted ? "Akzeptanz aufheben" : "Risiko akzeptieren") { toggleAcceptance() }
+                    .disabled(isSavingAcceptance)
+            }
+        case AppsBoardMapping.GroupID.place:
+            Button("Im Finder zeigen") { app.revealInFinder() }.controlSize(.small)
+        case AppsBoardMapping.GroupID.grants:
+            ForEach(detail.grants) { grant in
+                JumpRow(AppsBoardMapping.grantRow(grant, presentation: presentation),
+                        destination: MainSection.permissions.title) {
+                    window.show(grant)
+                } icon: {
+                    ServiceIconView(service: PermissionCatalog.service(for: grant.service),
+                                    size: InstrumentSize.rowIconTall)
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var grantsSection: some View {
-        if !detail.grants.isEmpty {
-            Section("Berechtigungen") {
-                ForEach(detail.grants) { grant in
-                    Button { window.show(grant) } label: {
-                        LabeledContent {
-                            Text(verbatim: grant.authValue.displayName.capitalizedFirst)
-                                .foregroundStyle(grant.authValue.tone.color)
-                        } label: {
-                            Text(verbatim: grant.serviceName)
-                        }
-                        .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .help("In „Berechtigungen“ zeigen")
-                    .accessibilityHint(Text("Zeigt die Berechtigung im Bereich „Berechtigungen“."))
+        case AppsBoardMapping.GroupID.autostart:
+            ForEach(detail.autostartItems) { item in
+                JumpRow(item.jumpRowContent(badges: presentation.badges.badges(for: item.id)),
+                        destination: MainSection.autostart.title) {
+                    window.show(item)
+                } icon: {
+                    AutostartItemIcon(item: item, size: InstrumentSize.rowIconTall)
                 }
             }
-        }
-    }
-
-    @ViewBuilder
-    private var autostartSection: some View {
-        if !detail.autostartItems.isEmpty {
-            Section("Autostart") {
-                ForEach(detail.autostartItems) { item in
-                    Button { window.show(item) } label: {
-                        AutostartItemRow(item: item, badges: presentation.badges.badges(for: item.id))
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .help("In „Autostart“ zeigen")
-                    .accessibilityHint(Text("Zeigt den Eintrag im Bereich „Autostart“."))
+        case AppsBoardMapping.GroupID.extensions:
+            ForEach(detail.extensions) { reference in
+                JumpRow(AppsBoardMapping.extensionRow(reference, presentation: presentation),
+                        destination: MainSection.extensions.title) {
+                    window.show(reference)
                 }
-            }
-        }
-    }
-}
-
-/// Erweiterungen, die die App mitbringt (TM-13.6): Art und Zustand, Prüfhinweise wie in den übrigen Listen; ein Klick
-/// zeigt sie im Bereich „Erweiterungen“ mit Detail.
-private struct AppExtensionsSection: View {
-    let extensions: [ExtensionReference]
-    let badges: RecordBadges
-    @Environment(MainWindowModel.self) private var window
-
-    var body: some View {
-        Section("Erweiterungen") {
-            ForEach(extensions) { reference in
-                Button { window.show(reference) } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: reference.symbol)
-                            .foregroundStyle(.secondary)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(verbatim: reference.title)
-                            Text(verbatim: reference.subtitle)
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer(minLength: 8)
-                        RecordBadgesRow(badges: badges.badges(for: reference.id))
-                    }
-                    .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .help("In „Erweiterungen“ zeigen")
-                .accessibilityHint(Text("Zeigt die Erweiterung im Bereich „Erweiterungen“."))
                 .accessibilityIdentifier("appExtensionLink")
             }
+        default:
+            EmptyView()
+        }
+    }
+
+    private func toggleAcceptance() {
+        let accepted = !isRiskAccepted
+        isSavingAcceptance = true
+        saveError = nil
+        Task {
+            defer { isSavingAcceptance = false }
+            do { try await setRiskAccepted(accepted) }
+            catch { saveError = "Entscheidung nicht gespeichert: \(error.readableDescription)" }
         }
     }
 }

@@ -1,24 +1,25 @@
+import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Verlauf (Spec §6): Änderungen neueste zuerst, seitenweise nachgeladen; Filter nach Art, Änderungsart und Zeitraum;
-/// „Wiederherstellen“ an Ereignissen mit Beleg (entfernte Autostart-Einträge, von Grantry geänderte
-/// Agenten-Konfigurationen) sowie eine Liste „Wiederherstellbar“ für Belege ohne geladenes Ereignis (nach demselben
-/// Filter). Filter und Zuordnung kommen aus dem Kit (`HistoryFilter`, `RestoreMatching`).
+/// Verlauf im Lagebild (Spec §6; LB-3.3, #545, Entwurf LB-3.1): Zustandszeile, aktiver Filter als Zeile, Ergebnis einer
+/// Aktion, darunter in einem Panel „Wiederherstellbar“ und die Änderungen nach Tag, neueste zuerst, seitenweise
+/// nachgeladen. Filter und „Alle als gelesen markieren“ bleiben in der Symbolleiste. „Wiederherstellen“ an Ereignissen
+/// mit Beleg (entfernte Autostart-Einträge, von Grantry geänderte Agenten-Konfigurationen) und an Belegen ohne geladenes
+/// Ereignis (nach demselben Filter). Filter und Zuordnung kommen aus dem Kit (`HistoryFilter`, `RestoreMatching`).
 struct HistoryView: View {
     let appModel: AppModel
     @Environment(MainWindowModel.self) private var window
     @State private var pendingRestore: RestorableChange?
 
     private var history: HistoryModel { appModel.history }
-    /// Grund des Eintrags, zu dem ein Sprung führte.
-    private static let focusOpacity = 0.14
 
     var body: some View {
         @Bindable var window = window
-        // Kein eigener Takt: Zeilen aktualisieren ihre relativen Zeitangaben selbst, der Zeitraumfilter gilt ab dem
-        // letzten Neuzeichnen.
-        content(now: .now)
+        // Ein Minutentakt für relative Zeiten, Tagesköpfe und den Zeitraumfilter (bisher ein Takt je Zeile).
+        TimelineView(.everyMinute) { context in
+            content(now: context.date)
+        }
         .toolbar {
             ToolbarItem {
                 HistoryFilterMenu(filter: $window.historyFilter)
@@ -47,55 +48,87 @@ struct HistoryView: View {
             receipts: history.receipts, changes: history.agentChanges, matches: history.restorablesByEvent,
             filter: filter, now: now
         )
-        return ScrollViewReader { proxy in
-            List {
-                if let result = appModel.actions.result(in: .history) {
-                    ActionResultBanner(result: result, dismiss: appModel.actions.dismissResult)
-                        .listRowSeparator(.hidden)
-                }
-                if let error = history.loadError {
-                    Label(error, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.secondary)
-                        .listRowSeparator(.hidden)
-                }
-                if !restorable.isEmpty {
-                    Section("Wiederherstellbar") {
-                        ForEach(restorable) { entry in
-                            RestorableChangeRow(change: entry, actions: appModel.actions) { pendingRestore = entry }
-                        }
-                    }
-                }
-                Section {
-                    ForEach(events) { event in
-                        HistoryEventRow(event: event, restorable: history.restorablesByEvent[event.id], actions: appModel.actions) {
-                            pendingRestore = $0
-                        }
-                        .listRowBackground(event.id.uuidString == window.focusedRecordID
-                            ? Color.accentColor.opacity(Self.focusOpacity) : nil)
-                    }
-                    if filter.mayFindMoreEvents(hasMore: history.hasMore, olderThan: history.events.last, now: now) {
-                        LoadMoreRow(isLoading: history.isLoading) { Task { await history.loadMore() } }
-                    }
-                } header: {
-                    if !restorable.isEmpty { Text("Änderungen") }
-                }
+        let sections = HistoryBoardMapping.sections(events: events, restorable: restorable, now: now,
+                                                    entry: entry, restorableEntry: { entry($0, now: now) })
+        return VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
+            let head = HistoryBoardMapping.head(verdict(matchingCount: events.count, now: now))
+            StatusLine(verdict: head.verdict, shield: head.shield, items: head.items, facts: head.facts)
+            if let text = HistoryBoardMapping.filterText(filter) {
+                ActiveFilterLine(text) { window.historyFilter = HistoryFilter() }
             }
-            // Sprung aus dem Wachbuch (TM-12.6): zum Eintrag scrollen, sobald er geladen ist.
-            .onChange(of: FocusTarget(id: window.focusedRecordID, isLoaded: events.contains {
-                $0.id.uuidString == window.focusedRecordID
-            }), initial: true) { _, target in
-                guard target.isLoaded, let id = target.id.flatMap(UUID.init(uuidString:)) else { return }
-                proxy.scrollTo(id, anchor: .center)
+            if let result = appModel.actions.result(in: .history) {
+                ActionResultBanner(result: result, dismiss: appModel.actions.dismissResult)
             }
-        }
-        .overlay {
-            let hasRows = !events.isEmpty || !restorable.isEmpty
-            if let state = filter.emptyState(loaded: history.events, hasRows: hasRows, hasMore: history.hasMore,
-                                             isLoading: history.isLoading, now: now) {
+            if let error = history.loadError {
+                InstrumentNote(error, kind: .critical)
+            }
+            if !sections.isEmpty {
+                HistoryList(sections: sections, focusedID: window.focusedRecordID,
+                            loadMore: loadMore(filter: filter, now: now),
+                            restore: { pendingRestore = restorableChange(for: $0, in: restorable) },
+                            copy: CommandClipboard.copy) {
+                    Task { await history.loadMore() }
+                }
+            } else if let state = filter.emptyState(loaded: history.events, hasRows: false, hasMore: history.hasMore,
+                                                    isLoading: history.isLoading, now: now) {
                 emptyState(state)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .instrumentPanel()
             }
         }
+        .padding(InstrumentSpacing.page)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .instrumentBackground()
     }
+
+    // MARK: - Zustandszeile
+
+    private func verdict(matchingCount: Int, now: Date) -> HistoryVerdict {
+        let unmatched = RestoreMatching.unmatchedRestorables(
+            receipts: history.receipts, changes: history.agentChanges, matches: history.restorablesByEvent,
+            filter: HistoryFilter(), now: now
+        )
+        let incomplete = appModel.presentation?.coverage.incomplete ?? []
+        return HistoryVerdict(events: history.events, hasMore: history.hasMore,
+                              unreadCount: appModel.monitoring.unreadCount,
+                              restorableCount: history.restorablesByEvent.count + unmatched.count,
+                              filter: window.historyFilter, matchingCount: matchingCount,
+                              missingSources: incomplete.reduce(0) { $0 + max($1.gaps.count, 1) },
+                              isLoading: history.isLoading, loadError: history.loadError)
+    }
+
+    // MARK: - Zeilen
+
+    private func entry(_ event: HistoryEvent) -> HistoryEntry {
+        HistoryBoardMapping.entry(
+            event, badges: appModel.presentation?.badges.badges(for: event.event.subject.recordID) ?? [],
+            restore: history.restorablesByEvent[event.id].map(restoreState)
+        )
+    }
+
+    private func entry(_ change: RestorableChange, now: Date) -> HistoryEntry {
+        HistoryBoardMapping.entry(change, restore: restoreState(change), now: now)
+    }
+
+    private func restoreState(_ change: RestorableChange) -> HistoryEntry.Restore {
+        HistoryBoardMapping.restore(change, runningRecordID: appModel.actions.runningRecordID,
+                                    canStart: appModel.actions.canStart)
+    }
+
+    /// Beleg zur Zeile: am Ereignis über `restorablesByEvent`, sonst unter „Wiederherstellbar“.
+    private func restorableChange(for entryID: String, in unmatched: [RestorableChange]) -> RestorableChange? {
+        if let id = UUID(uuidString: entryID), let change = history.restorablesByEvent[id] { return change }
+        return unmatched.first { HistoryBoardMapping.restorableEntryID($0) == entryID }
+    }
+
+    private func loadMore(filter: HistoryFilter, now: Date) -> HistoryLoadMore {
+        guard filter.mayFindMoreEvents(hasMore: history.hasMore, olderThan: history.events.last, now: now) else {
+            return .hidden
+        }
+        return history.isLoading ? .loading : .available
+    }
+
+    // MARK: - Leerzustände
 
     @ViewBuilder
     private func emptyState(_ state: HistoryEmptyState) -> some View {
@@ -106,18 +139,12 @@ struct HistoryView: View {
             }
         case .noChanges:
             let isIncomplete = appModel.monitoring.snapshot?.hasIncompleteCoverage ?? false
-            ContentUnavailableView("Keine Änderungen", systemImage: "clock",
-                                   description: Text(verbatim: isIncomplete
-                                       ? CoverageTexts.noChanges(hasIncompleteCoverage: true)
-                                       : String(localized: "Seit dem ersten Scan hat sich nichts geändert.")))
+            InstrumentEmptyState(symbol: "clock", title: String(localized: "Keine Änderungen"),
+                                 message: isIncomplete
+                                     ? CoverageTexts.noChanges(hasIncompleteCoverage: true)
+                                     : String(localized: "Seit dem ersten Scan hat sich nichts geändert."))
         }
     }
-}
-
-/// Eintrag, zu dem der Verlauf scrollen soll, und ob er schon geladen ist.
-private struct FocusTarget: Equatable {
-    let id: String?
-    let isLoaded: Bool
 }
 
 /// Anlass zum Neuladen: neue oder gelesene Events, Ergebnis einer Aktion.

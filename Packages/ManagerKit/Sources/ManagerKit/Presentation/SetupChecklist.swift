@@ -98,6 +98,8 @@ public struct SetupChecklist: Hashable, Sendable {
         /// `nil`, solange der Schritt geprüft wird.
         public let tone: PresentationTone?
         public let action: Action?
+        /// Zustand in wenigen Worten für den Zustandschip, wenn `text` dafür zu lang ist.
+        var shortText: String?
 
         public var id: SetupStep { step }
     }
@@ -181,7 +183,7 @@ public struct SetupChecklist: Hashable, Sendable {
             case .requiresApproval?:
                 Item(
                     step: step, state: .open, text: "Muss unter „Anmeldeobjekte & Erweiterungen“ erlaubt werden",
-                    tone: .warning, action: .openLoginItemSettings
+                    tone: .warning, action: .openLoginItemSettings, shortText: "Muss erlaubt werden"
                 )
             case nil: checking(step)
             }
@@ -197,7 +199,7 @@ public struct SetupChecklist: Hashable, Sendable {
         }
         return Item(
             step: .helper, state: progress, text: presentation.text, tone: presentation.tone,
-            action: presentation.action.map(Action.helper)
+            action: presentation.action.map(Action.helper), shortText: presentation.shortText
         )
     }
 
