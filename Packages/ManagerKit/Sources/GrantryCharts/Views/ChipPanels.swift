@@ -344,30 +344,70 @@ struct DieBlock<Cells: View>: View {
     }
 }
 
-/// Zellen eines Blocks ohne Messung je Kern (GPU): alle in der Hitze der gesamten Auslastung.
-private struct UnitCells: View {
+/// Zellen eines Blocks ohne Messung je Kern (GPU, #614): Pegel der gesamten Auslastung. Die Zellen füllen sich der Reihe
+/// nach in der Farbe der Messgröße, die Grenzzelle anteilig, die übrigen bleiben in der Bahn (wie die Spur, §3.5).
+/// Darunter der Hinweis, dass der Pegel die Gesamtauslastung zeigt und nicht einzelne Kerne. Ohne Messung bleibt jede
+/// Zelle in der Bahn.
+struct UnitCells: View {
     let count: Int
     let load: Double?
     let hue: InstrumentHue
-    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.colorSchemeContrast) private var contrast
     @Environment(\.self) private var environment
 
+    static let note = String(localized: "Gesamtauslastung, nicht je Kern")
+
+    /// Füllung je Zelle (0…1) in fester Reihenfolge. Die Auslastung zählt in ganzen Prozent: Rauschen unter einem
+    /// Prozentpunkt ändert den Pegel nicht und zeichnet nichts neu.
+    nonisolated static func fills(count: Int, load: Double?) -> [Double] {
+        let percent = (min(max(load.flatMap { $0.isFinite ? $0 : nil } ?? 0, 0), 1) * 100).rounded()
+        let filled = percent * Double(count) / 100
+        return (0..<max(count, 0)).map { min(max(filled - Double($0), 0), 1) }
+    }
+
     var body: some View {
-        let columns = min(count, 10)
-        let opacity = max(HeatShade.opacity(forHeat: load ?? 0, dark: colorScheme == .dark), InstrumentOpacity.chip)
-        Grid(horizontalSpacing: InstrumentSpacing.stack + 1, verticalSpacing: InstrumentSpacing.stack + 1) {
-            ForEach(0..<((count + columns - 1) / max(columns, 1)), id: \.self) { row in
-                GridRow {
-                    ForEach(0..<columns, id: \.self) { column in
-                        if row * columns + column < count {
-                            RoundedRectangle(cornerRadius: InstrumentStroke.ring, style: .continuous)
-                                .fill(environment.instrumentColor(hue).opacity(opacity))
-                                .frame(height: InstrumentSize.gpuCell)
+        let columns = max(min(count, 10), 1)
+        let fills = Self.fills(count: count, load: load)
+        let color = environment.instrumentColor(hue)
+        VStack(alignment: .leading, spacing: InstrumentSpacing.item) {
+            Grid(horizontalSpacing: InstrumentSpacing.stack + 1, verticalSpacing: InstrumentSpacing.stack + 1) {
+                ForEach(0..<((count + columns - 1) / columns), id: \.self) { row in
+                    GridRow {
+                        ForEach(0..<columns, id: \.self) { column in
+                            if row * columns + column < count {
+                                LevelCell(fill: fills[row * columns + column], color: color,
+                                          outlined: contrast == .increased)
+                            }
                         }
                     }
                 }
             }
+            Text(verbatim: Self.note).font(InstrumentFont.micro).foregroundStyle(.instrumentSecondary).lineLimit(1)
         }
-        .accessibilityHidden(true)
+        .accessibilityReading(Text(verbatim: Self.note),
+                              value: Text(verbatim: load.map { min(max($0, 0), 1)
+                                  .formatted(.percent.precision(.fractionLength(0))) }
+                                  ?? String(localized: "keine Messung")))
+    }
+}
+
+/// Zelle des Pegels: Bahn in der Messgröße, darüber die Füllung von links bis zum Anteil. „Kontrast erhöhen“ umrandet
+/// gefüllte Zellen.
+private struct LevelCell: View {
+    let fill: Double
+    let color: Color
+    let outlined: Bool
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: InstrumentStroke.ring, style: .continuous)
+        ZStack {
+            Rectangle().fill(color.opacity(InstrumentOpacity.track))
+            Rectangle().fill(color).scaleEffect(x: fill, anchor: .leading)
+        }
+        .clipShape(shape)
+        .overlay {
+            if outlined && fill > 0 { shape.strokeBorder(color, lineWidth: InstrumentStroke.border) }
+        }
+        .frame(height: InstrumentSize.gpuCell)
     }
 }

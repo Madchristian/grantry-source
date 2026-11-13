@@ -412,9 +412,14 @@ struct MonitoringEngineTests {
         let presentation = try #require(PresentationInput(state: accepted, recentAdditions: []).map { $0.make(now: TestData.date) })
         #expect(presentation.metrics.flaggedCount == 0)
         #expect(presentation.highestSeverity(for: app.id) == nil)
+        // Zeile, Kopf und Zustandszeile lesen dieselben Badges: kein „prüfen“ mehr (#617).
+        #expect(!presentation.badges.badges(for: app.id).contains { if case .review = $0 { true } else { false } })
         try await harness.engine.setAppRiskAccepted(false, appID: app.id)
         let revoked = try #require(await states.next(where: { !$0.findings.isEmpty && $0.acceptedAppIDs.isEmpty }))
         #expect(revoked.findings.map(\.rule) == [.unsignedApp])
+        let restored = try #require(PresentationInput(state: revoked, recentAdditions: []).map { $0.make(now: TestData.date) })
+        #expect(restored.highestSeverity(for: app.id) != nil)
+        #expect(restored.badges.badges(for: app.id).contains { if case .review = $0 { true } else { false } })
         await harness.engine.stop()
     }
 

@@ -45,9 +45,10 @@ extension SnapshotGallery {
         ))
     }
 
+    /// Die Reihe endet beim Wert im Kopf, damit der Pegel der Zellen (#614) dieselbe Auslastung zeigt.
     static func gpuUnit(cores: Int, value: Double, facts: [PanelFact]) -> ChipUnit {
         ChipUnit(title: "GPU", detail: "\(cores) Kerne", value: "\(Int((value * 100).rounded())) %", facts: facts,
-                 series: series { value + 0.12 * sin($0 / 6) }, hue: .gpu, cores: cores)
+                 series: series { value + 0.12 * sin(($0 - 60) / 6) }, hue: .gpu, cores: cores)
     }
 
     static var chip: some View {

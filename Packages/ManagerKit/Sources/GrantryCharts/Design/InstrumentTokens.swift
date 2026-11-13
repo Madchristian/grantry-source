@@ -137,6 +137,10 @@ public enum InstrumentSize {
     public static let popoverGraph: CGFloat = 70
     /// Übersicht der Menüleiste (#495): Lastring je Kern, Wertring (GPU, Arbeitsspeicher), gespiegelter Verlauf.
     public static let coreRing: CGFloat = 18
+    /// Größter Lastring je Kern, wenn die Reihe die Breite sonst nicht füllt (wenige Kerne).
+    public static let coreRingWide: CGFloat = 30
+    /// Lastbalken je Prozess in der Karte „Prozesse“ der Übersicht.
+    public static let overviewLoadBar: CGFloat = 72
     public static let valueRing: CGFloat = 60
     public static let overviewMirror: CGFloat = 32
     public static let panelGraph: CGFloat = 120

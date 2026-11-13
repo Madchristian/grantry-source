@@ -29,6 +29,40 @@ import Testing
         #expect(OverviewGallery.coreGroups(performance: 12, efficiency: 4).compactMap(\.tag) == ["P0", "P1", "E"])
     }
 
+    /// 16 Kerne in drei Gruppen füllen 392 pt genau: Die Ringe wachsen auf ganze Punkte, bis die Zeile voll ist.
+    @Test func ringsGrowUntilTheRowIsFull() {
+        let arrangement = CoreRingBoard.arrangement(ringCounts: [6, 6, 4], width: 392)
+        #expect(arrangement.lines == [[0, 1, 2]])
+        #expect(arrangement.ringSize == 19)
+        let used = [6, 6, 4].map { CoreRingBoard.groupWidth(rings: $0, ringSize: arrangement.ringSize) }.reduce(0, +)
+            + 2 * CoreRingBoard.groupSpacing
+        #expect(used <= 392)
+        #expect(used + 16 > 392)
+    }
+
+    /// Wenige Kerne: Ringe höchstens `coreRingWide`, die Karte wird nicht beliebig hoch.
+    @Test func fewRingsStopAtTheLargestSize() {
+        let arrangement = CoreRingBoard.arrangement(ringCounts: [4, 4], width: 392)
+        #expect(arrangement.lines == [[0, 1]])
+        #expect(arrangement.ringSize == InstrumentSize.coreRingWide)
+    }
+
+    /// Mehr Kerne, als mit den kleinsten Ringen in eine Zeile passen: ganze Gruppen brechen um, keine wird geteilt.
+    @Test func manyRingsWrapWholeGroups() {
+        let arrangement = CoreRingBoard.arrangement(ringCounts: [8, 8, 8, 8], width: 392)
+        #expect(arrangement.ringSize == InstrumentSize.coreRing)
+        #expect(arrangement.lines == [[0, 1], [2, 3]])
+        // Eine Gruppe breiter als die Zeile steht allein, statt zu verschwinden.
+        #expect(CoreRingBoard.arrangement(ringCounts: [30, 2], width: 200).lines == [[0], [1]])
+    }
+
+    /// Ohne feste Breite (ideale Größe) eine Zeile mit den kleinsten Ringen; ohne Gruppen nichts.
+    @Test func arrangementWithoutWidthUsesSmallestRings() {
+        #expect(CoreRingBoard.arrangement(ringCounts: [6, 4], width: .infinity)
+            == CoreRingBoard.Arrangement(ringSize: InstrumentSize.coreRing, lines: [[0, 1]]))
+        #expect(CoreRingBoard.arrangement(ringCounts: [], width: 392).lines.isEmpty)
+    }
+
     @Test(arguments: appearances)
     func snapshot(_ appearance: ChartAppearance) throws {
         try ChartSnapshot.verify(OverviewGallery.view, named: "uebersicht-bausteine", size: OverviewGallery.size,

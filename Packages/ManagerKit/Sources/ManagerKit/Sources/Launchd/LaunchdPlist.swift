@@ -30,6 +30,29 @@ struct LaunchdPlist: Decodable, Equatable {
         try PropertyListDecoder().decode(LaunchdPlist.self, from: data)
     }
 
+    /// Was eine gelesene Datei für launchd ist (`parse(_:)`).
+    enum Parsed: Equatable {
+        /// Auswertbarer Dienst mit Label.
+        case job(LaunchdPlist)
+        /// Lesbare Property-Liste, ein Dictionary ohne `Label` und ohne Programmangabe (`Program`, `ProgramArguments`,
+        /// `BundleProgram`), etwa ein leerer Platzhalter eines Updaters (#619). launchd verlangt ein Label
+        /// (man launchd.plist: „This required key uniquely identifies the job to launchd“) und lädt daraus keinen Dienst.
+        case placeholder
+    }
+
+    /// Schlüssel, deren Vorhandensein (gleich welchen Typs) einen Platzhalter ausschließt: Wer ein Label oder ein
+    /// Programm angibt, meint einen Dienst – fehlt dann das gültige Label, ist das eine Lücke, kein Platzhalter.
+    private static let jobKeys: [CodingKeys] = [.label, .program, .programArguments, .bundleProgram]
+
+    /// Dienst, Platzhalter oder – kaputt, kein Dictionary, Label fehlt oder mit falschem Typ neben einer
+    /// Programmangabe – `nil` (nicht auswertbar, also eine Lücke).
+    static func parse(_ data: Data) -> Parsed? {
+        if let plist = try? decode(data) { return .job(plist) }
+        guard let dictionary = try? PropertyListSerialization.propertyList(from: data, format: nil) as? [String: Any],
+              jobKeys.allSatisfy({ dictionary[$0.rawValue] == nil }) else { return nil }
+        return .placeholder
+    }
+
     /// Ausgeführtes Programm: `Program`, sonst erstes Element von `ProgramArguments`.
     var executable: String? { program ?? programArguments?.first }
 
@@ -51,6 +74,7 @@ struct LaunchdPlist: Decodable, Equatable {
         case disabled = "Disabled", associatedBundleIdentifiers = "AssociatedBundleIdentifiers"
         case sessionTypes = "LimitLoadToSessionType"
         case environmentVariables = "EnvironmentVariables"
+        case bundleProgram = "BundleProgram"
     }
 
     /// Nur `Label` ist Pflicht. Manche System-Plists (z. B. `com.apple.usbaudiod.plist`) tragen `Disabled`

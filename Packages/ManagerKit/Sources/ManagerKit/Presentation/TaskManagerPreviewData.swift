@@ -137,6 +137,12 @@ extension TaskManagerPreviewData {
         public let frame: TaskManagerFrame
         public let profile: ChipProfile
         public let context: MenuBarOverviewContext
+
+        public init(frame: TaskManagerFrame, profile: ChipProfile, context: MenuBarOverviewContext) {
+            self.frame = frame
+            self.profile = profile
+            self.context = context
+        }
     }
 
     /// Eine Leistungsstufe der Vorschau: Name laut System (`hw.perflevelN.name`), Typ im Gerätebaum, Kernzahl.

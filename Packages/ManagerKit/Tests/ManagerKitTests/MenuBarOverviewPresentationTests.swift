@@ -193,6 +193,38 @@ import Testing
         #expect(overview.cards == MenuBarOverviewCard.allCases)
     }
 
+    /// GPU und Arbeitsspeicher, Datenträger und Netz, Thermik und Akku teilen sich je eine Zeile.
+    @Test func pairedCardsShareARow() {
+        var overview = MenuBarOverview()
+        overview.cpu = .init(total: nil, value: "", user: nil, system: nil, userText: "", systemText: "", clock: nil)
+        overview.gpu = .init(value: "", rings: [], clock: nil, memory: nil)
+        overview.memory = .init(usedShare: nil, value: "", detail: "", parts: [], pressure: nil, pressureText: "",
+                                swap: "")
+        overview.disk = .init(driveID: nil, usedShare: nil, free: nil, read: "", write: "")
+        overview.network = .init(interfaceName: "en0", title: "WLAN", received: "", sent: "")
+        overview.thermal = .init(state: .nominal, value: "", tone: .neutral, level: nil, lowPowerMode: "")
+        overview.battery = .init(charge: nil, value: "", state: "", isCharging: false)
+        overview.summary = .init(loadAverage: nil, uptime: "1")
+        #expect(overview.rows == [[.cpu], [.gpu, .memory], [.disk, .network], [.thermal, .battery], [.summary]])
+        #expect(overview.rows.flatMap(\.self) == overview.cards)
+    }
+
+    /// Ohne Partner (kein Akku, GPU ausgeblendet) behält die Karte die volle Breite.
+    @Test func cardWithoutPartnerKeepsItsRow() {
+        var overview = MenuBarOverview()
+        overview.memory = .init(usedShare: nil, value: "", detail: "", parts: [], pressure: nil, pressureText: "",
+                                swap: "")
+        overview.disk = .init(driveID: nil, usedShare: nil, free: nil, read: "", write: "")
+        overview.thermal = .init(state: .nominal, value: "", tone: .neutral, level: nil, lowPowerMode: "")
+        #expect(overview.rows == [[.memory], [.disk], [.thermal]])
+        overview.disk = nil
+        overview.network = .init(interfaceName: "en0", title: "WLAN", received: "", sent: "")
+        overview.battery = .init(charge: nil, value: "", state: "", isCharging: false)
+        // Akku ohne Thermik davor steht allein, Netz rückt nicht neben den Arbeitsspeicher.
+        overview.thermal = nil
+        #expect(overview.rows == [[.memory], [.network], [.battery]])
+    }
+
     @Test func hiddenCardsAreLeftOut() {
         var snapshot = TaskManagerSnapshot()
         snapshot.cpu = Self.cpu([.performance])
@@ -224,35 +256,53 @@ import Testing
         #expect(measured.rings.map(\.caption) == ["Auslastung", "Speicher"])
         #expect(measured.rings[1].fraction == 0.25)
         #expect(measured.clock == "1,2 GHz")
+        #expect(gpu.memory == nil)
+        #expect(measured.memory.map(Self.plain) == "16 GB")
     }
 
     // MARK: - Prozesse
 
-    @Test func topThreeProcessesByCPUGroupedByApp() throws {
+    @Test func topProcessesByCPUGroupedByApp() throws {
         let app = RunningApp(pid: 100, bundleID: "com.example.editor", bundlePath: "/Applications/Editor.app",
                              name: "Editor")
         func process(_ pid: Int32, parent: Int32 = 1, uid: UInt32 = 501, name: String, load: Double?,
-                     path: String? = nil) -> ProcessMeasurement {
+                     memory: UInt64? = nil, path: String? = nil) -> ProcessMeasurement {
             ProcessMeasurement(key: ProcessKey(pid: pid, startTime: 1), parentPID: parent, uid: uid, name: name,
-                               cpuLoad: load, memoryBytes: nil, diskReadPerSecond: nil, diskWritePerSecond: nil,
+                               cpuLoad: load, memoryBytes: memory, diskReadPerSecond: nil, diskWritePerSecond: nil,
                                threadCount: nil, executablePath: path)
         }
         var snapshot = TaskManagerSnapshot()
         snapshot.processes = [
-            process(100, name: "Editor", load: 0.01),
-            process(101, parent: 100, name: "Editor Helper", load: 0.02,
+            process(100, name: "Editor", load: 0.01, memory: 1 << 30),
+            process(101, parent: 100, name: "Editor Helper", load: 0.02, memory: 1 << 30,
                     path: "/Applications/Editor.app/Contents/MacOS/Helper"),
             process(200, uid: 0, name: "WindowServer", load: 0.025),
             process(300, name: "mdworker", load: 0.001),
             process(400, name: "idle", load: nil),
             process(500, name: "cloudd", load: 0.004),
+            process(600, name: "bird", load: 0.002),
+            process(700, name: "trustd", load: 0.003),
+            process(800, name: "zsh", load: 0.0005),
         ]
         let context = MenuBarOverviewContext(apps: [app], currentUID: 501)
         let processes = try #require(Self.overview(snapshot, context: context).processes)
-        #expect(processes.entries.map(\.name) == ["Editor", "WindowServer", "cloudd"])
+        #expect(processes.entries.map(\.name) == ["Editor", "WindowServer", "cloudd", "trustd", "bird"])
         #expect(processes.entries[0].app == app)
         #expect(processes.entries[1].isSystem)
-        #expect(processes.entries.map { Self.plain($0.value) } == ["3,0 %", "2,5 %", "0,4 %"])
+        #expect(processes.entries.map { Self.plain($0.value) } == ["3,0 %", "2,5 %", "0,4 %", "0,3 %", "0,2 %"])
+        // Speicher der App samt Helfer; ohne Messung ein Strich, nie 0.
+        #expect(processes.entries.map { Self.plain($0.memory) } == ["2 GB", "–", "–", "–", "–"])
+        #expect(Self.plain(processes.widestMemory) == "2 GB")
+        #expect(Self.plain(processes.widestValue) == "3,0 %")
+    }
+
+    /// Balken im Verhältnis zum obersten Eintrag; unter 10 % aller Kerne bleibt auch der oberste kürzer als voll.
+    @Test func loadBarComparesEntriesWithoutFillingOnAnIdleMac() {
+        #expect(MenuBarOverviewPresentation.loadFraction(of: 0.6, top: 0.6) == 1)
+        #expect(MenuBarOverviewPresentation.loadFraction(of: 0.15, top: 0.6) == 0.25)
+        #expect(abs(MenuBarOverviewPresentation.loadFraction(of: 0.02, top: 0.02) - 0.2) < 1e-9)
+        #expect(MenuBarOverviewPresentation.loadFraction(of: 0, top: 0) == 0)
+        #expect(MenuBarOverviewPresentation.loadFraction(of: .nan, top: 0.5) == 0)
     }
 
     @Test func processesBeforeFirstRateHaveNoEntries() throws {
@@ -279,6 +329,7 @@ import Testing
         #expect(memory.value == "50 %")
         #expect(memory.parts.map(\.kind) == [.app, .wired, .compressed])
         #expect(memory.parts.map(\.share) == [0.25, 0.125, 0.125])
+        #expect(memory.parts.map { Self.plain($0.value) } == ["4 GB", "2 GB", "2 GB"])
         #expect(memory.pressure == .warning)
         #expect(memory.pressureText == "erhöht")
         #expect(Self.plain(memory.swap) == "1 GB von 2 GB")

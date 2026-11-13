@@ -16,6 +16,29 @@ enum AccessibilityTree {
     }
 
     static func nodes(of view: some View, size: CGSize = CGSize(width: 600, height: 400)) async throws -> [Node] {
+        try await hosting(view, size: size) { host in try await firstNodes(of: host) }
+    }
+
+    /// Baum vor und nach `change`, ohne die Ansicht neu aufzubauen – wie eine Zeile, deren Daten sich in der laufenden
+    /// App ändern (#617). Nach der Änderung wird gelesen, bis `isSettled` den Baum annimmt oder die Frist abläuft.
+    static func nodes(of view: some View, size: CGSize = CGSize(width: 600, height: 400), change: () -> Void,
+                      isSettled: ([Node]) -> Bool) async throws -> (before: [Node], after: [Node]) {
+        try await hosting(view, size: size) { host in
+            let before = try await firstNodes(of: host)
+            change()
+            var after = before
+            for _ in 0..<25 {
+                try await Task.sleep(for: .milliseconds(20))
+                after = collect(host.accessibilityChildren() ?? [])
+                if isSettled(after) { break }
+            }
+            return (before, after)
+        }
+    }
+
+    /// Ansicht in einem Fenster hinter allen anderen, bei erweiterter Oberfläche wie mit laufendem VoiceOver.
+    private static func hosting<Result>(_ view: some View, size: CGSize,
+                                        body: (NSView) async throws -> Result) async throws -> Result {
         let window = NSWindow(contentRect: CGRect(origin: .zero, size: size), styleMask: [.borderless],
                               backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false
@@ -27,6 +50,11 @@ enum AccessibilityTree {
             leaveEnhancedInterface()
             window.close()
         }
+        return try await body(host)
+    }
+
+    /// Erster nicht leerer Baum; SwiftUI baut ihn erst nach einigen Läufen der Ereignisschleife.
+    private static func firstNodes(of host: NSView) async throws -> [Node] {
         var nodes: [Node] = []
         for _ in 0..<50 {
             nodes = collect(host.accessibilityChildren() ?? [])
@@ -42,6 +70,10 @@ enum AccessibilityTree {
     /// zeichneten native Schalter anders (#546).
     private static var enhancedUsers = 0
     private static var enhancedBefore = false
+
+    /// Ob gerade ein Aufruf die erweiterte Oberfläche hält – parallele Suites verschränken sich (für den Test des
+    /// Wiederherstellens).
+    static var isInUse: Bool { enhancedUsers > 0 }
 
     private static func enterEnhancedInterface() {
         let application = NSApplication.shared

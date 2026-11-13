@@ -41,6 +41,29 @@ public struct InstrumentListSection<ID: Hashable & Sendable>: Identifiable, Hash
     }
 }
 
+/// Kopf oder Zeile der Auswahlliste in Anzeigereihenfolge – eine flache Folge mit eindeutigen Kennungen, damit eine Zeile
+/// beim Wechsel der Gruppe ihre Identität behält und neu gezeichnet wird (#617).
+enum InstrumentListEntry<ID: Hashable & Sendable>: Identifiable {
+    enum Key: Hashable {
+        case header(String)
+        case row(ID)
+    }
+
+    case header(InstrumentListSection<ID>)
+    case row(InstrumentListItem<ID>)
+
+    var id: Key {
+        switch self {
+        case .header(let section): .header(section.id)
+        case .row(let item): .row(item.id)
+        }
+    }
+
+    static func entries(_ sections: [InstrumentListSection<ID>]) -> [Self] {
+        sections.flatMap { [.header($0)] + $0.items.map(Self.row) }
+    }
+}
+
 /// Pfeiltasten der Auswahlliste: nächste bzw. vorige Zeile, an den Enden stehen bleiben. Ohne (sichtbare) Auswahl
 /// beginnt Pfeil runter vorn und Pfeil hoch hinten.
 public enum InstrumentListNavigation {
@@ -129,10 +152,15 @@ public struct InstrumentList<ID: Hashable & Sendable, Icon: View, Menu: View>: V
             ScrollViewReader { proxy in
                 ChartScrollView(showsIndicators: true) {
                     LazyVStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
-                        ForEach(sections) { section in
-                            InstrumentSectionHeader(title: section.title, count: section.items.count, tone: section.tone,
-                                                    finding: section.finding)
-                            ForEach(section.items) { item in
+                        // Ein `ForEach` über Köpfe und Zeilen: Wechselt eine Zeile die Gruppe (etwa nach „Risiko
+                        // akzeptieren“ von „Mit Befund“ nach „Übrige“), bleibt sie dasselbe Element und zeigt ihren neuen
+                        // Inhalt. Verschachtelt behielt die verschobene Zeile ihren alten Inhalt (#617).
+                        ForEach(InstrumentListEntry.entries(sections)) { entry in
+                            switch entry {
+                            case .header(let section):
+                                InstrumentSectionHeader(title: section.title, count: section.items.count,
+                                                        tone: section.tone, finding: section.finding)
+                            case .row(let item):
                                 row(item)
                             }
                         }

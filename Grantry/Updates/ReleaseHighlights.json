@@ -1,31 +1,31 @@
 {
-  "version": "2026.11.12",
-  "intro": "Ganz Grantry im neuen Look „Lagebild“: oben ein Urteil in Worten, darunter Liste und Detail.",
+  "version": "2026.11.13",
+  "intro": "Die Übersicht in der Menüleiste zeigt mehr auf einen Blick – dazu drei Korrekturen am Lagebild.",
   "highlights": [
     {
-      "symbol": "checkmark.shield",
-      "title": "Alle Ansichten im Lagebild",
-      "body": "Übersicht, Berechtigungen, Autostart, Agenten, Apps, Verlauf und Beobachtungen beginnen mit einem Urteil samt Grund – fehlt eine Quelle, gibt es keine Entwarnung."
-    },
-    {
-      "symbol": "trash",
-      "title": "Aufräumen neu geordnet",
-      "body": "App-Reste, Speicher, Prozesse und Belegung mit Zustandszeile, Umschalter, Fortschritt als Spur und einer Aktionsleiste unten; auch das Blatt „App entfernen“ zeigt jeden Schritt."
-    },
-    {
       "symbol": "menubar.rectangle",
-      "title": "Menüleisten-Menü und Einstellungen",
-      "body": "Das Menü des Menüleisten-Symbols beginnt mit dem Urteil der Übersicht; Einstellungen, Einrichtung und „Was ist neu?“ folgen demselben Look."
+      "title": "Übersicht der Menüleiste dichter",
+      "body": "Karten stehen paarweise nebeneinander, Prozesse zeigt fünf Einträge mit Lastbalken und Arbeitsspeicher, Arbeitsspeicher und GPU nennen mehr Werte – bei weniger Höhe."
+    },
+    {
+      "symbol": "checkmark.shield",
+      "title": "Listen zeigen den neuen Stand",
+      "body": "Nach „Risiko akzeptieren“ wechselt die Zeile in Apps sofort ihren Zustand; ebenso in Berechtigungen, Autostart, Agenten und Beobachtungen."
+    },
+    {
+      "symbol": "power",
+      "title": "Autostart vollständig geprüft",
+      "body": "Leere Platzhalter-Dateien von Updatern gelten nicht mehr als Lücke; die Ansicht bleibt nicht dauerhaft auf „Teilweise geprüft“."
     },
     {
       "symbol": "cpu",
-      "title": "Super-Kerne richtig erkannt",
-      "body": "Auf Chips mit Super-Kernen zeigen CPU-Menü, Popover und Wachbuch diese Kerne jetzt als eigene Klasse."
+      "title": "GPU-Zellen als Pegel",
+      "body": "Die Chip-Ansicht füllt die GPU-Zellen nach der Gesamtauslastung, statt alle gleich zu tönen."
     },
     {
-      "symbol": "doc.text",
-      "title": "Drittanbieter-Lizenzen",
-      "body": "Der vollständige Lizenztext von Sparkle steht jetzt in den Einstellungen."
+      "symbol": "rectangle.3.group",
+      "title": "Ganz Grantry im Lagebild",
+      "body": "Seit 2026.11.12 beginnen alle Ansichten mit einem Urteil in Worten, darunter Liste und Detail."
     }
   ]
 }

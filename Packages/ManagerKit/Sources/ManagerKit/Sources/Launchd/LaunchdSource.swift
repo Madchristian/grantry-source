@@ -53,8 +53,9 @@ public enum LaunchdSourceError: LocalizedError, Equatable {
 
 /// Liest LaunchAgents/-Daemons aus den Plist-Verzeichnissen und ergänzt den Status über `launchctl`.
 ///
-/// Fehlende Verzeichnisse und Plists gibt es nicht – ihre Einträge gelten als entfernt. Ein vorhandenes, aber nicht
-/// lesbares Verzeichnis und eine vorhandene, aber nicht auswertbare Plist (kaputt, ohne Label, keine reguläre Datei, zu
+/// Fehlende Verzeichnisse und Plists gibt es nicht – ihre Einträge gelten als entfernt; ebenso Platzhalter ohne Dienst
+/// (`LaunchdPlist.Parsed.placeholder`, #619), aus denen launchd mangels Label nichts lädt. Ein vorhandenes, aber nicht
+/// lesbares Verzeichnis und eine vorhandene, aber nicht auswertbare Plist (kaputt, Programmangabe ohne Label, keine reguläre Datei, zu
 /// groß, keine Leserechte, während des Lesens unruhig) belegen dagegen nichts (#139): Die Quelle meldet sie als
 /// unvollständige Abdeckung (`InventoryContribution.incompletePlistPaths` samt Grund in `limitations`), der Scan schreibt
 /// die bekannten Einträge daraus mit altem Stand fort (`Snapshot.carryingForwardAutostartItems`). Gelesen werden nur
@@ -191,13 +192,16 @@ public struct LaunchdSource: InventorySource {
         case contents(PlistContents)
         /// Die Datei gibt es (inzwischen) nicht.
         case missing
+        /// Lesbarer Platzhalter ohne Dienst (`LaunchdPlist.Parsed.placeholder`): weder Eintrag noch Lücke (#619).
+        case placeholder
         /// Vorhanden, aber nicht auswertbar; Grund im Klartext ohne Inhalt.
         case unreadable(String)
     }
 
     /// Liest Inhalt und Fingerabdruck zusammen: Der Fingerabdruck wird vor und nach dem Lesen genommen; weichen beide
     /// ab, wurde die Datei währenddessen ersetzt oder umgeschrieben, und das Lesen beginnt von vorn (bis zu
-    /// `readAttempts` Versuche). Bleibt sie unruhig, ist sie nicht auswertbar. Gelesen wird über `RegularFileReader`
+    /// `readAttempts` Versuche). Bleibt sie unruhig, ist sie nicht auswertbar. Ein Platzhalter ohne Dienst
+    /// (`LaunchdPlist.parse`) ist weder Inhalt noch Lücke. Gelesen wird über `RegularFileReader`
     /// (nur reguläre Dateien bis `maximumPlistSize`, ohne Blockieren an Sonderdateien).
     static func readPlist(at path: String) -> PlistRead {
         for _ in 0..<readAttempts {
@@ -209,8 +213,11 @@ public struct LaunchdSource: InventorySource {
                 return .unreadable(reason)
             case .contents(let data, _):
                 guard FileFingerprint(of: path) == before else { continue }
-                guard let plist = try? LaunchdPlist.decode(data) else { return .unreadable(invalidPlistText) }
-                return .contents(PlistContents(plist: plist, fingerprint: before))
+                switch LaunchdPlist.parse(data) {
+                case .job(let plist)?: return .contents(PlistContents(plist: plist, fingerprint: before))
+                case .placeholder?: return .placeholder
+                case nil: return .unreadable(invalidPlistText)
+                }
             }
         }
         return .unreadable(changedWhileReadingText)
@@ -380,7 +387,7 @@ public struct LaunchdSource: InventorySource {
 
     /// Alle `.plist`-Dateien eines Verzeichnisses, nach Namen sortiert. Ein nachweislich fehlendes Verzeichnis
     /// (`DirectoryReader`: nur `ENOENT`/`ENOTDIR`) ergibt still eine leere Liste, ebenso eine inzwischen verschwundene
-    /// Plist. Ein nicht auflistbares Verzeichnis – auch mangels Suchrecht auf einem übergeordneten – und nicht
+    /// Plist und ein Platzhalter ohne Dienst. Ein nicht auflistbares Verzeichnis – auch mangels Suchrecht auf einem übergeordneten – und nicht
     /// auswertbare Plists werden protokolliert und als Lücke gemeldet (`CoverageGap`), die übrigen Plists weiter gelesen.
     static func plists(in directory: String) -> DirectoryListing {
         let names: [String]
@@ -399,7 +406,7 @@ public struct LaunchdSource: InventorySource {
             switch readPlist(at: path) {
             case .contents(let contents):
                 listing.plists.append((path, contents))
-            case .missing:
+            case .missing, .placeholder:
                 continue
             case .unreadable(let reason):
                 logger.error("Plist \(path, privacy: .public) nicht auswertbar: \(reason, privacy: .public)")

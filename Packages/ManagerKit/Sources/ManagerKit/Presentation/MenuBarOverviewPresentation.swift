@@ -107,11 +107,23 @@ public struct MenuBarOverview: Equatable, Sendable {
         public let isSystem: Bool
         public let share: Double
         public let value: String
+        /// Länge des Lastbalkens (0…1) im Vergleich der gezeigten Einträge, siehe `loadFraction(of:top:)`.
+        public let loadFraction: Double
+        /// Arbeitsspeicher aller Prozesse des Eintrags; ohne Messung „–“.
+        public let memory: String
     }
 
     public struct Processes: Equatable, Sendable {
         /// Leer bis zur zweiten Messung der Prozessquelle.
         public let entries: [ProcessEntry]
+
+        /// Längster Text je Spalte: Die Karte reserviert damit in jeder Zeile dieselbe Breite, ohne feste Maße.
+        public var widestValue: String { Self.widest(entries.map(\.value)) }
+        public var widestMemory: String { Self.widest(entries.map(\.memory)) }
+
+        private static func widest(_ texts: [String]) -> String {
+            texts.max { $0.count < $1.count } ?? ""
+        }
     }
 
     /// Ring mit Wert und Beschriftung; nur für gemessene Werte.
@@ -127,12 +139,16 @@ public struct MenuBarOverview: Equatable, Sendable {
         public let value: String
         public let rings: [Ring]
         public let clock: String?
+        /// Von der GPU belegter gemeinsamer Speicher („2,8 GB“); `nil` ohne Messung.
+        public let memory: String?
     }
 
     /// Bestandteil des belegten Speichers als Anteil am physischen Speicher.
     public struct MemoryPart: Equatable, Sendable, Identifiable {
         public let kind: MemoryComponents.Kind
         public let share: Double
+        /// Größe des Bestandteils („21,3 GB“) für die Legende.
+        public let value: String
 
         public var id: MemoryComponents.Kind { kind }
     }
@@ -211,6 +227,26 @@ public struct MenuBarOverview: Equatable, Sendable {
         }
     }
 
+    /// Karten, die sich eine Zeile teilen, wenn beide vorhanden sind; die erste steht links.
+    static let pairs: [(leading: MenuBarOverviewCard, trailing: MenuBarOverviewCard)] = [
+        (.gpu, .memory), (.disk, .network), (.thermal, .battery),
+    ]
+
+    /// Zeilen des Popovers in fester Reihenfolge: eine Karte in voller Breite oder ein Paar nebeneinander. Fehlt eine
+    /// Karte eines Paars (ausgeblendet, nicht gemessen), behält die andere die volle Breite.
+    public var rows: [[MenuBarOverviewCard]] {
+        let cards = cards
+        var rows: [[MenuBarOverviewCard]] = []
+        for card in cards {
+            if let pair = Self.pairs.first(where: { $0.trailing == card }), rows.last == [pair.leading] {
+                rows[rows.count - 1].append(card)
+            } else {
+                rows.append([card])
+            }
+        }
+        return rows
+    }
+
     /// Vorhandene Karten in fester Reihenfolge.
     public var cards: [MenuBarOverviewCard] {
         let present: [MenuBarOverviewCard: Bool] = [
@@ -226,7 +262,9 @@ public struct MenuBarOverview: Equatable, Sendable {
 /// Kontext, mit denselben Texten wie die Tabs (`PerformancePresentation`, `EnergyPresentation`, `ProcessListPresentation`).
 public enum MenuBarOverviewPresentation {
     static let missing = PerformancePresentation.missing
-    static let topProcessCount = 3
+    static let topProcessCount = 5
+    /// Last, ab der der Balken des obersten Prozesses die volle Länge hat (10 % aller Kerne).
+    static let fullLoadBar = 0.1
 
     /// Quellen des offenen Popovers (Abnehmer `menuBarPopover`): alle außer Prozessen, GPU und Akku ausgeblendeter
     /// Karten – die Prozessquelle ist der teuerste Teil des Takts. CPU, Speicher, Datenträger und Netz liest das Element
@@ -299,7 +337,7 @@ public enum MenuBarOverviewPresentation {
 
     // MARK: - Prozesse
 
-    /// Die drei Einträge mit der höchsten CPU-Last, gruppiert wie im Prozess-Tab (App mit Helfern als ein Eintrag).
+    /// Die fünf Einträge mit der höchsten CPU-Last, gruppiert wie im Prozess-Tab (App mit Helfern als ein Eintrag).
     private static func processes(_ processes: [ProcessMeasurement], context: MenuBarOverviewContext)
         -> MenuBarOverview.Processes? {
         guard !processes.isEmpty else { return nil }
@@ -317,10 +355,20 @@ public enum MenuBarOverviewPresentation {
                 if top.count > topProcessCount { top.removeLast() }
             }
         }
+        let highest = top.first?.share ?? 0
         return MenuBarOverview.Processes(entries: top.map { entry, isSystem, share in
             MenuBarOverview.ProcessEntry(id: entry.id, name: entry.name, app: entry.app, isSystem: isSystem,
-                                         share: share, value: ProcessColumn.percent(share))
+                                         share: share, value: ProcessColumn.percent(share),
+                                         loadFraction: loadFraction(of: share, top: highest),
+                                         memory: bytes(entry.totals.memoryBytes))
         })
+    }
+
+    /// Balkenlänge eines Eintrags: im Verhältnis zum obersten, damit die Reihenfolge auf einen Blick lesbar ist. Liegt
+    /// auch der unter `fullLoadBar`, gilt diese Schwelle als volle Länge – ein ruhiger Mac zeigt keine vollen Balken.
+    static func loadFraction(of share: Double, top: Double) -> Double {
+        guard share.isFinite, share > 0 else { return 0 }
+        return min(share / max(top, fullLoadBar), 1)
     }
 
     // MARK: - GPU und Speicher
@@ -335,7 +383,8 @@ public enum MenuBarOverviewPresentation {
             rings.append(MenuBarOverview.Ring(caption: "Speicher", value: percent(share), fraction: share))
         }
         return MenuBarOverview.GPU(value: percent(utilization), rings: rings,
-                                   clock: sensors?.gpuFrequencyMHz.map(PerformancePresentation.frequency))
+                                   clock: sensors?.gpuFrequencyMHz.map(PerformancePresentation.frequency),
+                                   memory: gpu.usedMemoryBytes.map(bytes))
     }
 
     private static func memory(_ memory: MemoryStatus) -> MenuBarOverview.Memory {
@@ -344,7 +393,8 @@ public enum MenuBarOverviewPresentation {
         let parts: [MenuBarOverview.MemoryPart] = memory.components.map { components in
             [(MemoryComponents.Kind.app, components.appBytes), (.wired, components.wiredBytes),
              (.compressed, components.compressedBytes)].map { kind, bytes in
-                MenuBarOverview.MemoryPart(kind: kind, share: physical > 0 ? Double(bytes) / physical : 0)
+                MenuBarOverview.MemoryPart(kind: kind, share: physical > 0 ? Double(bytes) / physical : 0,
+                                           value: self.bytes(bytes))
             }
         } ?? []
         return MenuBarOverview.Memory(
@@ -400,6 +450,10 @@ public enum MenuBarOverviewPresentation {
     }
 
     private static func percent(_ share: Double?) -> String { PerformancePresentation.percent(share) }
+
+    private static func bytes(_ count: UInt64?) -> String {
+        count.map(ProcessCleanupPresentation.memoryText) ?? missing
+    }
 
     private static func rate(_ bytesPerSecond: Double?) -> String { bytesPerSecond.map(TrafficFormat.rate) ?? missing }
 }

@@ -314,6 +314,18 @@
     "Auslastung" : {
 
     },
+    "%@, CPU %@, Arbeitsspeicher %@" : {
+
+    },
+    "laut macOS" : {
+
+    },
+    "Speicher" : {
+
+    },
+    "Swap" : {
+
+    },
     "1 von %lld Prozessen" : {
 
     },

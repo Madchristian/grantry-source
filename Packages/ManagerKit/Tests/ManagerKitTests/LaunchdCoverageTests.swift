@@ -211,6 +211,91 @@ import TestSupport
         #expect(LaunchdSource.readPlist(at: "/nonexistent/agent.plist").isMissing)
     }
 
+    // MARK: - Platzhalter ohne Dienst (#619)
+
+    /// Lesbare Property-Liste als Dictionary ohne `Label`, `Program`, `ProgramArguments` und `BundleProgram`: launchd
+    /// verlangt ein Label (man launchd.plist: „This required key uniquely identifies the job“) und lädt daraus keinen
+    /// Dienst. Ein solcher Platzhalter ist weder Lücke noch Eintrag; das Urteil bleibt vollständig.
+    @Test(arguments: [
+        #"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict/></plist>"#,
+        #"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>KeepAlive</key><true/></dict></plist>"#,
+    ])
+    func placeholderWithoutJobIsNeitherGapNorItem(_ placeholder: String) async throws {
+        try await ScratchDirectory.with(prefix: "launchd-placeholder") { directory in
+            try Self.write(Self.validPlist, to: directory.appending(path: "agent.plist"))
+            try Data(placeholder.utf8).write(to: directory.appending(path: "updater.agent.plist"))
+            let contribution = try await Self.source(directory).collect()
+            #expect(contribution.autostartItems.map(\.label) == [Self.label])
+            #expect(contribution.incompletePlistPaths.isEmpty)
+            #expect(contribution.limitations.isEmpty)
+            #expect(LaunchdSource.readPlist(at: directory.appending(path: "updater.agent.plist").path).isPlaceholder)
+        }
+    }
+
+    /// Alles andere ohne gültiges Label bleibt eine Lücke mit Hinweis: Programmangabe ohne Label, Label mit falschem
+    /// Typ, eine Property-Liste, die kein Dictionary ist, und eine kaputte Datei.
+    @Test(arguments: [
+        ("program", Data(#"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>Program</key><string>/bin/ls</string></dict></plist>"#.utf8)),
+        ("arguments", Data(#"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>ProgramArguments</key><array><string>/bin/ls</string></array></dict></plist>"#.utf8)),
+        ("bundle", Data(#"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>BundleProgram</key><string>Contents/MacOS/x</string></dict></plist>"#.utf8)),
+        ("label-type", Data(#"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict><key>Label</key><integer>3</integer></dict></plist>"#.utf8)),
+        ("array", Data(#"<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><array/></plist>"#.utf8)),
+        ("broken", Data("kein plist".utf8)),
+        ("empty-file", Data()),
+    ])
+    func invalidPlistsWithoutPlaceholderShapeStayGaps(_ name: String, _ data: Data) async throws {
+        try await ScratchDirectory.with(prefix: "launchd-gap") { directory in
+            let path = directory.appending(path: "\(name).plist")
+            try data.write(to: path)
+            let contribution = try await Self.source(directory).collect()
+            #expect(contribution.autostartItems.isEmpty)
+            #expect(contribution.incompletePlistPaths == [path.path])
+            #expect(contribution.limitations.first?.contains(LaunchdSource.invalidPlistText) == true)
+        }
+    }
+
+    /// Wird eine bekannte Plist zum Platzhalter, bleibt ihr Eintrag nicht mit altem Stand stehen: Er gilt wie bei einer
+    /// gelöschten Plist als entfernt. Ein noch geladener Dienst bleibt über den Ladezustand der Domain sichtbar
+    /// (`LaunchdServiceReader`, Tab „Dienste“), ohne dass die Quelle ihn einer anderen Plist zuschreibt.
+    @Test func knownPlistTurnedPlaceholderIsRemovedNotCarriedForward() async throws {
+        try await ScratchDirectory.with(prefix: "launchd-emptied") { directory in
+            let plist = directory.appending(path: "agent.plist")
+            try Self.write(Self.validPlist, to: plist)
+            let first = try await Self.scan(directory, previous: nil, at: TestData.date)
+            #expect(first.snapshot.autostartItems.map(\.label) == [Self.label])
+
+            try Self.write([:], to: plist)
+            let second = try await Self.scan(directory, previous: first.snapshot, at: TestData.date + TestData.day)
+            #expect(second.snapshot.autostartItems.isEmpty)
+            #expect(second.snapshot.sourceLimitations.isEmpty)
+            #expect(second.snapshot.sourceErrors.isEmpty)
+            #expect(second.events.map(\.kind) == [.removed])
+
+            let loaded = MockCommandRunner()
+            loaded.stub("/bin/launchctl print gui/501", CommandResult(
+                exitCode: 0, stdout: "gui/501 = {\n\tservices = {\n\t\t     750      - \t\(Self.label)\n\t}\n}\n"
+            ))
+            let services = try await LaunchdServiceReader(runner: loaded).services(in: .user(501))
+            #expect(services.map(\.label) == [Self.label])
+        }
+    }
+
+    /// Ein Platzhalter macht die Domain nicht unvollständig: Ein geladenes, eindeutiges Label gehört ohne Einzelabfrage
+    /// zur lesbaren Plist – wie neben einer gelöschten Plist.
+    @Test func placeholderDoesNotForceProbing() async throws {
+        try await ScratchDirectory.with(prefix: "launchd-placeholder-probe") { directory in
+            try Self.write(Self.validPlist, to: directory.appending(path: "agent.plist"))
+            try Self.write([:], to: directory.appending(path: "updater.agent.plist"))
+            let runner = Self.runner()
+            runner.stub("/bin/launchctl print gui/501", CommandResult(
+                exitCode: 0, stdout: "gui/501 = {\n\tservices = {\n\t\t     750      - \t\(Self.label)\n\t}\n}\n"
+            ))
+            let items = try await Self.source(directory, runner: runner).collect().autostartItems
+            #expect(!runner.calls.contains("/bin/launchctl print gui/501/\(Self.label)"))
+            #expect(items.map(\.isLoaded) == [true])
+        }
+    }
+
     // MARK: - Ladezustand bei unvollständiger Domain
 
     /// Fehlt in einer Domain eine Plist (nicht auswertbar), ist ihr Label unbekannt: Ein geladenes Label könnte aus ihr
@@ -273,6 +358,10 @@ import TestSupport
 extension LaunchdSource.PlistRead {
     fileprivate var isMissing: Bool {
         if case .missing = self { true } else { false }
+    }
+
+    fileprivate var isPlaceholder: Bool {
+        if case .placeholder = self { true } else { false }
     }
 
     fileprivate var unreadableReason: String? {

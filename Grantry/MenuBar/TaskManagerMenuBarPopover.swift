@@ -3,8 +3,8 @@ import ManagerKit
 import SwiftUI
 
 /// Popover der Übersicht in der Menüleiste (#495, Ausbau des Popovers „Auslastung“ aus #317, Gestaltung „Lagebild“):
-/// Karten untereinander – CPU, Kerne, Prozesse, GPU, Arbeitsspeicher, Datenträger, Netz, Thermik, Akku –, darunter
-/// Durchschnittslast und Laufzeit. Was nicht gemessen ist, fehlt. Ein Klick auf eine Karte meldet sie samt Kachel in
+/// Karten untereinander – CPU, Kerne, Prozesse –, dann paarweise nebeneinander GPU und Arbeitsspeicher, Datenträger und
+/// Netz, Thermik und Akku (`MenuBarOverview.rows`), darunter Durchschnittslast und Laufzeit. Was nicht gemessen ist, fehlt. Ein Klick auf eine Karte meldet sie samt Kachel in
 /// „Leistung“ (`open`), „Task-Manager öffnen“ meldet keine Karte. Liest nur fertige Stände; ohne `isLive` (Popover geschlossen) zeichnet es keine
 /// Graphen. Höher als `maximumHeight` läuft es im Bildlauf.
 struct TaskManagerMenuBarPopover: View {
@@ -54,11 +54,27 @@ struct TaskManagerMenuBarPopover: View {
 
     private func cards(_ overview: MenuBarOverview) -> some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.group) {
-            ForEach(overview.cards) { card in
-                self.card(card, of: overview)
+            ForEach(overview.rows, id: \.self) { row in
+                if row.count > 1 {
+                    // Gleich hohe Karten: Die Zeile nimmt die Höhe der höheren, beide füllen sie.
+                    HStack(alignment: .top, spacing: InstrumentSpacing.group) {
+                        ForEach(row) { card in
+                            self.card(card, of: overview)
+                                .fixedSize(horizontal: Self.hugsContent(card), vertical: false)
+                        }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .environment(\.overviewCardFillsRow, true)
+                } else if let card = row.first {
+                    self.card(card, of: overview)
+                }
             }
         }
     }
+
+    /// Die GPU-Karte braucht nur die Breite ihrer Ringe; den Rest der Zeile bekommt der Arbeitsspeicher für die Legende
+    /// mit Werten. Alle anderen Paare teilen die Zeile hälftig.
+    static func hugsContent(_ card: MenuBarOverviewCard) -> Bool { card == .gpu }
 
     /// Ohne Messung des Takts (nur Laufzeit oder Thermik) zeigt das Popover den Leerzustand.
     static func hasMeasurements(_ overview: MenuBarOverview) -> Bool {

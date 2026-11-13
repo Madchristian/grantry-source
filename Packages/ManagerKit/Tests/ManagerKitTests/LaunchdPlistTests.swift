@@ -106,6 +106,21 @@ import Foundation
         #expect(throws: DecodingError.self) { try LaunchdPlist.decode(try plist(["Program": "/x"])) }
     }
 
+    /// #619: Nur ein Dictionary ganz ohne Label und Programmangabe ist ein Platzhalter; mit Programmangabe oder einem
+    /// Label falschen Typs bleibt es nicht auswertbar (`nil`).
+    @Test func parseSeparatesJobsPlaceholdersAndInvalidPlists() throws {
+        #expect(try LaunchdPlist.parse(plist(["Label": "a"])) == .job(LaunchdPlist.decode(plist(["Label": "a"]))))
+        #expect(try LaunchdPlist.parse(plist([:])) == .placeholder)
+        #expect(try LaunchdPlist.parse(binaryPlist(["RunAtLoad": true])) == .placeholder)
+        #expect(try LaunchdPlist.parse(plist(["Program": "/x"])) == nil)
+        #expect(try LaunchdPlist.parse(plist(["ProgramArguments": ["/x"]])) == nil)
+        #expect(try LaunchdPlist.parse(plist(["BundleProgram": "Contents/MacOS/x"])) == nil)
+        #expect(try LaunchdPlist.parse(plist(["Label": 3])) == nil)
+        #expect(try LaunchdPlist.parse(PropertyListSerialization.data(fromPropertyList: ["x"], format: .xml, options: 0)) == nil)
+        #expect(LaunchdPlist.parse(Data("kein plist".utf8)) == nil)
+        #expect(LaunchdPlist.parse(Data()) == nil)
+    }
+
     /// Realer Fall: `/System/Library/LaunchDaemons/com.apple.usbaudiod.plist` trägt `Disabled` als
     /// Bedingungs-Dictionary (`{"#IfFeatureFlagDisabled…": …, "#Then": true}`) statt als Bool. Nur `Label`
     /// bleibt Pflicht – ein falscher Typ in `Disabled`, `Program` oder `ProgramArguments` darf den ganzen
