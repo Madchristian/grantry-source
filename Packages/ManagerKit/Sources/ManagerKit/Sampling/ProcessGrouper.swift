@@ -64,7 +64,8 @@ public struct ProcessFigures: Hashable, Sendable {
                        energyTrendMilliwatts: sum(figures.map(\.energyTrendMilliwatts)))
     }
 
-    private static func sum<Value: AdditiveArithmetic>(_ values: [Value?]) -> Value? {
+    /// Summe der gemessenen Werte; `nil`, wenn keiner gemessen ist.
+    static func sum<Value: AdditiveArithmetic>(_ values: [Value?]) -> Value? {
         let measured = values.compactMap { $0 }
         return measured.isEmpty ? nil : measured.reduce(.zero, +)
     }
@@ -141,11 +142,125 @@ public enum ProcessGrouper {
         return entries.apps + entries.background
     }
 
+    /// Die höchstens `count` Einträge mit der höchsten CPU-Last über alle Gruppen, höchste zuerst; bei gleicher Last
+    /// nach Namen, dann nach Gruppe und Kennung. Dieselben Einträge wie aus `group`, aber ohne die Gruppen zu bilden:
+    /// Einträge, Summen und die Sortierung nach Namen aller Prozesse kosteten in der Übersicht der Menüleiste je Takt
+    /// mehr als alles andere an der Karte (#626). Einträge ohne gemessene Last entfallen.
+    public static func entriesWithHighestCPULoad(_ processes: [ProcessMeasurement], apps: [RunningApp],
+                                                 currentUID: UInt32, count: Int) -> [RankedProcessEntry] {
+        guard count > 0 else { return [] }
+        var owners = OwnerLookup(processes: processes, apps: apps)
+        var members: [Int32: [ProcessMeasurement]] = [:]
+        var ranking = LoadRanking(count: count)
+        for process in processes {
+            if process.uid != currentUID {
+                ranking.offer(.process(process, .system), load: process.cpuLoad)
+            } else if let app = owners.app(owning: process) {
+                members[app.pid, default: []].append(process)
+            } else {
+                ranking.offer(.process(process, .background), load: process.cpuLoad)
+            }
+        }
+        for app in apps {
+            guard let processes = members[app.pid] else { continue }
+            let ordered = Entries.ordered(processes, of: app)
+            ranking.offer(.app(app, ordered), load: ProcessFigures.sum(ordered.map(\.cpuLoad)))
+        }
+        return ranking.candidates.map { candidate in
+            let figures = { (process: ProcessMeasurement) in ProcessFigures(process, networkPerSecond: nil) }
+            let entry = switch candidate.source {
+            case .process(let process, _): ProcessGroupEntry(app: nil, processes: [process], figures: [figures(process)])
+            case .app(let app, let processes): ProcessGroupEntry(app: app, processes: processes,
+                                                                 figures: processes.map(figures))
+            }
+            return RankedProcessEntry(entry: entry, kind: candidate.source.kind, cpuLoad: candidate.load)
+        }
+    }
+
     private static func group(_ kind: ProcessGroupKind, _ entries: [ProcessGroupEntry]) -> ProcessGroup? {
         guard !entries.isEmpty else { return nil }
         let sorted = TableOrdering.sorted(entries, ascending: true, byText: true, number: { _ in nil }, text: \.name,
                                           id: \.id)
         return ProcessGroup(kind: kind, entries: sorted, totals: .sum(sorted.map(\.totals)))
+    }
+}
+
+/// Eintrag aus `ProcessGrouper.entriesWithHighestCPULoad` samt Gruppe und Last (`entry.totals.cpuLoad`).
+public struct RankedProcessEntry: Hashable, Sendable {
+    public let entry: ProcessGroupEntry
+    public let kind: ProcessGroupKind
+    /// Anteil an allen Kernen (0…1).
+    public let cpuLoad: Double
+}
+
+/// Die Anwärter mit der höchsten Last in Reihenfolge; hält nie mehr als `count` und baut keine Einträge.
+private struct LoadRanking {
+    enum Source {
+        case process(ProcessMeasurement, ProcessGroupKind)
+        /// App mit ihren Prozessen in der Reihenfolge des Eintrags.
+        case app(RunningApp, [ProcessMeasurement])
+
+        var kind: ProcessGroupKind {
+            switch self {
+            case .process(_, let kind): kind
+            case .app: .apps
+            }
+        }
+
+        var name: String {
+            switch self {
+            case .process(let process, _): process.name
+            case .app(let app, _): app.name
+            }
+        }
+
+        /// Wie `ProcessGroupEntry.id`.
+        var id: String {
+            switch self {
+            case .process(let process, _): "process:\(process.key.id)"
+            case .app(let app, _): "app:\(app.pid)"
+            }
+        }
+    }
+
+    let count: Int
+    private(set) var candidates: [(source: Source, load: Double)] = []
+
+    init(count: Int) {
+        self.count = count
+    }
+
+    mutating func offer(_ source: @autoclosure () -> Source, load: Double?) {
+        guard let load else { return }
+        // Die meisten Prozesse liegen unter dem letzten Platz: ohne Namen und Kennung abweisen.
+        if candidates.count == count, let last = candidates.last, load < last.load { return }
+        let source = source()
+        let rank = candidates.firstIndex { Self.precedes((source, load), $0) } ?? candidates.count
+        guard rank < count else { return }
+        candidates.insert((source, load), at: rank)
+        if candidates.count > count { candidates.removeLast() }
+    }
+
+    /// Höhere Last zuerst, dann Name, Gruppe (Apps, Hintergrund, System) und Kennung – die Reihenfolge, in der die
+    /// sortierten Gruppen aus `ProcessGrouper.group` die Einträge liefern.
+    private static func precedes(_ lhs: (source: Source, load: Double), _ rhs: (source: Source, load: Double)) -> Bool {
+        if lhs.load != rhs.load { return lhs.load > rhs.load }
+        let names = (lhs.source.name, rhs.source.name)
+        if names.0 != names.1 { return names.0 < names.1 }
+        let kinds = (lhs.source.kind.order, rhs.source.kind.order)
+        if kinds.0 != kinds.1 { return kinds.0 < kinds.1 }
+        return lhs.source.id < rhs.source.id
+    }
+}
+
+extension ProcessGroupKind {
+    /// Platz der Gruppe im Prozess-Tab.
+    fileprivate var order: Int {
+        switch self {
+        case .apps: 0
+        case .background: 1
+        case .system: 2
+        }
     }
 }
 
@@ -178,9 +293,7 @@ private struct Entries {
         }
         apps = runningApps.compactMap { app -> ProcessGroupEntry? in
             guard let processes = members[app.pid] else { return nil }
-            // App-Prozess zuerst, dann nach PID.
-            let rank = { (process: ProcessMeasurement) in (process.key.pid == app.pid ? 0 : 1, process.key.pid) }
-            let ordered = processes.sorted { rank($0) < rank($1) }
+            let ordered = Self.ordered(processes, of: app)
             return ProcessGroupEntry(app: app, processes: ordered, figures: ordered.map(figures))
         }
         let single = { (process: ProcessMeasurement) in
@@ -189,18 +302,28 @@ private struct Entries {
         self.background = background.map(single)
         self.system = system.map(single)
     }
+
+    /// Prozesse eines App-Eintrags: App-Prozess zuerst, dann nach PID.
+    static func ordered(_ processes: [ProcessMeasurement], of app: RunningApp) -> [ProcessMeasurement] {
+        let rank = { (process: ProcessMeasurement) in (process.key.pid == app.pid ? 0 : 1, process.key.pid) }
+        return processes.sorted { rank($0) < rank($1) }
+    }
 }
 
 /// Findet die App eines eigenen Prozesses und merkt sich das Ergebnis je PID – Geschwister teilen sich Vorfahren.
 private struct OwnerLookup {
-    private let processesByPID: [Int32: ProcessMeasurement]
+    private let processes: [ProcessMeasurement]
+    /// Platz in `processes` je PID (bei doppelter PID der erste): ohne Kopie der Messung je Prozess und Takt.
+    private let indicesByPID: [Int32: Int]
     private let appsByPID: [Int32: RunningApp]
     /// `bundlePath + "/"`, längster zuerst (innerstes Bundle gewinnt).
     private let bundles: [(prefix: String, app: RunningApp)]
     private var owners: [Int32: RunningApp?] = [:]
 
     init(processes: [ProcessMeasurement], apps: [RunningApp]) {
-        processesByPID = Dictionary(processes.map { ($0.key.pid, $0) }, uniquingKeysWith: { first, _ in first })
+        self.processes = processes
+        indicesByPID = Dictionary(processes.indices.map { (processes[$0].key.pid, $0) },
+                                  uniquingKeysWith: { first, _ in first })
         appsByPID = Dictionary(apps.map { ($0.pid, $0) }, uniquingKeysWith: { first, _ in first })
         bundles = apps.compactMap { app in app.bundlePath.map { (prefix: $0 + "/", app: app) } }
             .sorted { $0.prefix.count > $1.prefix.count }
@@ -223,7 +346,7 @@ private struct OwnerLookup {
                 owner = app
                 break
             }
-            current = candidate.parentPID > 1 ? processesByPID[candidate.parentPID] : nil
+            current = candidate.parentPID > 1 ? indicesByPID[candidate.parentPID].map { processes[$0] } : nil
         }
         for pid in chain { owners[pid] = owner }
         return owner

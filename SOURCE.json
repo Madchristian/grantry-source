@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
-  "version": "2026.11.13",
-  "build": 1777,
-  "source_commit": "52fe160f6a32ae2e865b3a80bb0e8278a44f5bfc",
-  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.11.13.dmg",
-  "dmg_sha256": "c220f7e778868fc43327545aa49c75dd6271bf05fa28cfcd1cd046c19226953c",
+  "version": "2026.11.14",
+  "build": 1791,
+  "source_commit": "830273d7bf6664bb12f45a125b5d47b6d033de4e",
+  "download_url": "https://grantry.cstrube.de/download/Grantry-2026.11.14.dmg",
+  "dmg_sha256": "8f6db889bfa40b39983046f0becdea749fc19c7123eb65b69e41946aef82904f",
   "source_files": [
     {
       "path": "Grantry/Agents/AgentApprovalDetailView.swift",
@@ -372,6 +372,11 @@
       "source_blob": "012eead780beed47ed99af7c0b8a85cb2bb73216"
     },
     {
+      "path": "Grantry/GeoData/CountryTable.bin",
+      "sha256": "6307bb087c09ee9282fee3d209ea14678fd1f2f2a5081ab7431b08fd453e5695",
+      "source_blob": "c44473fe5e062f82cec87b6e1d9b29eea1562dfc"
+    },
+    {
       "path": "Grantry/Grantry.entitlements",
       "sha256": "4fde578ae840738f21fc0ebd52f41703483212ae000dcff18aa9cc3a9c219d83",
       "source_blob": "49ad0bb0904a0646357ee8bc31e1a07d378f2f4d"
@@ -428,18 +433,23 @@
     },
     {
       "path": "Grantry/Licenses/ThirdPartyLicensesView.swift",
-      "sha256": "2910adc46f167e4e5956c03e20b2c4715fa82b85c59b6692f875178419176311",
-      "source_blob": "28c9c1b94b608d71eb85e2e2ba7fca15fb998190"
+      "sha256": "706e5116741ae86c74551a0b038b97441e8d463b616d1c8a713e863fa658c479",
+      "source_blob": "7c28a4f216132cc0e0e64072635c00ed85b3cceb"
     },
     {
       "path": "Grantry/Licenses/ThirdPartyNotices.json",
-      "sha256": "a3b94099f61b079b38866dc7955f036958a6c9de6b0891622c898fa710b09844",
-      "source_blob": "f23c72e4a020eaab3e1f8f5d1f8b86e7b4598153"
+      "sha256": "551d162ecfc0a880950b8979b42bc3716a788625a4692cb7d064b6e2a7ed9287",
+      "source_blob": "833d18d17e0e995b965c698e9a24e42edce89b19"
+    },
+    {
+      "path": "Grantry/Licenses/ip-location-db-LICENSE.txt",
+      "sha256": "88aa16fc984ddca3a6e2e5b78254efe51eaeedb04ec9503220027724104074e0",
+      "source_blob": "675c357ffd4483bded4bc8b9add568a8de47311a"
     },
     {
       "path": "Grantry/Localizable.xcstrings",
-      "sha256": "5c58830b8b3218c52cb90ea9f4d9077ac34e07ae052f88a6bd115ddcf63b5937",
-      "source_blob": "eabd41c1d2cbd52c30c3bee20545450bc9a5a089"
+      "sha256": "e069f5a18740ed0c26b6837294e67c1e8985a37cd643eb53411c1b448e0ab8d6",
+      "source_blob": "7fd381a42d8fa81c431654c2b48f8d105e4d14d3"
     },
     {
       "path": "Grantry/MainWindow/DashboardView.swift",
@@ -523,33 +533,33 @@
     },
     {
       "path": "Grantry/MenuBar/MenuBarOverviewCards.swift",
-      "sha256": "aa1755c250faa9d9f598e6162bf8a999444da130b6bcbeff28992cc4c225aabd",
-      "source_blob": "13a8f6ff6d4d3245ab096f54734e7709d46093f3"
+      "sha256": "a411a733615adaf73065d7590624c74f9cdf2c1dde29fe438f12846844e3d4f2",
+      "source_blob": "426d683dff34baee2a3aa98d5a4d01e7a1c89a75"
     },
     {
       "path": "Grantry/MenuBar/TaskManagerMenuBarPopover.swift",
-      "sha256": "c5354d6c15cd88db470cda52413a830bc90b1cf769e2444a443de404c96543be",
-      "source_blob": "dbfb829db9915e084b6c841227b1f15e188c366c"
+      "sha256": "4a8e29492417636396b2e98d2db00e81e2be82baa23f47cfd34a749b028689f6",
+      "source_blob": "d305a727f8f1c374e19d5149a7867ee09a891db0"
     },
     {
       "path": "Grantry/Network/Connections/NetworkConnectionDetail.swift",
-      "sha256": "f2a77caab6d2eeec6dd790111a911d41522f4fa4f3be69636445b5045c97cfaf",
-      "source_blob": "301d52c17a6c5ae2625372b0e94e47d36f071775"
+      "sha256": "69f258d26f5ddc255eac6dd287d00e64764a9c7d891bafb6ec535ab73ddb6914",
+      "source_blob": "229e7fdd2756e6dfdfad0b124a3319a2ac94fbd6"
     },
     {
       "path": "Grantry/Network/Connections/NetworkConnectionTable.swift",
-      "sha256": "e9a64879074c31cd9ddbf9bc562363860d0e72e80d3c699df459c08c2cd1b8f9",
-      "source_blob": "5212a012bb1f0cfeb163545a243f803cfc7d16aa"
+      "sha256": "aadb8d1b33222c1ddbb2caf19e4f13edc9b8d162e94c8c28dbcbfcf215e0671b",
+      "source_blob": "f1e88f13dcba66edbbf68adeb0f069e92b34893a"
     },
     {
       "path": "Grantry/Network/Connections/NetworkConnectionsBoard.swift",
-      "sha256": "c8e851c0bc05442d2aed82fc52bb082a0bcbf7c19b11e84788fe78a27aee48e9",
-      "source_blob": "7c5a4bdea140ff51d531a0aea9e9f3d63e0d7bcc"
+      "sha256": "f8f78706092fdf5af5e8b52ccbe6624176770ed3c68fb0a3267e8d81a474f8a3",
+      "source_blob": "a2444c05df29cd9acf59f8c279679c3029b35004"
     },
     {
       "path": "Grantry/Network/Connections/NetworkConnectionsView.swift",
-      "sha256": "c431279eaa65b57c52f839fc42e54c8ff93d69a71393fa906369f477d823d8b7",
-      "source_blob": "138bfb850c444b469433ae621e3d5335e401f307"
+      "sha256": "f74010a83e052f87654f51acac114151d5558a84f9d3f2c67b84c9167b578b41",
+      "source_blob": "15f45041c170f1b7043f50a1cd5fc9d1b51a22be"
     },
     {
       "path": "Grantry/Network/ListenerTerminationControls.swift",
@@ -737,9 +747,14 @@
       "source_blob": "b284190330288485fd6a2e6547d4aa02c558f4a0"
     },
     {
+      "path": "Grantry/Setup/SettingsLayout.swift",
+      "sha256": "1de6b01f8297384d6e1232d2d67749e26ecc1027707f40cad92bc7755da013aa",
+      "source_blob": "0079acbab3816422b3343164c57c61cefaf17264"
+    },
+    {
       "path": "Grantry/Setup/SettingsView.swift",
-      "sha256": "b04bf9259fa6ab7610f852dd059613184a81e3564e10747d6d8dd62abc2e6935",
-      "source_blob": "e907dc9dc86f45f32c1c12dbcd7d3446d75dd3f0"
+      "sha256": "3bdb28ef3e391dc0df90b93f43650ae077261813d7594196fa1ee576b954ef4e",
+      "source_blob": "af64af88f89007225f33c9419b879aceab338d1f"
     },
     {
       "path": "Grantry/Setup/SetupChecklistView.swift",
@@ -938,8 +953,8 @@
     },
     {
       "path": "Grantry/Updates/ReleaseHighlights.json",
-      "sha256": "f1964e5035454f94c1490fd5238da2d3ba32f2c45d62f79e70237fde578d69d3",
-      "source_blob": "b03158f116cfb1b4cdd1973d146ecbcd6ff9e88a"
+      "sha256": "3ba9d0a9d58b6e16e82be96f58bb79eaca24c4170169f50f3ad70628bd9d7fd0",
+      "source_blob": "7fc4c9530b426208c3b1ac57a03ee8a4228468bf"
     },
     {
       "path": "Grantry/Updates/SparkleUpdateService.swift",
@@ -997,6 +1012,11 @@
       "source_blob": "08a2d1d7281ca358aa5c67ae6216c4b96b19966c"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Core/ArcFanLayout.swift",
+      "sha256": "8a8a7904f25ba3e1962ab88bbe7fa3a8a2b87195765717c86ecc86f4669ee4ec",
+      "source_blob": "6912abb054293d84491bb66114e8cef4f4be090e"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Core/ChartAccessibility.swift",
       "sha256": "0d91a41bbef1d8560b89bb98ed573f2396a9cff66f9f4af79035c14b00b2d2b2",
       "source_blob": "6b4411c940ee534c0729f013bea9731d02217e57"
@@ -1052,6 +1072,11 @@
       "source_blob": "bf1bd773888905fc74065ab7bb713476af66d2fe"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Core/RingRadarLayout.swift",
+      "sha256": "e1759979250494bdf86e794611b02c507c543257b3b86c6f2ce4acc51b597bc8",
+      "source_blob": "85ba3fc5b60b1431029cd5ce72f2573551e3dbe2"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Core/SparklineGeometry.swift",
       "sha256": "89be62779691984baa02a881357088424d56b88675caf4d6ccfc3f5467eb4802",
       "source_blob": "e206187201ae801fe3f6d583406ead47cf5395fc"
@@ -1070,6 +1095,11 @@
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Core/WatchbookTimelineGeometry.swift",
       "sha256": "59e834916518c1ef6653a9130d055683270992088eea8897a5e3d3a664566640",
       "source_blob": "a187df6ea70f84795470cd106363b959bc864038"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/ArcFan.swift",
+      "sha256": "02f5aa05c0c369740d43319578305bbdb0caa59184efb41c4bd307ba4052d761",
+      "source_blob": "1843b628c8117de22ae0625144649911c41ab3be"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/Contrast.swift",
@@ -1127,14 +1157,19 @@
       "source_blob": "e01dcc02f28e8e836ea98aa996320af998239aee"
     },
     {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentExpansion.swift",
+      "sha256": "46b4686d803b9ba983005ed52fc30de04ed0880c0c36adfb488a16756cd793d1",
+      "source_blob": "2001d5138a9ff849fd1a5022ce850989e02d1f97"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentGauges.swift",
       "sha256": "27c579e0246968037d5de3db058135bc53e44547c5a6f6af9fff4cc751aaa815",
       "source_blob": "af5078f6938f9d55299d6ea4cb5090f9bb13827d"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentHeads.swift",
-      "sha256": "8ce70895f3c568880727db1474972cd041eb2a9008732ab76871127dd7938169",
-      "source_blob": "d814be3d3c3a09df7ed72ce3573c8c18fbac70a5"
+      "sha256": "8f752f7269248dbc5f63431beeb525ae5cd74d7eb4090e679e73e39d4b4f8b58",
+      "source_blob": "9a4c58afdd194b5e6e8843c3329e71d3f75061fb"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/InstrumentLadder.swift",
@@ -1213,13 +1248,13 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/ReachRadar.swift",
-      "sha256": "6abca6cf79972934e85ea35b43aa60a798a27efb7352343c52cca6c1267c8391",
-      "source_blob": "7aa2658d2822521da544cd3763f8ab55ef21344c"
+      "sha256": "0b37d4f404ad0c71da859f642c059da973350c4855e532ff7ace106d83e4c225",
+      "source_blob": "daf84807fa72026119c1788ddccda0796d627be9"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Design/RingRadar.swift",
-      "sha256": "c783441ea5083adf8a03382e3e74f08a0f3fab78005aab344a98643be612a93c",
-      "source_blob": "88f3bd43025962355f6149b46379b19829a024d8"
+      "sha256": "059b4eadd6aa6f5f70e38b354b48085a9fad73712ee8dd2efb069091a0c686a9",
+      "source_blob": "8534cdfd25342ec0ddc8842415d9c0a32b280b73"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ChartScale.swift",
@@ -1253,8 +1288,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ExtensionBoard.swift",
-      "sha256": "008197b8928971c9697895af59d2bc5aba30aca17e3a40df441df0616c0c8f75",
-      "source_blob": "18e2519136f22cad6cb0c09d5c1d675b061a5a3e"
+      "sha256": "642922cb7ceec7e25dc31240704b462d1f53c0fbb3be8d3bbb8efac7637ec234",
+      "source_blob": "c11b2a8d28b91a9408e271d22e7903e2d2c96640"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ExtensionBoardContent.swift",
@@ -1265,6 +1300,11 @@
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/ExtensionDetailPanel.swift",
       "sha256": "cc93f0510276a6569a67be4b1a9e842eb5452d408a99309bd00287a32c0bf6e6",
       "source_blob": "76876a20e66f23761e3b0352445229f993dd797e"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/FittingLayouts.swift",
+      "sha256": "52e690726e9aff26c3f2dea739a1819352633045b05192468106ec46e5c4de7e",
+      "source_blob": "4e13e6d48ee0a93c28927c944b75fd26a65b19c0"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/GrantDetailPanel.swift",
@@ -1313,8 +1353,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/InstrumentTable.swift",
-      "sha256": "128a0dfe2ca1e0e0d6d3656d232a456b3428a1a69e47776cd5d7fb8bad40905c",
-      "source_blob": "397d14a5502d4961a0bcb85752dd8a6f9d97e05b"
+      "sha256": "dd65b88589b7bcfcda14448ac9ea4e29c6ea4f358be59bfbdb8576b0f6611236",
+      "source_blob": "cc2487cc673f951d54808cf22f8542c62f0ad5e5"
     },
     {
       "path": "Packages/ManagerKit/Sources/GrantryCharts/Views/InventoryBoard.swift",
@@ -2002,14 +2042,19 @@
       "source_blob": "3931b1d23fcd027e7f80d083e81e5b325ee2a7e3"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/CountryTable.swift",
+      "sha256": "d2f6f22923102febb04612dd0de8ad731009859a6dbbfe7e36910583f8a8759b",
+      "source_blob": "c492bb6a75c1dd96c858267b5db1c13b5e973952"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/HostNameResolver.swift",
       "sha256": "68433f7891a794aa47a38f33f5f6c543d1eb62bf3072f6741d6ad1831660fa84",
       "source_blob": "1e3958d9d861f38d79db5c86b34d7d138df50bfa"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/IPAddressScope.swift",
-      "sha256": "2933102cf646409209d9c57ef82fa4239c4a6b48233a1974242f67fbf216709a",
-      "source_blob": "1200197c581ce62829b0625302288a8cdec81766"
+      "sha256": "c607f34e5c82e9570845c1c52a8efbba0442be8aed392a60e4da4017261ba535",
+      "source_blob": "354513bedd176cc8f85b6419e8fae7242fa6de80"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/InterfaceByteReading.swift",
@@ -2030,6 +2075,16 @@
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/NettopSampler.swift",
       "sha256": "40e8a1db8df09addfddeb29bc00d31b3b3f443e79e302f8934c8cd770891c4ce",
       "source_blob": "f8ee10a9ef5e55cd35d5f2e9678762d6e7b6b805"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/NumericIPAddress.swift",
+      "sha256": "cd4b6671a6cb83addac3295c62b46ce70daf43b64c7f34f736241be11153f28d",
+      "source_blob": "0e0e457db2fe88defb0c693a8ff866d215a8ae9f"
+    },
+    {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/RemoteRegion.swift",
+      "sha256": "593faefbabc6cad62918c4b5df3ecd6cc671ac41a135dc183368da0e60021903",
+      "source_blob": "aa904cbc4b916648850af5ef67fb06c731e9cf2a"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Activity/TrafficReport.swift",
@@ -2823,8 +2878,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/ListenerActivityPresentation.swift",
-      "sha256": "f6c9add6fdfa5c7db5718d592b374f2d71d23291680caea6cc8abdf77afb3216",
-      "source_blob": "a0b3913ee6bb769dadb53b0938c5bfb53003dc6a"
+      "sha256": "5e12042b11c75f55c92c6802c21b1530539a2121488104cb92a182f31c78d8f7",
+      "source_blob": "f0f60a97a1f0551204ad6e158fb1bc49d3635091"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/LoginSessionsModel.swift",
@@ -2873,8 +2928,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/MenuBarOverviewPresentation.swift",
-      "sha256": "22d075db0314fd1f9293508a13d5a076cf892b2a9adb7601a47466b685160475",
-      "source_blob": "bfe1bead89d4f10e5a00cb2f386b41776e121136"
+      "sha256": "8a72c4bb316c95e6c4fa6fa4fb814ef84344e240bbdfbebec6326772be53d037",
+      "source_blob": "15a935bab43169728d5bc9f88e487fceba6f1286"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/NetworkActivityModel+TaskManager.swift",
@@ -2907,14 +2962,19 @@
       "source_blob": "39542aeb769ae85980cd0d1a3500998d36997558"
     },
     {
+      "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/NetworkConnectionSections.swift",
+      "sha256": "2d528796f3537f1e1891723a658154a3b8499341119726f1c9ba225261ccd127",
+      "source_blob": "4060faefc7b8574cfad8d0e624f2eccaf97b2a4b"
+    },
+    {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/NetworkConnectionsPresentation.swift",
-      "sha256": "0c04fd409987f34b29270efb556f4b3f8561a3a6d1985abe61834ce45e85c993",
-      "source_blob": "20f895a5e141456afac00fe58a0a98a8758c8a30"
+      "sha256": "4a3d197cbadf769ada6303ac9e934c77dfe22772ee91a794d97a627ca8e7303a",
+      "source_blob": "c32b00f197d7eb0b8438e4bdbf343cffe3824e49"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/NetworkConnectionsPreviewData.swift",
-      "sha256": "4c56e3e58a6a6312768a3f4008ec35d9b086be01b521e077a5f25615b5249f52",
-      "source_blob": "90fa0a2a2afb4d7729d7d1fdd5bd17e5bda1cd32"
+      "sha256": "87bd268491d16e9ecde029ffdebbdd539fc04e394d7f29cc3093ae6ba4b92985",
+      "source_blob": "c18d3d9c4b3a2ae9a6f346ae5812009ac1c802f5"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Presentation/NetworkListenerPresentation.swift",
@@ -3403,8 +3463,8 @@
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/ProcessGrouper.swift",
-      "sha256": "020078fdbbb96dcefb3f133ae9a5c42267d7d80b2312b3180a174fe3377e31a3",
-      "source_blob": "63235cd52c8ef1ae4f91f5f0949e3aab76fbb6e7"
+      "sha256": "6694a34300c88b34910d33323d5c08e33d967bd770a725ff13ce84ff61367140",
+      "source_blob": "6663c0049b9cfba5104ae5a5ed35a5df650ec3bc"
     },
     {
       "path": "Packages/ManagerKit/Sources/ManagerKit/Sampling/ProcessUsageSampler.swift",
@@ -4352,6 +4412,16 @@
       "source_blob": "de7ce1900c338fcb716a728ba22a7eb55966b499"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ArcFanLayoutTests.swift",
+      "sha256": "13531100da222a92ad11c341d6d75c19e7f8a334a06e2cf4477a40bfdb7e8b04",
+      "source_blob": "abf2651e938c5faa054c88132c449cb4bbc0edbc"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ArcFanSnapshotTests.swift",
+      "sha256": "c665e282e121248ef5722c5948e6bc2e91318e4a42304097ee0b2f0773192f69",
+      "source_blob": "517fb4369a2bc3fec1f664f54543de0acaccac60"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/AutostartSnapshotTests.swift",
       "sha256": "51da33903b7b52c7c3c095cc894113da0395e6ac89ac5f7d4a5ae55bde17a7ed",
       "source_blob": "ef64bac20d4799d0f20ad710deb39f0665a1498b"
@@ -4417,6 +4487,11 @@
       "source_blob": "74d6fd5129eced7c2e432fa62b69dfe932b11e66"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/FittingLayoutsTests.swift",
+      "sha256": "30fd74139b474602544a66a0f386334e57679492f42d1aeb23f9845b45da1b22",
+      "source_blob": "d28b3f140f4ea5e8196a26fed79a51e464afd993"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/HeatCellTests.swift",
       "sha256": "b615e310353fca9c0d97c55683560c9c58d1cfd5196b8045d969b5f64c756826",
       "source_blob": "968475dddf3251ddc4415c39cd5a44b93873bd19"
@@ -4433,8 +4508,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/InstrumentDesignTests.swift",
-      "sha256": "2a3b27857e19885c7bddbecd1a76881751ce606574c3c203b84680d83b51897a",
-      "source_blob": "7d82e59b1565ae9607f99e5c473a7cc4f84f6ff7"
+      "sha256": "08e39a55bb5ded5f5f650b16ee37fa760b4a0c61795001164503e913db5c505f",
+      "source_blob": "94d13a2a5dbb104d4cd2255add413bc58ae4ebc1"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/InstrumentListUpdateTests.swift",
@@ -4547,6 +4622,11 @@
       "source_blob": "214ff7167c7b765d14b39af4e55b0fdd76f985f8"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ReachRadarSnapshotTests.swift",
+      "sha256": "97de7f3665e12d85354ec2d07d3142d94acea86c16770d656a6b62bb60db9328",
+      "source_blob": "f04a195c570abad91c8566fd52e53d2cb1179f20"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/RemovalSheetSnapshotTests.swift",
       "sha256": "44be208d4f424be9493156fc55a6f9d9b4b3fd05e6a18a1286500b3ee9ec50a0",
       "source_blob": "f7d9ea59eb76f4febbb91dd70ab4863ef7bc3df6"
@@ -4555,6 +4635,11 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/RenderGuardTests.swift",
       "sha256": "2c7dcd25fec465be91e7eca8a43bacf5ff4a5eac437ecafd2b7e5a896b0bbeda",
       "source_blob": "0bf1e4cac533b55c65ffd5c424a97181aa8aa23c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/RingRadarLayoutTests.swift",
+      "sha256": "e148ce14137335a90337db3f622a1bad4d1b6eaf9eec129fb793e43f7cf5af31",
+      "source_blob": "6ce69a2207a3f60e07c228deb3dd4eb76d1e6fdc"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/ScrubTests.swift",
@@ -4632,6 +4717,11 @@
       "source_blob": "b89f5e9249c1e13695f2b9e43220fe57eaa6bb42"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+ArcFan.swift",
+      "sha256": "a2a8184211fb4b4eb5e1eb161d21806af942736008c6ebc2e261a8a24ce84e61",
+      "source_blob": "f1394a724832c9273d5d6911ec2cbc51e7f71c63"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Autostart.swift",
       "sha256": "a32b295ff95a746c9b0895cf71e416fb25eade320e94cd0f5fc9c749fe8fb301",
       "source_blob": "0c04e9fa0edcc9fbc242e3a506283eccf678bd67"
@@ -4658,8 +4748,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Extensions.swift",
-      "sha256": "e42ecc418cc4a2df84370c15aa3819e38720608c03a9d3b34e88f2128233266f",
-      "source_blob": "a941fd73c993727d392fb50a5e6258aff26347a3"
+      "sha256": "5671f4faebd8ce66b4add19f7857180630b814ff9202ffa8cbef2f317b758e68",
+      "source_blob": "02f3068ca7a26cec88a14239681749d16a200574"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+History.swift",
@@ -4715,6 +4805,11 @@
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Processes.swift",
       "sha256": "82ea0479c05deb6310f03fde460c9a5d3838593f937e4276aec4a50b312c8e3c",
       "source_blob": "5f939b12594c4025cf81630b29c8838adc92e882"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+ReachRadar.swift",
+      "sha256": "258c1efb25c8d1b8a43138369d64b5d0e0adf2d05408cf2afb19ebed6170c7b8",
+      "source_blob": "b52a0d2950257893dc6db4131f5132683f373a2f"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/Support/SnapshotGallery+Removal.swift",
@@ -5412,6 +5507,66 @@
       "source_blob": "2dd3c9b29bb917a7716a69787b16f2e002313211"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-nur-lokal-contrast.png",
+      "sha256": "2c6e3bdae7170e9182f7783ed8609345f38d416bf3cef53ec68da7be9f9d249b",
+      "source_blob": "e43c2bb1ebec15b4db69aeb9b2d5036c462f8fad"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-nur-lokal-dark.png",
+      "sha256": "2b33a7331edb95361f0cabb64c26a51b8db9f70ad3b8e1e445907f77556bc62b",
+      "source_blob": "26ac2cb941b8d798b3fea1a3dff8c7e0fd3a1824"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-nur-lokal-light.png",
+      "sha256": "6ea6203b5c896d985bf18ff86289c80a82fa39d5e3025c95e0df6909df3db6a3",
+      "source_blob": "43287a818a3334c6267fe5e06c9a41d7017fb69c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-seite-contrast.png",
+      "sha256": "b203689d2a9ef8669cdde567c5d394f5bb7c3ffafa8bfa6a86084b1e608b1df4",
+      "source_blob": "5baa7c9e3cd35d178209113215cc0526dbe9110b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-seite-dark.png",
+      "sha256": "f7f20390c0314553ec16f7c3c6cbeaf2ecda694832300188285ee322e1228e68",
+      "source_blob": "704bf963d4c64537bc801ca63de2358c4a7ceb30"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-seite-light.png",
+      "sha256": "4db3225c27f8a06d06349d6ead6246e4c785d4d5ba1ced6d5af1eae7b295ab1c",
+      "source_blob": "d13ab752dd10b3bc82214644d88bf12e644b5e30"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-viele-contrast.png",
+      "sha256": "1afae9972b499b0e31ac5943bde8326b2d567e873cefc8fd76998701527d6943",
+      "source_blob": "b13b47d3218e57410c1eeb86bd622bd9fe9ee4f4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-viele-dark.png",
+      "sha256": "61a74b3269e486c4b03250d7b85e945b5e02ae7f01b07631187df8486f22e3ab",
+      "source_blob": "eecbe5278bbb4cf7a9790ff135eb9b1679f61268"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-viele-light.png",
+      "sha256": "6206a76f873153af0d3387eaf861fc21b420673f9b48266d294cd12246a7a04b",
+      "source_blob": "f771122000106ca0f36a1d4ecacb235d24652b3f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-wenige-contrast.png",
+      "sha256": "98d0d04e8d7a2274c1b2eeeae60706594d477c84635c9ea541bceb477cef35e2",
+      "source_blob": "ea932520e46e96f1e22a2a651ad3759c7ef00f47"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-wenige-dark.png",
+      "sha256": "b83cc1b6039e720b0bdbd1837dffa772b6b3e36ceee6dfd0b288326a0b215fb8",
+      "source_blob": "492c3cc565162b26943ee6e85fb1e99ed1e49f76"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/bogenfaecher-wenige-light.png",
+      "sha256": "3300315b4b6d61ddf403d27378b6d8c042e757897b28be30d7dfdcdf43652d5a",
+      "source_blob": "4aaa4a655dae1eb41e10b3a60812a629a37daa9e"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/chip-contrast.png",
       "sha256": "c43c008e26d99337e396127aa5110f3fb878c771f2d9ca77fc9f0097c7a23272",
       "source_blob": "a60db3f5be0cf4394af22afa9703f8a94178c4b9"
@@ -5607,94 +5762,154 @@
       "source_blob": "f715c1335f616c05d8524a246bc509128ba51808"
     },
     {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/erreichbarkeit-karte-contrast.png",
+      "sha256": "e7b0848d1100d1bccbec8aaff5cd6f6f6cfd3751d914d1bfb4f5dc9c7726ad3c",
+      "source_blob": "68a97ae41ccae6734af1742dbfab9ad622799f2f"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/erreichbarkeit-karte-dark.png",
+      "sha256": "d4b12ef6d68419bfb5cbef2514f82ea6dd740c5182fa1615e780dcc57625c24d",
+      "source_blob": "6899bb9058570c4fb2a882d88dd70699d414d104"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/erreichbarkeit-karte-light.png",
+      "sha256": "f2d541157a33e1da895f1b50a40061a997b8548d1af90a6c95f948cb429c936c",
+      "source_blob": "04d102deab173a59a21783919f3ce29782b31800"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/erreichbarkeit-seite-contrast.png",
+      "sha256": "0ddad27a13d64f52f2279da6ee9899d71a3255ce3ba1dce5d214337aaf7f0cba",
+      "source_blob": "8b35bd1d430cbd9d7a6210146740bd278ffaeca1"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/erreichbarkeit-seite-dark.png",
+      "sha256": "d12e35caded4746102219b0c5a5548c34956f4a003ca7ede618f682a14e33577",
+      "source_blob": "e39a6f44886542f254d67dacf9c3925ec935178e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/erreichbarkeit-seite-light.png",
+      "sha256": "50fe9ff3db3377f0949f1d4a58d6bb19f5f4ef0c23f04c979a812964bcf9b02e",
+      "source_blob": "896db1f1a0dd72dfd40422a07625e6d01de838ae"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-akzeptiert-contrast.png",
-      "sha256": "8f54c0d81f688c24a09e440beac7b9b06f1abcfd531a0fa9e70b48be39cee897",
-      "source_blob": "d14a152b7da3a4ed6a5254f6c3d2a516c106d071"
+      "sha256": "d35b4cd95e6319943db62f2be10c41efd81081fc0b4d29b6ee989cd6cfd8fd5e",
+      "source_blob": "b8a626a44397d505735b4694e1a54a94472cab07"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-akzeptiert-dark.png",
-      "sha256": "f56713b73394f747cb830b3b2d91928c82a4907e6cc1bd96790575c316690f0b",
-      "source_blob": "df17cb040678f08531801d1a10c3625733b028b8"
+      "sha256": "4aa4dec3e2c45d8b5bdd85b63b64f80f2de774a49990518b1e9c9fd70d0ac222",
+      "source_blob": "e5561262fca8cf02a034489e2094061a3ff177dd"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-akzeptiert-light.png",
-      "sha256": "e0f431c61cae4221bbe5eb33c9566bf47fb674999344f6ddec5f839d1f0b4804",
-      "source_blob": "70a4ba793e78776ce164f6a8156dbca760976d9d"
+      "sha256": "1a2160e98295d6d08bfb5ea69fa5abc62ddcffc4f50ccc9c8217a6e6bd2c3c12",
+      "source_blob": "5a71b21799be957dbb2c75919157e781ffef25b2"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-befund-contrast.png",
-      "sha256": "79d9cffaccf5df0e78d2c336ef19e8d3d5f3c7a12e617ca7ed6c7aef9f9e7d6c",
-      "source_blob": "41af1c65061bfbb893104b60f3edbda49be74b74"
+      "sha256": "e1351902c90775bee128e519ea7669e246f8b07ecd22006faa878be96820c355",
+      "source_blob": "10a663933aa43db07d1b8acd05b2a03d36d07d20"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-befund-dark.png",
-      "sha256": "94cbf4eb41165833888409e6afa0ed07df4ee74d43442d6d2f6e2b425d87d1d2",
-      "source_blob": "e69d99b5608beba06378f3a8a18c5d0fe5856e3a"
+      "sha256": "b157d21346ee14ab1b17bfaf6cd9fa334f60a72ba4cf2066bae2f175e0bb9862",
+      "source_blob": "0b50f5cde6810046ff26d4ff3503117153cf9780"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-befund-light.png",
-      "sha256": "1a4ce02735bc538f7e34323ed4762a4a9306fd70b78e0ca67cfe5db56e1ff02c",
-      "source_blob": "f369177544964da8bc5710115bc099dbccb6cbc4"
+      "sha256": "f176d27ebb186dc9e5f0a88037601cbe38954147d2bef18a5901e44545eaccd4",
+      "source_blob": "31bc8045d194d35dd5bb67527837c74f6a042ca4"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-leer-contrast.png",
-      "sha256": "5fae3ed9b499129edd2908249dc9c8c50da63c8304f5eb7f9ae2132c94b624fc",
-      "source_blob": "5751dd35e980557e799b25b78e862f0e2661dcee"
+      "sha256": "e9ee352e35ed68eda6db0531c3da4b149ffa166eb3e33949db35b34ae29b8d66",
+      "source_blob": "928d2f99f1a88df34a4cc422e27701e27954e543"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-leer-dark.png",
-      "sha256": "e8f8bfaa7a64f791f5adf44780a5720fd223e09019226270852a48c4ebea29c4",
-      "source_blob": "c301d0bb46623d939d9a76bdbd8d2eeef7c1a1c6"
+      "sha256": "b5eac4fccc01747cfb63a35aa5cf64974f1d07187b204aeac2e1031d162701f6",
+      "source_blob": "065b771b5e079ea678900ba74e266be4eede27b7"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-leer-light.png",
-      "sha256": "ea921d9d9a31756816ba5146b52e4780b7addf99ad079095f8c844c927d8babc",
-      "source_blob": "49988a3c5162156070693792edbc79a5d5221001"
+      "sha256": "98fe7457d57c643ec92d094bd01225a1189856370e323b58e3b05bf79e8a7cda",
+      "source_blob": "f30d5951a84d6fde87378c70a74041c82cf471bb"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-ohne-auswahl-contrast.png",
-      "sha256": "c06af04981e1dff2eb92498a25f294f63041e193999b3c6ba78f926ad4fb5626",
-      "source_blob": "8e0cc65be75add186e378585955ceffd1da65f94"
+      "sha256": "1d9b6e75070a694287d985c3f2c76fedce1dbf0b1f317ed1dbe746f2806b1e7e",
+      "source_blob": "c4212f135b0997604a3da572baf5e773f41498cb"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-ohne-auswahl-dark.png",
-      "sha256": "803c0cd4ad40668b6f66db9b8a9c4a02fb352e2d10b4cc26f060904bf86bb82c",
-      "source_blob": "68d7c5574885da0bd382906123c636c0bfe4846b"
+      "sha256": "8f7421eef4ea04c3d083724c6158197cbcb76ef787f247d55ac89da3f85f115a",
+      "source_blob": "da3ee82a4a6f0434649dad14d4ac83c275c05c4e"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-ohne-auswahl-light.png",
-      "sha256": "c62e5031425d8b248c2925bc5837fb3162d14e8d274b8edafe104f7c4590c291",
-      "source_blob": "6a81dd6b96c45a6c9490b5d07a0e208db767b5bd"
+      "sha256": "f99b2e8044960752368f6cef0228f469c05017e274c8d75888b02b22e3cca5d9",
+      "source_blob": "81998cfe11269db6bae33b7af64127219f060a3a"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-plugin-contrast.png",
-      "sha256": "8a4a653669124e0881bf8680ed2ec6546dc9c4ef5e78a1c5817af74a94765e4f",
-      "source_blob": "d0a1529f6e73c8329d810d99971e7baa6b0209b1"
+      "sha256": "b0acfd28dc8188225408c21e2d9bf978bd92a6c8ccb583ab0118b0677e461dd0",
+      "source_blob": "b44313722513dfd02f8c21ed48f66765df3ba9c2"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-plugin-dark.png",
-      "sha256": "20e511e90d0fbe39c1bae9a25081c7330efd4baa20b38a708a399ef4e4a520d3",
-      "source_blob": "cda8854ff655a0cae612e70102f100facc22b6d4"
+      "sha256": "a3b8f2656cd98b9b673a895da24bb3de91406c30489c9b58871c144559c5dc69",
+      "source_blob": "0f4e5aa87d3b5820f84f6841a199708e586bad28"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-plugin-light.png",
-      "sha256": "82b78a1e6f5941bcdab044c4c08b19539106f0c96c5ced7e0ed56c6635c3d919",
-      "source_blob": "5b825593b437ac0269aaa3080f7ae63c82c20a73"
+      "sha256": "c3689d235eceb035d6b6d86702cd2d67063481de0a52acd54a07c75b6a8f13bc",
+      "source_blob": "9491a473ae6c232605f4c10cbb3c7d8e7dca5243"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-unvollstaendig-contrast.png",
-      "sha256": "284e5b63e35314cbcf0bcebdce40c5b0b5cf185b6f635394fc9f97a988db7e8d",
-      "source_blob": "4865526dd8673228c39f981a7f93323ba3f95710"
+      "sha256": "cf2195d93d2850008cd81419d809f74607c13d2fe4125298065f5e90ab00fa41",
+      "source_blob": "ce9b2f1ba44cbae4587ef8befb3407dc88bfa0e7"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-unvollstaendig-dark.png",
-      "sha256": "3d6ba39ff4f1394458c1a27baba5e4d06950c6809150b054055d03f0ef39f692",
-      "source_blob": "eebb48c3d01f48787e8cdd72cb086cd71c7cdd4c"
+      "sha256": "8cd8fc9b2bf999fb2b4d47522200f6f64daeb48e109b74f746ab8854f6d30465",
+      "source_blob": "ad59dbda446528c4f1af10fea1602e0e6eee7339"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-unvollstaendig-light.png",
-      "sha256": "fd7aace0c4a8a0413002b4af01c17029713b5d42f1a48ae245c06e042a3b4704",
-      "source_blob": "ff6c9654574537448655195ab113faf75d12cdd6"
+      "sha256": "a6f38866bc2c773013737d855f78f6c5ec260f8752395e5cce8b5a777aebe472",
+      "source_blob": "ddce721fec2d0ae287ef778a618290075acd189e"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-vergroessert-contrast.png",
+      "sha256": "6d5bee54e53c26ac876604b7155ddb22147b1d43e3e101a931ac45a31a4b0845",
+      "source_blob": "2e2c55ff598cde1e60ab056778f5db738a80cf78"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-vergroessert-dark.png",
+      "sha256": "f1c84b5e75549bcf65515a79ecb4bc48a8fc702247a5823a8fb1e7da8f6a91ad",
+      "source_blob": "da857a090c3c16f4c6912b5c7ea734eea08fb28c"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-vergroessert-light.png",
+      "sha256": "c68f7cda75fd97213ec669b66c1658f3b0d1cc4c27731adb66b9b57ed5966b9e",
+      "source_blob": "8f6dd5e2712ff6e25da323ef8734a3ec6168bd05"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-viele-contrast.png",
+      "sha256": "691392c1dd473bcf4adb57d5ce51666a00089b98db9053e9e27d17404206d89c",
+      "source_blob": "ee4b570157ce492290a26d506875bb4946e788c4"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-viele-dark.png",
+      "sha256": "4d07cb7f3e694541b0381449c729c04bfb236504735b80cd826266297c8ead55",
+      "source_blob": "f40405d38b1856909cf7b999f3b4a53823e60d9b"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/extensions-viele-light.png",
+      "sha256": "322edd9fc551b602dc067175bd0d48471e25e3e7e63edc77b9ef67aafb520ecc",
+      "source_blob": "5cb88b411c346e92e83b9313b083c12ee30725bf"
     },
     {
       "path": "Packages/ManagerKit/Tests/GrantryChartsTests/__Snapshots__/heat-table-contrast.png",
@@ -7232,6 +7447,11 @@
       "source_blob": "830e4064a7b2a672c84453dc007f8d7ba96472bb"
     },
     {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/CountryTableTests.swift",
+      "sha256": "0a65d70c31ecf55d6561518a4ffc2b19120559310325469fbbc22bdc95c0eb76",
+      "source_blob": "65ea6cb03c21599f5f933f476ce742c894ca9fa1"
+    },
+    {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/DashboardMetricsTests.swift",
       "sha256": "f482d06ff953befe563f6bfa2720e8ba6963ac3632156ebfbd01dc4e11e95bef",
       "source_blob": "ef4bb04908bef6cbde97a0c90092b1eab21f3799"
@@ -7450,6 +7670,21 @@
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Fixtures/Chips/m4-max.json",
       "sha256": "960a7867344a7942d77ac4092e3ca717e9ea44fbfbf50a0639dd2d971695376a",
       "source_blob": "9da46d7f70294ced3831ecba4a5e05bed67b61f3"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/Fixtures/CountryTable/CountryTable.bin",
+      "sha256": "49998550ac04161cc41b39add2e812bd77987c9d954132b9cebf957ba070df3b",
+      "source_blob": "5babf03bedd281a281dd92616ff4728686cf7461"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/Fixtures/CountryTable/ipv4.txt",
+      "sha256": "65fa9dd0ea325521b56f2eb64261cda67eb31612da5a75c00046b2196d91a30a",
+      "source_blob": "cb1ffeab7de535783c0c5a052934200793371c92"
+    },
+    {
+      "path": "Packages/ManagerKit/Tests/ManagerKitTests/Fixtures/CountryTable/ipv6.txt",
+      "sha256": "a5c6ec45a91598d7a0b3571438a9b0c670667c695d017729a558ae1abb8a566a",
+      "source_blob": "79b63826270d9ee0beaf2de701fd4df9732533fa"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/Fixtures/Extensions/kmutil-showloaded-apple-only.txt",
@@ -8043,8 +8278,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NetworkConnectionsPresentationTests.swift",
-      "sha256": "ea712de61f9c1b22476f036540d909598a7bbce50414be664ced2303fa9ea632",
-      "source_blob": "eb8400526f5020a63303f03fb33ea5b52e26ef5d"
+      "sha256": "cfcc6950e6af585af20103f77461422d75bf76973a07030a4a52dd2a0ee62e4c",
+      "source_blob": "39d24cbc774fad55dcb58eb4479ce92a71b90cf4"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/NetworkListenerBaselineTests.swift",
@@ -8378,8 +8613,8 @@
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessGrouperTests.swift",
-      "sha256": "54ac2f637a84fa9edf0f109095613c990a427a56dbc2eae2690a8b0494e43efe",
-      "source_blob": "12ba1c95833183ca6bafc482b2154f2d056f05a5"
+      "sha256": "a90aed371ed248df3fde26a301bb97329a5ca87fcc2749c3afa675635865e62d",
+      "source_blob": "bbcafa7c15395776d04edebd5d960cbbbb2136db"
     },
     {
       "path": "Packages/ManagerKit/Tests/ManagerKitTests/ProcessListPresenterTests.swift",

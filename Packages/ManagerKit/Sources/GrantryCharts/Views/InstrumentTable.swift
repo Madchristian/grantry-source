@@ -48,15 +48,20 @@ public struct InstrumentSectionHeader: View {
     let count: Int
     let tone: StatusTone
     let finding: Bool
+    let detail: String?
 
     @Environment(\.self) private var environment
 
-    /// - Parameter finding: Befund-Punkt statt der Leiste.
-    public init(title: String, count: Int, tone: StatusTone = .neutral, finding: Bool = false) {
+    /// - Parameters:
+    ///   - finding: Befund-Punkt statt der Leiste.
+    ///   - detail: Kennwert des Abschnitts am rechten Rand, etwa die Summe seiner Raten.
+    public init(title: String, count: Int, tone: StatusTone = .neutral, finding: Bool = false,
+                detail: String? = nil) {
         self.title = title
         self.count = count
         self.tone = tone
         self.finding = finding
+        self.detail = detail
     }
 
     public var body: some View {
@@ -70,6 +75,10 @@ public struct InstrumentSectionHeader: View {
             Text(verbatim: title).font(InstrumentFont.label.weight(.semibold))
             Text(verbatim: "\(count)").font(InstrumentFont.label.monospacedDigit()).foregroundStyle(.instrumentSecondary)
             Spacer()
+            if let detail {
+                Text(verbatim: detail).font(InstrumentFont.label.monospacedDigit())
+                    .foregroundStyle(.instrumentSecondary).lineLimit(1)
+            }
         }
         .padding(.horizontal, InstrumentSpacing.group)
         .padding(.top, InstrumentSpacing.group)

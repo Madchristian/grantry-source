@@ -5,8 +5,10 @@ import Foundation
 /// allen Schnittstellen, postgres nur lokal, ein Systemdienst als root), gebundenes UDP (mDNS) und Verbindungen ins
 /// Internet, ins lokale Netz und über Loopback.
 public enum NetworkConnectionsPreviewData {
-    public static var frame: ActivityFrame {
-        let processes = [
+    public static var frame: ActivityFrame { frame(of: processes) }
+
+    private static var processes: [ProcessActivity] {
+        [
             process(388, "mDNSResponder", connections: [
                 bound(5353, version: .v4), bound(5353, version: .v6),
             ], download: 1_800, upload: 600, uid: 65),
@@ -34,6 +36,9 @@ public enum NetworkConnectionsPreviewData {
                 tcp(local: "192.168.1.24", 52_509, remote: "192.168.1.5", 22, download: 900, upload: 400),
             ]),
         ]
+    }
+
+    private static func frame(of processes: [ProcessActivity]) -> ActivityFrame {
         let history = (0..<60).map { index in
             TrafficRate(download: 900_000 + 700_000 * sin(Double(index) / 5),
                         upload: 60_000 + 40_000 * cos(Double(index) / 4))
@@ -45,6 +50,37 @@ public enum NetworkConnectionsPreviewData {
                 programs[process.shortName].map { (process.key, $0) }
             })
         )
+    }
+
+    /// Feste Länder zu den Dokumentationsnetzen der Beispiele – ohne Tabelle: `192.0.2.0/24` Deutschland,
+    /// `198.51.100.0/24` USA, `2001:db8::/32` Niederlande; `203.0.113.0/24` hat keinen Eintrag.
+    public static let regions = RemoteRegionResolver(dataDate: DateComponents(year: 2026, month: 11, day: 13)) { address in
+        exampleCountries.first { address.hasPrefix($0.prefix) }?.code
+    }
+
+    private static let exampleCountries: [(code: String, prefix: String)] = [
+        ("DE", "192.0.2."), ("US", "198.51.100."), ("NL", "2001:db8::"),
+    ] + farCountries.enumerated().map { index, code in (code, "2001:db8:\(index + 1)::") }
+
+    /// Weitere Länder für den Stand mit vielen Ländern, je ein eigenes /48 des Dokumentationsnetzes.
+    private static let farCountries = ["FR", "IE", "SE", "JP", "BR", "CA", "SG", "AU", "CH", "GB", "FI"]
+
+    /// Wie `frame`, dazu ein Browser mit Verbindungen in elf weitere Länder (14 Länder insgesamt).
+    public static var manyCountriesFrame: ActivityFrame {
+        let connections = farCountries.enumerated().flatMap { index, _ in
+            (0...(index % 2)).map { ordinal in
+                tcp(local: "fd00::24", UInt16(53_000 + index * 10 + ordinal),
+                    remote: "2001:db8:\(index + 1)::\(ordinal + 10)", 443,
+                    download: Double(40_000 * (index + 1)), upload: Double(1_500 * (index + 1)))
+            }
+        }
+        return frame(of: processes + [process(6001, "Firefox", connections: connections, download: 2_640_000,
+                                              upload: 99_000)])
+    }
+
+    /// Nur Verbindungen ins lokale Netz und über Loopback: keine Gegenstelle im Internet, also kein Land.
+    public static var localOnlyFrame: ActivityFrame {
+        frame(of: processes.filter { !["Safari", "Mail"].contains($0.shortName) })
     }
 
     /// Feste Kurznamen zu den UIDs der Beispielprozesse – unabhängig von den Konten des Macs.
@@ -68,6 +104,8 @@ public enum NetworkConnectionsPreviewData {
         "sharingd": NetworkProgram(executablePath: "/usr/libexec/sharingd",
                                    signing: SigningInfo(kind: .apple)),
         "ssh": NetworkProgram(executablePath: "/usr/bin/ssh", signing: SigningInfo(kind: .apple)),
+        "Firefox": NetworkProgram(executablePath: "/Applications/Firefox.app/Contents/MacOS/firefox",
+                                  signing: SigningInfo(kind: .developerID)),
     ]
 
     private static func process(_ pid: Int32, _ name: String, connections: [ConnectionActivity],

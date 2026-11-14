@@ -32,16 +32,27 @@ enum SocketStateStyle {
     }
 }
 
+/// Spalten hinter „Programm“ und „Art“: nach Erreichbarkeit beide Endpunkte, nach Land die Gegenstelle und ihr Verkehr.
+extension NetworkConnectionGrouping {
+    var endpointColumns: [String] {
+        switch self {
+        case .reach: [String(localized: "Lokal"), String(localized: "Gegenstelle")]
+        case .country: [String(localized: "Gegenstelle"), String(localized: "Verkehr")]
+        }
+    }
+}
+
 struct NetworkConnectionTableHeader: View {
+    var grouping = NetworkConnectionGrouping.reach
+
     var body: some View {
         HStack(alignment: .bottom, spacing: NetworkConnectionTableLayout.spacing) {
             header(String(localized: "Programm"))
                 .padding(.leading, InstrumentSize.rowIconTall + InstrumentSpacing.group)
             header(String(localized: "Art")).frame(width: NetworkConnectionTableLayout.kindWidth)
-            header(String(localized: "Lokal"))
-                .frame(minWidth: NetworkConnectionTableLayout.endpointMinWidth, maxWidth: .infinity)
-            header(String(localized: "Gegenstelle"))
-                .frame(minWidth: NetworkConnectionTableLayout.endpointMinWidth, maxWidth: .infinity)
+            ForEach(grouping.endpointColumns, id: \.self) { title in
+                header(title).frame(minWidth: NetworkConnectionTableLayout.endpointMinWidth, maxWidth: .infinity)
+            }
         }
         .padding(.horizontal, InstrumentSpacing.bar)
         .padding(.vertical, InstrumentSpacing.cell)
@@ -53,23 +64,23 @@ struct NetworkConnectionTableHeader: View {
     }
 }
 
-/// Die Zeilen in Abschnitten nach Erreichbarkeit, ohne Scrollbereich (auch für Bilder: `ImageRenderer` zeichnet keinen
-/// `ScrollView`-Inhalt).
+/// Die Zeilen in Abschnitten nach Erreichbarkeit oder Land, ohne Scrollbereich (auch für Bilder: `ImageRenderer`
+/// zeichnet keinen `ScrollView`-Inhalt).
 struct NetworkConnectionTableRows: View {
-    let rows: [NetworkSocketRow]
+    let sections: [NetworkConnectionSection]
+    var grouping = NetworkConnectionGrouping.reach
     @Binding var selection: NetworkSocketRow.ID?
 
     var body: some View {
         LazyVStack(spacing: InstrumentSpacing.stack) {
-            ForEach(SocketReach.allCases, id: \.self) { reach in
-                let members = rows.filter { $0.reach == reach }
-                if !members.isEmpty {
-                    InstrumentSectionHeader(title: reach.title, count: members.count { !$0.isGone },
-                                            tone: reach.tone.statusTone, finding: reach == .network)
-                    ForEach(members) { row in
-                        NetworkConnectionRowView(row: row, isSelected: selection == row.id)
-                            .selectableRow { selection = row.id }
-                    }
+            ForEach(sections) { section in
+                InstrumentSectionHeader(title: section.title, count: section.openCount,
+                                        tone: section.tone.statusTone, finding: section.isFinding,
+                                        detail: grouping == .country ? section.rateText : nil)
+                    .accessibilityLabel(Text(verbatim: section.accessibilityLabel(for: grouping)))
+                ForEach(section.rows) { row in
+                    NetworkConnectionRowView(row: row, isSelected: selection == row.id, grouping: grouping)
+                        .selectableRow { selection = row.id }
                 }
             }
         }
@@ -81,6 +92,7 @@ struct NetworkConnectionTableRows: View {
 struct NetworkConnectionRowView: View {
     let row: NetworkSocketRow
     let isSelected: Bool
+    var grouping = NetworkConnectionGrouping.reach
 
     @Environment(\.self) private var environment
 
@@ -104,7 +116,7 @@ struct NetworkConnectionRowView: View {
             .padding(.horizontal, InstrumentSpacing.inline)
             .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .leading, spacing: 0) {
-                Text(verbatim: "\(row.protocolText) \(SocketStateStyle.title(for: row.kind))").font(InstrumentFont.body)
+                Text(verbatim: "\(row.protocolText) \(kindTitle)").font(InstrumentFont.body)
                 Text(verbatim: row.isGone ? String(localized: "geschlossen") : row.stateText)
                     .font(InstrumentFont.label.monospaced())
                     .foregroundStyle(tone == .neutral ? AnyShapeStyle(.instrumentSecondary) : AnyShapeStyle(environment.statusTextColor(tone)))
@@ -112,34 +124,55 @@ struct NetworkConnectionRowView: View {
             .lineLimit(1)
             .padding(.horizontal, InstrumentSpacing.inline)
             .frame(width: NetworkConnectionTableLayout.kindWidth, alignment: .leading)
-            endpoint(row.localText, isMuted: row.isGone)
-            endpoint(row.remoteText, isMuted: row.isGone || row.socket.remote.address == nil)
+            switch grouping {
+            case .reach:
+                endpoint(row.localText, isMuted: row.isGone)
+                endpoint(row.remoteText, note: row.region?.title(),
+                         isMuted: row.isGone || row.socket.remote.address == nil)
+            case .country:
+                endpoint(row.remoteText, isMuted: row.isGone)
+                endpoint(NetworkConnectionTexts.traffic(row.rate), note: TrafficFormat.bytes(row.transferred.total),
+                         isMuted: row.isGone || row.rate.total == 0)
+            }
         }
         .padding(.horizontal, InstrumentSpacing.group)
         .padding(.vertical, InstrumentSpacing.inline)
         .instrumentRowBackground(isSelected: isSelected)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(verbatim: "\(row.accessibilityLabel), \(row.reach.title)"))
+        .accessibilityLabel(Text(verbatim: accessibilityLabel))
         .accessibilityIdentifier("connectionRow")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
-    private func endpoint(_ text: String, isMuted: Bool) -> some View {
-        Text(verbatim: text)
-            .font(InstrumentFont.code)
-            .foregroundStyle(isMuted ? .instrumentSecondary : .primary)
-            .lineLimit(1)
-            .truncationMode(.middle)
-            .textSelection(.enabled)
-            .padding(.horizontal, InstrumentSpacing.inline)
-            .frame(minWidth: NetworkConnectionTableLayout.endpointMinWidth, maxWidth: .infinity, alignment: .leading)
+    /// Nach Land die Richtung der Verbindung, soweit ablesbar („TCP ausgehend“), sonst die Art des Sockets.
+    private var kindTitle: String {
+        guard grouping == .country, let direction = row.direction else { return SocketStateStyle.title(for: row.kind) }
+        return direction.displayName.lowercased()
     }
-}
 
-/// Texte der Ansicht „Verbindungen“, die Tabelle und Detail teilen.
-enum NetworkConnectionTexts {
-    /// „PID 4820 · christian“; ohne bekannten Benutzer nur die PID.
-    static func owner(of row: NetworkSocketRow) -> String {
-        (["PID \(row.pid)"] + [row.user].compactMap(\.self)).joined(separator: " · ")
+    /// Nach Erreichbarkeit mit der Gruppe, nach Land mit dem Verkehr; Land und Richtung nennt die Zeile selbst.
+    private var accessibilityLabel: String {
+        switch grouping {
+        case .reach: "\(row.accessibilityLabel), \(row.reach.title)"
+        case .country:
+            "\(row.accessibilityLabel), empfängt \(TrafficFormat.rate(row.rate.download)), sendet \(TrafficFormat.rate(row.rate.upload))"
+        }
+    }
+
+    /// - Parameter note: zweite Zeile darunter, etwa das Land der Gegenstelle.
+    private func endpoint(_ text: String, note: String? = nil, isMuted: Bool) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: text)
+                .font(InstrumentFont.code)
+                .foregroundStyle(isMuted ? .instrumentSecondary : .primary)
+                .truncationMode(.middle)
+                .textSelection(.enabled)
+            if let note {
+                Text(verbatim: note).font(InstrumentFont.label).foregroundStyle(.instrumentSecondary)
+            }
+        }
+        .lineLimit(1)
+        .padding(.horizontal, InstrumentSpacing.inline)
+        .frame(minWidth: NetworkConnectionTableLayout.endpointMinWidth, maxWidth: .infinity, alignment: .leading)
     }
 }

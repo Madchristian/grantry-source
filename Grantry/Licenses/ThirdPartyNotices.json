@@ -6,5 +6,14 @@
     "projectURL": "https://github.com/sparkle-project/Sparkle",
     "licenseFile": "Sparkle-LICENSE.txt",
     "licenseSHA256": "389a4e4e9a32f059775b13a06e25a591445ba229d2838d26dd3e7c0c45127cfe"
+  },
+  {
+    "name": "ip-location-db server-country (Länderdaten)",
+    "kind": "data",
+    "version": "3.0.202611130205",
+    "revision": "5773e501e8ebc8abc49865b7ee6c64885ab1f4a0",
+    "projectURL": "https://github.com/sapics/ip-location-db",
+    "licenseFile": "ip-location-db-LICENSE.txt",
+    "licenseSHA256": "88aa16fc984ddca3a6e2e5b78254efe51eaeedb04ec9503220027724104074e0"
   }
 ]

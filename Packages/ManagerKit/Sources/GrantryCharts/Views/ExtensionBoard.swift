@@ -13,10 +13,15 @@ public struct ExtensionBoard<Filter: Hashable, Detail: View, Empty: View>: View 
     let detail: Detail
     /// Steht über der Tabelle, solange Suche oder Filter nichts zeigen.
     let empty: Empty
+    /// Ob die Rechte-Schichten die ganze Seite füllen; gilt bis zum Verlassen des Bereichs.
+    @State private var isRadarExpanded: Bool
 
+    /// - Parameter isRadarExpanded: Anfangszustand der Karte „Rechte-Schichten“ (vergrößert, für Bilder).
     public init(content: ExtensionBoardContent, query: Binding<String>, filter: Binding<Filter>,
                 filters: [(value: Filter, label: String)], selection: Binding<ExtensionRowContent.ID?>,
+                isRadarExpanded: Bool = false,
                 @ViewBuilder detail: () -> Detail, @ViewBuilder empty: () -> Empty) {
+        _isRadarExpanded = State(initialValue: isRadarExpanded)
         self.content = content
         _query = query
         _filter = filter
@@ -31,16 +36,20 @@ public struct ExtensionBoard<Filter: Hashable, Detail: View, Empty: View>: View 
         // Abschnitte nennen die Schichten ebenfalls. Vorher lief der Inhalt rechts aus dem Fenster (Mangel 4, #480).
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
-                ExtensionLayerPanel(layers: content.layers, value: content.radarValue, finding: content.hasFinding,
-                                    notice: content.notice, selection: selection)
-                    .equatable()
-                    .frame(width: InstrumentSize.columnRadar)
+                layerPanel.frame(width: InstrumentSize.columnRadar)
                 main
             }
             .frame(idealWidth: InstrumentSize.columnRadar + InstrumentSpacing.panel + ExtensionTableLayout.minimumWidth)
             main
         }
+        .instrumentExpansion(isExpanded: isRadarExpanded) { layerPanel }
         .padding(InstrumentSpacing.page)
+    }
+
+    private var layerPanel: some View {
+        ExtensionLayerPanel(layers: content.layers, value: content.radarValue, finding: content.hasFinding,
+                            notice: content.notice, selection: selection, expansion: $isRadarExpanded)
+            .equatable()
     }
 
     @ViewBuilder
@@ -77,36 +86,58 @@ public struct ExtensionBoard<Filter: Hashable, Detail: View, Empty: View>: View 
 // MARK: - Rechte-Schichten
 
 /// Panel „Rechte-Schichten“: Peilkopf, Radar mit einem Ring je Schicht um den Kern und die Schichten als Liste.
-/// `Equatable`, damit ein Scan-Fortschritt ohne neue Erweiterungen das Radar nicht neu zeichnet.
+/// `Equatable`, damit ein Scan-Fortschritt ohne neue Erweiterungen das Radar nicht neu zeichnet. Vergrößert
+/// (`expansion`) füllt das Radar die Seite und zeigt jede Erweiterung einzeln, die Liste der Schichten steht daneben.
 struct ExtensionLayerPanel: View, Equatable {
     let layers: [ExtensionLayerContent]
     let value: String
     let finding: Bool
     let notice: String?
     let selection: ExtensionRowContent.ID?
+    let expansion: Binding<Bool>
+
+    nonisolated static func == (lhs: ExtensionLayerPanel, rhs: ExtensionLayerPanel) -> Bool {
+        lhs.layers == rhs.layers && lhs.value == rhs.value && lhs.finding == rhs.finding && lhs.notice == rhs.notice
+            && lhs.selection == rhs.selection && lhs.expansion.wrappedValue == rhs.expansion.wrappedValue
+    }
 
     var body: some View {
+        let isExpanded = expansion.wrappedValue
         VStack(alignment: .leading, spacing: InstrumentSpacing.cell) {
             PeilHead(String(localized: "Rechte-Schichten"), detail: String(localized: "Wie nah fremder Code am Kern läuft"),
-                     value: value, finding: finding)
+                     value: value, finding: finding, expansion: expansion)
             if let notice {
                 Label { Text(verbatim: notice) } icon: { Image(systemName: "info.circle") }
                     .font(InstrumentFont.label)
                     .foregroundStyle(.instrumentSecondary)
             }
-            // Wächst mit der Höhe bis zum Quadrat der Spalte; darüber würde das Radar nicht größer.
-            RingRadar(rings: Self.rings(layers), echoes: Self.echoes(layers), centerSymbol: "cpu",
-                      title: String(localized: "Rechte-Schichten"), selection: selection)
-                .frame(minHeight: InstrumentSize.radar, maxHeight: InstrumentSize.columnRadar)
-            VStack(alignment: .leading, spacing: InstrumentSpacing.group) {
-                ForEach(layers) { ExtensionLayerRow(layer: $0) }
+            if isExpanded {
+                HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
+                    radar(isExpanded: true)
+                    layerList.frame(width: InstrumentSize.columnWide)
+                }
+            } else {
+                // Wächst mit der Höhe bis zum Quadrat der Spalte; darüber würde das Radar nicht größer.
+                radar(isExpanded: false).frame(minHeight: InstrumentSize.radar, maxHeight: InstrumentSize.columnRadar)
+                layerList
+                Spacer(minLength: 0)
             }
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel(Text("Schichten"))
-            Spacer(minLength: 0)
         }
         .frame(maxHeight: .infinity)
         .instrumentPanel()
+    }
+
+    private func radar(isExpanded: Bool) -> some View {
+        RingRadar(rings: Self.rings(layers), echoes: Self.echoes(layers), centerSymbol: "cpu",
+                  title: String(localized: "Rechte-Schichten"), selection: selection, isExpanded: isExpanded)
+    }
+
+    private var layerList: some View {
+        VStack(alignment: .leading, spacing: InstrumentSpacing.group) {
+            ForEach(layers) { ExtensionLayerRow(layer: $0) }
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel(Text("Schichten"))
     }
 
     /// Ein Ring je Schicht von innen nach außen; innen fassen kürzere Ringe früher zusammen (außen ab 12 Echos).

@@ -2,7 +2,8 @@ import SwiftUI
 
 /// Erreichbarkeitsradar (§3.13, Netzwerk › Verbindungen): Ringe um diesen Mac – nur dieser Mac, lokales Netz, aus dem
 /// Netz – mit lauschenden und gebundenen Programmen als Peilpunkten auf ihrem Ring. Ab `maximumPerRing` Echos fasst ein
-/// Ring den Rest zu „+n“ zusammen. Geometrie und Zeichnung aus `RingRadar`; VoiceOver liest die Echos als Liste.
+/// Ring den Rest zu „+n“ zusammen; vergrößert zeigt er, was sein Umfang fasst. Geometrie und Zeichnung aus `RingRadar`;
+/// VoiceOver liest die Echos als Liste.
 public struct ReachRadar: View {
     public enum Ring: Int, CaseIterable, Sendable {
         case thisMac, localNetwork, network
@@ -43,23 +44,19 @@ public struct ReachRadar: View {
     nonisolated static let maximumPerRing = 8
 
     let echoes: [Echo]
+    let isExpanded: Bool
 
-    public init(echoes: [Echo]) {
+    /// - Parameter isExpanded: Vergrößerte Karte: jeder Ring zeigt, was sein Umfang fasst (`RingRadar`).
+    public init(echoes: [Echo], isExpanded: Bool = false) {
         self.echoes = echoes
+        self.isExpanded = isExpanded
     }
 
-    private nonisolated static let rings = Ring.allCases.map(\.spec)
-
-    /// Echos je Ring mit Winkel (Grad) nach `RingRadar.placed`.
-    nonisolated static func placed(_ echoes: [Echo]) -> [(echo: Echo, degrees: Double)] {
-        RingRadar.placed(echoes.map(\.ringEcho), rings: rings).compactMap { item in
-            Ring(rawValue: item.echo.ring).map { (Echo(id: item.echo.id, label: item.echo.label, ring: $0), item.degrees) }
-        }
-    }
+    nonisolated static let rings = Ring.allCases.map(\.spec)
 
     public var body: some View {
         RingRadar(rings: Self.rings, echoes: echoes.map(\.ringEcho), centerSymbol: "laptopcomputer",
-                  title: String(localized: "Erreichbarkeit"))
+                  title: String(localized: "Erreichbarkeit"), isExpanded: isExpanded)
     }
 }
 

@@ -48,12 +48,17 @@ public struct PeilHead: View {
     let fraction: Double?
     let finding: Bool
     let identifier: String?
+    let expansion: Binding<Bool>?
 
     @Environment(\.self) private var environment
 
-    /// - Parameter identifier: Bedienungshilfen-Kennung des Titels (UI-Tests); sonst der Titel.
+    /// - Parameters:
+    ///   - identifier: Bedienungshilfen-Kennung des Titels (UI-Tests); sonst der Titel.
+    ///   - expansion: Ob die Karte die ganze Seite füllt; gesetzt, steht rechts der Knopf zum Vergrößern
+    ///     (`InstrumentExpandButton`).
     public init(_ title: String, detail: String = "", value: String = "", hue: InstrumentHue? = nil,
-                fraction: Double? = nil, finding: Bool = false, identifier: String? = nil) {
+                fraction: Double? = nil, finding: Bool = false, identifier: String? = nil,
+                expansion: Binding<Bool>? = nil) {
         self.title = title
         self.detail = detail
         self.value = value
@@ -61,6 +66,7 @@ public struct PeilHead: View {
         self.fraction = fraction
         self.finding = finding
         self.identifier = identifier
+        self.expansion = expansion
     }
 
     public var body: some View {
@@ -87,6 +93,7 @@ public struct PeilHead: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
             }
+            if let expansion { InstrumentExpandButton(title, isExpanded: expansion) }
         }
     }
 }

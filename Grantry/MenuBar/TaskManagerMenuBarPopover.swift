@@ -57,13 +57,10 @@ struct TaskManagerMenuBarPopover: View {
             ForEach(overview.rows, id: \.self) { row in
                 if row.count > 1 {
                     // Gleich hohe Karten: Die Zeile nimmt die Höhe der höheren, beide füllen sie.
-                    HStack(alignment: .top, spacing: InstrumentSpacing.group) {
-                        ForEach(row) { card in
-                            self.card(card, of: overview)
-                                .fixedSize(horizontal: Self.hugsContent(card), vertical: false)
-                        }
+                    EqualHeightRow(spacing: InstrumentSpacing.group,
+                                   hugsLeading: row.first.map(Self.hugsContent) ?? false) {
+                        ForEach(row) { card in self.card(card, of: overview) }
                     }
-                    .fixedSize(horizontal: false, vertical: true)
                     .environment(\.overviewCardFillsRow, true)
                 } else if let card = row.first {
                     self.card(card, of: overview)

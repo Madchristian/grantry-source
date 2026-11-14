@@ -1,0 +1,5 @@
+2001:db8::,2001:db8:ffff:ffff:ffff:ffff:ffff:ffff,NL
+2001:db9::,2001:db9::7fff:ffff:ffff:ffff,FR
+2001:dba::,2001:dba::7fff:ffff:ffff:ffff,FR
+2001:dba::8000:0:0:0,2001:dba::ffff:ffff:ffff:ffff,IT
+2a00::,2a00:ffff:ffff:ffff:ffff:ffff:ffff:ffff,SE

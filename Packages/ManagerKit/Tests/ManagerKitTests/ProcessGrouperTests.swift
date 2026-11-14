@@ -108,4 +108,73 @@ import Testing
         #expect(own.count == grouped.count)
         #expect(!own.contains { $0.processes.contains { $0.uid != Self.me } })
     }
+
+    /// Auswahl wie bisher in der Übersicht der Menüleiste: alle Gruppen bilden, dann die Einträge mit der höchsten Last
+    /// einsortieren. Vergleichsmaßstab für `entriesWithHighestCPULoad` (#626).
+    private func highestFromGroups(_ processes: [ProcessMeasurement], apps: [RunningApp], count: Int)
+        -> [RankedProcessEntry] {
+        var top: [RankedProcessEntry] = []
+        for group in ProcessGrouper.group(processes, apps: apps, currentUID: Self.me) {
+            for entry in group.entries {
+                guard let share = entry.totals.cpuLoad else { continue }
+                let rank = top.firstIndex {
+                    share > $0.cpuLoad || (share == $0.cpuLoad && entry.name < $0.entry.name)
+                } ?? top.count
+                guard rank < count else { continue }
+                top.insert(RankedProcessEntry(entry: entry, kind: group.kind, cpuLoad: share), at: rank)
+                if top.count > count { top.removeLast() }
+            }
+        }
+        return top
+    }
+
+    @Test func highestCPULoadSumsAppsAndKeepsGroupOfEachEntry() {
+        let processes = [
+            process(100, path: "/Applications/Browser.app/Contents/MacOS/Browser", cpu: 0.02, memory: 100),
+            process(101, parent: 100, path: "/usr/bin/tool", cpu: 0.03, memory: 50),
+            process(200, path: "/usr/local/bin/zeta", cpu: 0.04),
+            process(201, path: "/usr/local/bin/alpha"),
+            process(300, uid: 0, name: "kernel_task", cpu: 0.01),
+        ]
+        let top = ProcessGrouper.entriesWithHighestCPULoad(processes, apps: [Self.browser], currentUID: Self.me, count: 2)
+        #expect(top.map(\.entry.name) == ["Browser", "p200"])
+        #expect(top.map(\.kind) == [.apps, .background])
+        #expect(top.map(\.cpuLoad) == [0.02 + 0.03, 0.04])
+        #expect(top[0].entry.processes.map(\.key.pid) == [100, 101])
+        #expect(top[0].entry.totals.memoryBytes == 150)
+        #expect(ProcessGrouper.entriesWithHighestCPULoad(processes, apps: [Self.browser], currentUID: Self.me, count: 9)
+            .map(\.entry.name) == ["Browser", "p200", "kernel_task"])
+        #expect(ProcessGrouper.entriesWithHighestCPULoad(processes, apps: [Self.browser], currentUID: Self.me, count: 0)
+            .isEmpty)
+    }
+
+    /// Gleiche Einträge in gleicher Reihenfolge wie über die Gruppen, auch bei Gleichständen in Last und Namen, Apps
+    /// ohne Messung und Prozessen ohne Last.
+    @Test func highestCPULoadMatchesSelectionFromGroups() {
+        let apps = (0..<6).map { index in
+            RunningApp(pid: Int32(1_000 + index), bundleID: "com.example.app\(index)",
+                       bundlePath: "/Applications/App\(index).app", name: index < 2 ? "Zwilling" : "App \(index)")
+        }
+        var seed: UInt64 = 626
+        let next = { () -> Int in
+            seed = seed &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return Int(seed >> 33)
+        }
+        var processes = apps.map { app in
+            process(app.pid, path: "\(app.bundlePath ?? "")/Contents/MacOS/App", cpu: next() % 3 == 0 ? nil : 0.01)
+        }
+        for pid in Int32(2_000)..<2_400 {
+            // Wenige verschiedene Lasten und Namen: viele Gleichstände.
+            let load = [nil, 0, 0.01, 0.02, 0.05, 0.1, Double(next() % 1_000) / 10_000][next() % 7]
+            let owner = next() % 4
+            processes.append(process(pid, parent: owner == 0 ? apps[next() % apps.count].pid : 1,
+                                     uid: owner == 1 ? 0 : Self.me,
+                                     path: owner == 2 ? "/Applications/App\(next() % apps.count).app/Contents/Helper" : nil,
+                                     name: "tool\(next() % 5)", cpu: load, memory: UInt64(next() % 1_000)))
+        }
+        for count in [1, 3, 5, 40, 1_000] {
+            let top = ProcessGrouper.entriesWithHighestCPULoad(processes, apps: apps, currentUID: Self.me, count: count)
+            #expect(top == highestFromGroups(processes, apps: apps, count: count), "count \(count)")
+        }
+    }
 }

@@ -45,6 +45,7 @@ public struct RingRadar: View {
     let centerSymbol: String
     let title: String
     let selection: Echo.ID?
+    let isExpanded: Bool
 
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.colorSchemeContrast) private var contrast
@@ -53,79 +54,66 @@ public struct RingRadar: View {
     /// - Parameters:
     ///   - centerSymbol: SF Symbol in der Mitte, etwa der Mac oder der Kern.
     ///   - title: Name der Liste für VoiceOver.
-    public init(rings: [Ring], echoes: [Echo], centerSymbol: String, title: String, selection: Echo.ID? = nil) {
+    ///   - isExpanded: Vergrößerte Karte (`InstrumentExpansion`): Jeder Ring zeigt so viele Echos einzeln, wie sein
+    ///     Umfang fasst, statt früh zu „+n“ zusammenzufassen.
+    public init(rings: [Ring], echoes: [Echo], centerSymbol: String, title: String, selection: Echo.ID? = nil,
+                isExpanded: Bool = false) {
         self.rings = rings
         self.echoes = echoes
         self.centerSymbol = centerSymbol
         self.title = title
         self.selection = selection
+        self.isExpanded = isExpanded
     }
 
-    /// Radius eines Rings relativ zum halben Durchmesser: gleichmäßig von 0,34 (innen) bis 0,93 (außen).
-    nonisolated static func scale(ring: Int, of count: Int) -> CGFloat {
-        guard count > 1 else { return 0.93 }
-        return 0.34 + 0.59 * CGFloat(ring) / CGFloat(count - 1)
-    }
-
-    /// Grenze eines Rings im Verhältnis seines Umfangs zum äußersten, der `outermost` Echos fasst – innen liegen die
-    /// Beschriftungen sonst übereinander.
+    /// Grenze eines Rings im Verhältnis seines Umfangs zum äußersten (`RingRadarLayout.proportionalCapacity`).
     public nonisolated static func proportionalCapacity(ring: Int, of count: Int, outermost: Int) -> Int {
-        max(1, Int((Double(outermost) * scale(ring: ring, of: count) / scale(ring: count - 1, of: count)).rounded()))
+        RingRadarLayout.proportionalCapacity(ring: ring, of: count, outermost: outermost)
     }
 
-    /// Echos je Ring mit Winkel (Grad); über der Grenze des Rings ein Sammel-Echo „+n“ im Ton des Rings. Die Ringe sind
-    /// gegeneinander versetzt, damit Beschriftungen benachbarter Ringe nicht übereinander liegen; oben bleibt Platz für
-    /// den Ringtitel. Echos ohne passenden Ring fallen weg.
-    nonisolated static func placed(_ echoes: [Echo], rings: [Ring]) -> [(echo: Echo, degrees: Double)] {
-        rings.indices.flatMap { index -> [(echo: Echo, degrees: Double)] in
-            let capacity = rings[index].capacity
-            var members = echoes.filter { $0.ring == index }
-            if members.count > capacity {
-                let rest = members.count - (capacity - 1)
-                members = Array(members.prefix(capacity - 1)) + [Echo(id: "more-\(index)", label: "+\(rest)", ring: index)]
-            }
-            // Bogen von 300° über unten bis 240° (oben bleibt frei); je Ring um ein Viertel Schritt versetzt.
-            let step = 300.0 / Double(max(members.count, 1))
-            let shift = 0.25 * Double(index - 1)
-            return members.enumerated().map { position, echo in
-                (echo, (300 + step * (Double(position) + 0.5 + shift)).truncatingRemainder(dividingBy: 360))
-            }
+    /// Echos mit passendem Ring von innen nach außen, wie VoiceOver sie liest: jedes einzeln, auch die im Bild zu „+n“
+    /// zusammengefassten.
+    nonisolated static func spoken(_ echoes: [Echo], rings: [Ring]) -> [(id: Echo.ID, text: String)] {
+        rings.indices.flatMap { index in
+            echoes.filter { $0.ring == index }.map { ($0.id, $0.accessibilityLabel ?? "\($0.label), \(rings[index].title)") }
         }
     }
 
     public var body: some View {
         let scheme = colorScheme
         let rings = rings
-        let placed = Self.placed(echoes, rings: rings)
         let selection = selection
+        let isExpanded = isExpanded
+        let entries = echoes.map { RingRadarLayout.Entry(id: $0.id, label: $0.label, ring: $0.ring) }
+        let tones = Dictionary(echoes.compactMap { echo in echo.tone.map { (echo.id, $0) } }) { first, _ in first }
         let focus = GrantryBrand.focusGradient(scheme)
         // „Kontrast erhöhen“ zeichnet die Ringe in voller Tonfarbe.
         let ringOpacity = contrast == .increased ? 1 : InstrumentOpacity.radarRing
         Plot("RingRadar") { context, size in
-            let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            let base = min(size.width, size.height) / 2 - InstrumentSpacing.panel
+            let layout = RingRadarLayout(size: size,
+                                         rings: rings.map { RingRadarLayout.Ring(title: $0.title, capacity: $0.capacity) },
+                                         entries: entries, isExpanded: isExpanded, preferred: selection, measure: .system)
+            let center = layout.center
             for (index, ring) in rings.enumerated() {
-                let radius = base * Self.scale(ring: index, of: rings.count)
+                let radius = layout.radii[index]
                 context.stroke(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2,
                                                       height: radius * 2)),
                                with: .color(ring.tone.color(in: scheme).opacity(ringOpacity)),
                                style: StrokeStyle(lineWidth: InstrumentStroke.echo, dash: ring.isDashed ? [4, 3] : []))
                 context.draw(Text(verbatim: ring.title).font(InstrumentFont.micro.weight(.semibold))
                                 .foregroundStyle(ring.tone.textColor(in: scheme)),
-                             at: CGPoint(x: center.x, y: center.y - radius + InstrumentSpacing.cell))
+                             at: layout.titlePoints[index])
             }
             let middle = InstrumentSize.shield / 2
             context.fill(Path(ellipseIn: CGRect(x: center.x - middle, y: center.y - middle, width: middle * 2,
                                                 height: middle * 2)),
                          with: .color(GrantryBrand.teal.opacity(InstrumentOpacity.chip)))
             context.draw(Image(systemName: centerSymbol), at: center)
-            for (echo, degrees) in placed {
-                let angle = Angle.degrees(degrees).radians
-                let radius = base * Self.scale(ring: echo.ring, of: rings.count)
-                let point = CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
-                let tone = echo.tone ?? rings[echo.ring].tone
+            for mark in layout.marks {
+                let point = mark.point
+                let tone = (mark.isSummary ? nil : tones[mark.id]) ?? rings[mark.ring].tone
                 PeilPoint.draw(at: point, color: tone.color(in: scheme), echoes: style.glows, in: &context)
-                if echo.id == selection {
+                if mark.id == selection, !mark.isSummary {
                     let ring = InstrumentSize.findingDot
                     let frame = CGRect(x: point.x - ring, y: point.y - ring, width: ring * 2, height: ring * 2)
                     context.stroke(Path(ellipseIn: frame),
@@ -133,14 +121,9 @@ public struct RingRadar: View {
                                                          endPoint: CGPoint(x: frame.maxX, y: frame.maxY)),
                                    lineWidth: InstrumentStroke.focus)
                 }
-                let label = Text(verbatim: echo.label).font(InstrumentFont.micro.weight(.medium))
-                if echo.ring == 0 {
-                    // Vom Mittelpunkt weg beschriftet; unter dem Punkt läge die Beschriftung auf der Mitte.
-                    let outward = CGPoint(x: point.x + cos(angle) * InstrumentSpacing.group,
-                                          y: point.y + sin(angle) * InstrumentSpacing.group)
-                    context.draw(label, at: outward, anchor: UnitPoint(x: 0.5 - 0.5 * cos(angle), y: 0.5 - 0.5 * sin(angle)))
-                } else {
-                    context.draw(label, at: CGPoint(x: point.x, y: point.y + InstrumentSpacing.bar))
+                if let caption = mark.caption {
+                    context.draw(Text(verbatim: caption.text).font(InstrumentFont.micro.weight(.medium)),
+                                 at: CGPoint(x: caption.frame.midX, y: caption.frame.midY))
                 }
             }
         }
@@ -149,8 +132,8 @@ public struct RingRadar: View {
         .accessibilityLabel(Text(verbatim: title))
         .accessibilityRepresentation {
             VStack {
-                ForEach(placed, id: \.echo.id) { item in
-                    Text(verbatim: item.echo.accessibilityLabel ?? "\(item.echo.label), \(rings[item.echo.ring].title)")
+                ForEach(Self.spoken(echoes, rings: rings), id: \.id) { item in
+                    Text(verbatim: item.text)
                 }
             }
         }

@@ -41,11 +41,6 @@ struct SettingsView: View {
     }
 }
 
-/// Maße des Einstellungsfensters: Breite wie bisher (Entwurf LB-5.1, Spec 2026-11-10 § 11 Entscheidung 3).
-enum SettingsLayout {
-    static let width: CGFloat = 560
-}
-
 /// Gruppe „Darstellung“: Dock-Symbol als Schalter (Spec 2026-11-10 § 11.5 b).
 private struct DockSettingsSection: View {
     let dockVisibility: DockVisibilityModel

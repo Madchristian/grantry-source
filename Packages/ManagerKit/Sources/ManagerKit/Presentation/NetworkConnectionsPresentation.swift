@@ -98,6 +98,10 @@ public struct NetworkSocketRow: Identifiable, Hashable, Sendable {
     public let user: String?
     public let socket: ConnectionTraffic
     public let kind: SocketKind
+    /// Nur bei TCP-Verbindungen; `nil` bei UDP, QUIC und ohne Gegenstelle.
+    public let direction: ConnectionDirection?
+    /// Wohin die Gegenstelle gehört (Land des Adressblocks, lokales Netz, dieser Mac); `nil` ohne Gegenstelle.
+    public let region: RemoteRegion?
     public let rate: TrafficRate
     /// Übertragen seit Beginn der Messung; bei lauschenden Sockets 0.
     public let transferred: ByteTotals
@@ -158,10 +162,12 @@ public struct NetworkSocketRow: Identifiable, Hashable, Sendable {
         return socket.remote.address.map { AddressScope(address: $0) == .loopback } ?? true
     }
 
-    /// „Safari, PID 4820, TCP IPv6, ESTABLISHED, lokal …, entfernt …“.
+    /// „Safari, PID 4820, TCP IPv6, ESTABLISHED, lokal …, entfernt …, Deutschland, ausgehend“.
     public var accessibilityLabel: String {
         var parts = [title, "PID \(pid)", "\(protocolText) \(ipVersionText)", stateText, "lokal \(localText)"]
         if socket.remote.address != nil { parts.append("entfernt \(remoteText)") }
+        if let region { parts.append(region.title()) }
+        if let direction { parts.append(direction.displayName.lowercased()) }
         if isGone { parts.append("geschlossen") }
         return parts.joined(separator: ", ")
     }
@@ -232,9 +238,11 @@ public struct NetworkConnectionsPresentation: Hashable, Sendable {
     /// - Parameters:
     ///   - query: Teil des Prozessnamens oder eine Portnummer.
     ///   - userName: Kurzname zur UID des Prozesses.
+    ///   - regions: ordnet Gegenstellen offline ihrem Land zu; ohne Tabelle bleiben öffentliche Adressen unbekannt.
     public init(frame: ActivityFrame, filter: NetworkConnectionFilter, query: String,
-                userName: (UInt32) -> String = UserNameCache.shared.name(for:)) {
-        all = Self.rows(frame: frame, userName: userName)
+                userName: (UInt32) -> String = UserNameCache.shared.name(for:),
+                regions: RemoteRegionResolver = .unavailable) {
+        all = Self.rows(frame: frame, userName: userName, regions: regions)
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
         rows = all.filter { filter.includes($0) && (query.isEmpty || $0.matches(query)) }
         let open = all.filter { !$0.isGone }
@@ -252,17 +260,23 @@ public struct NetworkConnectionsPresentation: Hashable, Sendable {
     }
 
     /// Lauschende zuerst, dann gebundene, dann Verbindungen; darin nach Name, PID und lokalem Endpunkt.
-    static func rows(frame: ActivityFrame, userName: (UInt32) -> String) -> [NetworkSocketRow] {
+    static func rows(frame: ActivityFrame, userName: (UInt32) -> String,
+                     regions: RemoteRegionResolver = .unavailable) -> [NetworkSocketRow] {
         frame.report.processes.flatMap { process -> [NetworkSocketRow] in
             let program = frame.programs[process.key]
             let title = program?.title ?? process.shortName
             let uid = process.uid
             let user = uid.map(userName)
+            let listeningPorts = process.listeningTCPPorts
             func row(_ id: String, _ socket: ConnectionTraffic, kind: SocketKind, activity: ConnectionActivity?)
                 -> NetworkSocketRow {
                 NetworkSocketRow(
                     id: "\(process.key.id)|\(id)", process: process.key, title: title, program: program,
-                    uid: uid, user: user, socket: socket, kind: kind, rate: activity?.rate ?? .zero,
+                    uid: uid, user: user, socket: socket, kind: kind,
+                    direction: kind == .connected
+                        ? ConnectionDirection(of: socket, listeningPorts: listeningPorts) : nil,
+                    region: kind == .connected ? socket.remote.address.map(regions.region(of:)) : nil,
+                    rate: activity?.rate ?? .zero,
                     transferred: activity?.transferred ?? .zero, isNew: activity?.isNew ?? false,
                     isGone: process.isGone || (activity?.isGone ?? false)
                 )

@@ -2,7 +2,8 @@ import GrantryCharts
 import ManagerKit
 import SwiftUI
 
-/// Vollständige Lizenztexte der eingebundenen Fremdkomponenten aus dem App-Paket (#519), unverändert und auswählbar.
+/// Vollständige Lizenztexte der eingebundenen Fremdkomponenten und der mitgelieferten Länderdaten (#630) aus dem
+/// App-Paket (#519), unverändert und auswählbar.
 /// Fehlt ein Text im Paket, steht dort ein Fehler statt einer leeren Liste.
 struct ThirdPartyLicensesView: View {
     /// Einmal je Start geladen: Die Texte ändern sich erst mit einem neuen App-Paket.
@@ -19,7 +20,7 @@ struct ThirdPartyLicensesView: View {
             Text("Drittanbieter-Lizenzen").font(InstrumentFont.verdict)
             switch licenses {
             case .success(let licenses):
-                Text("Grantry enthält die folgenden Komponenten. Ihre Lizenzen verlangen, dass dieser Text jeder Kopie beiliegt.")
+                Text("Grantry enthält die folgenden Komponenten und Daten anderer Anbieter. Wo eine Lizenz es verlangt, liegt ihr Text deshalb jeder Kopie bei.")
                     .font(InstrumentFont.body)
                     .foregroundStyle(.instrumentSecondary)
                     .fixedSize(horizontal: false, vertical: true)

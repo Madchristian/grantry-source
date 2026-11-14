@@ -341,26 +341,17 @@ public enum MenuBarOverviewPresentation {
     private static func processes(_ processes: [ProcessMeasurement], context: MenuBarOverviewContext)
         -> MenuBarOverview.Processes? {
         guard !processes.isEmpty else { return nil }
-        let groups = ProcessGrouper.group(processes, apps: context.apps, currentUID: context.currentUID)
         // Erst auswählen, dann formatieren: Bei Hunderten Prozessen kostete das Formatieren aller Einträge je Takt mehr als
-        // die Gruppierung (Time Profiler, #495).
-        var top: [(entry: ProcessGroupEntry, isSystem: Bool, share: Double)] = []
-        for group in groups {
-            for entry in group.entries {
-                guard let share = entry.totals.cpuLoad else { continue }
-                let rank = top.firstIndex { share > $0.share || (share == $0.share && entry.name < $0.entry.name) }
-                    ?? top.count
-                guard rank < topProcessCount else { continue }
-                top.insert((entry, group.kind == .system, share), at: rank)
-                if top.count > topProcessCount { top.removeLast() }
-            }
-        }
-        let highest = top.first?.share ?? 0
-        return MenuBarOverview.Processes(entries: top.map { entry, isSystem, share in
-            MenuBarOverview.ProcessEntry(id: entry.id, name: entry.name, app: entry.app, isSystem: isSystem,
-                                         share: share, value: ProcessColumn.percent(share),
-                                         loadFraction: loadFraction(of: share, top: highest),
-                                         memory: bytes(entry.totals.memoryBytes))
+        // die Gruppierung (Time Profiler, #495); seit #626 entstehen auch nur die gezeigten Einträge.
+        let top = ProcessGrouper.entriesWithHighestCPULoad(processes, apps: context.apps, currentUID: context.currentUID,
+                                                           count: topProcessCount)
+        let highest = top.first?.cpuLoad ?? 0
+        return MenuBarOverview.Processes(entries: top.map { ranked in
+            MenuBarOverview.ProcessEntry(id: ranked.entry.id, name: ranked.entry.name, app: ranked.entry.app,
+                                         isSystem: ranked.kind == .system, share: ranked.cpuLoad,
+                                         value: ProcessColumn.percent(ranked.cpuLoad),
+                                         loadFraction: loadFraction(of: ranked.cpuLoad, top: highest),
+                                         memory: bytes(ranked.entry.totals.memoryBytes))
         })
     }
 

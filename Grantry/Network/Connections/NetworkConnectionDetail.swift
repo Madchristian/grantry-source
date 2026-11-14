@@ -76,6 +76,12 @@ struct NetworkConnectionDetailContent: View {
             DetailGroup(String(localized: "Adressen")) {
                 DetailEntry(String(localized: "Lokal"), value: row.localText, isCode: true)
                 DetailEntry(String(localized: "Gegenstelle"), value: row.remoteText, isCode: true)
+                if let region = row.region {
+                    DetailEntry(String(localized: "Land"), value: region.title())
+                }
+                if let direction = row.direction {
+                    DetailEntry(String(localized: "Richtung"), value: direction.displayName)
+                }
             }
             if row.kind != .listening {
                 DetailGroup(String(localized: "Verkehr seit Messbeginn")) {

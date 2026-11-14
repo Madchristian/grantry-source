@@ -30,9 +30,34 @@ import Testing
     }
 
     private func presentation(_ processes: [ProcessActivity], filter: NetworkConnectionFilter = .all, query: String = "",
-                              programs: [Int32: NetworkProgram] = [:]) -> NetworkConnectionsPresentation {
+                              programs: [Int32: NetworkProgram] = [:],
+                              regions: RemoteRegionResolver = .unavailable) -> NetworkConnectionsPresentation {
         NetworkConnectionsPresentation(frame: TestData.activityFrame(processes, programs: programs), filter: filter,
-                                       query: query, userName: { $0 == 0 ? "root" : "anna" })
+                                       query: query, userName: { $0 == 0 ? "root" : "anna" }, regions: regions)
+    }
+
+    /// Feste Zuordnung der Dokumentationsnetze: `192.0.2.0/24` Deutschland, `198.51.100.0/24` USA, `2001:db8::/32`
+    /// Niederlande; `203.0.113.0/24` hat keinen Eintrag.
+    private static let regions = RemoteRegionResolver(dataDate: DateComponents(year: 2026, month: 11, day: 13)) {
+        if $0.hasPrefix("192.0.2.") { "DE" } else if $0.hasPrefix("198.51.100.") { "US" }
+        else if $0.hasPrefix("2001:db8:") { "NL" } else { nil }
+    }
+    private static let german = Locale(identifier: "de_DE")
+
+    /// Verbindungen in drei Länder, ohne Eintrag, ins lokale Netz und über Loopback, dazu lauschende Sockets.
+    private var travelling: [ProcessActivity] {
+        [
+            process(10, "safari", connections: [
+                socket(remote: "192.0.2.10", 443), socket(local: "192.168.1.24", 50001, remote: "192.0.2.11", 443),
+                socket(local: "fd00::24", 50002, remote: "2001:db8::44", 443),
+                socket(.quic, local: "192.168.1.24", 50003, remote: "198.51.100.7", 443),
+            ]),
+            process(11, "mail", connections: [socket(remote: "203.0.113.25", 993)]),
+            process(20, "node", connections: [socket(local: "192.168.1.24", 3000, remote: "192.168.1.20", 61000)],
+                    listening: [listening(3000)]),
+            process(30, "postgres", connections: [socket(local: "127.0.0.1", 5432, remote: "127.0.0.1", 52000)],
+                    listening: [listening(5432, address: "127.0.0.1")]),
+        ]
     }
 
     private var sample: [ProcessActivity] {
@@ -202,5 +227,157 @@ import Testing
         #expect(local.level == .calm)
         #expect(local.title == "Nur von diesem Mac erreichbar")
         #expect(presentation([]).verdict(firewallOn: false).level == .finding)
+    }
+
+    // MARK: Nach Land (#630)
+
+    @Test func rowsCarryTheRegionOfTheirRemoteAddress() {
+        let rows = presentation(travelling, regions: Self.regions).all
+        func regions(of title: String) -> [RemoteRegion?] { rows.filter { $0.title == title }.map(\.region) }
+        #expect(Set(regions(of: "safari")) == [.country("DE"), .country("NL"), .country("US")])
+        #expect(regions(of: "mail") == [.unknown])
+        // Lauschende Sockets haben keine Gegenstelle und damit keine Region.
+        #expect(regions(of: "node") == [nil, .localNetwork])
+        #expect(regions(of: "postgres") == [nil, .thisMac])
+    }
+
+    @Test func tcpConnectionsCarryTheirDirection() {
+        let rows = presentation(travelling, regions: Self.regions).all.filter { $0.kind == .connected }
+        #expect(rows.first { $0.title == "node" }?.direction == .inbound)
+        #expect(rows.first { $0.title == "mail" }?.direction == .outbound)
+        #expect(rows.first { $0.socket.transport == .quic }?.direction == nil)
+        #expect(presentation(travelling).all.filter { $0.kind != .connected }.allSatisfy { $0.direction == nil })
+    }
+
+    @Test func groupsConnectionsByCountryBusiestFirstThenByName() {
+        let sections = presentation(travelling, regions: Self.regions).sections(by: .country, locale: Self.german)
+        #expect(sections.map(\.title) == ["Deutschland", "Niederlande", "Vereinigte Staaten",
+                                          "Land unbekannt (kein Eintrag)", "Lokales Netz (ohne Land)",
+                                          "Dieser Mac (ohne Land)"])
+        #expect(sections.map(\.openCount) == [2, 1, 1, 1, 1, 1])
+        #expect(sections[0].rows.map(\.remoteText) == ["192.0.2.10:443", "192.0.2.11:443"])
+    }
+
+    /// Private und lokale Adressen stehen nie unter einem Land – auch nicht, wenn die Tabelle eines nennen würde.
+    @Test func localAndPrivateAddressesNeverJoinACountry() {
+        let everywhere = RemoteRegionResolver(dataDate: nil) { _ in "DE" }
+        let sections = presentation(travelling, regions: everywhere).sections(by: .country, locale: Self.german)
+        let germany = sections.first { $0.title == "Deutschland" }
+        #expect(germany?.rows.allSatisfy { IPAddressScope.isPublic($0.socket.remote.address ?? "") } == true)
+        #expect(sections.map(\.title).suffix(2) == ["Lokales Netz (ohne Land)", "Dieser Mac (ohne Land)"])
+    }
+
+    @Test func countrySectionsLeaveOutSocketsWithoutARemoteAddress() {
+        let presentation = presentation(travelling, regions: Self.regions)
+        let rows = presentation.sections(by: .country, locale: Self.german).flatMap(\.rows)
+        #expect(rows.allSatisfy { $0.kind == .connected })
+        #expect(rows.count == presentation.rows.count { $0.kind == .connected })
+    }
+
+    @Test func withoutATableEveryPublicRemoteIsUnknown() {
+        let sections = presentation(travelling).sections(by: .country, locale: Self.german)
+        #expect(sections.map(\.title) == ["Land unbekannt (kein Eintrag)", "Lokales Netz (ohne Land)",
+                                          "Dieser Mac (ohne Land)"])
+        #expect(sections[0].openCount == 5)
+    }
+
+    @Test func onlyLocalConnectionsGiveNoCountrySection() {
+        let local = [process(20, "node", connections: [socket(remote: "192.168.1.20", 61000)]),
+                     process(30, "postgres", connections: [socket(local: "127.0.0.1", 5432, remote: "127.0.0.1", 52000)])]
+        let sections = presentation(local, regions: Self.regions).sections(by: .country, locale: Self.german)
+        #expect(sections.map(\.title) == ["Lokales Netz (ohne Land)", "Dieser Mac (ohne Land)"])
+    }
+
+    @Test func countrySectionsFollowFilterAndSearch() {
+        let filtered = presentation(travelling, query: "mail", regions: Self.regions)
+        #expect(filtered.sections(by: .country, locale: Self.german).map(\.title) == ["Land unbekannt (kein Eintrag)"])
+        let listening = presentation(travelling, filter: .listening, regions: Self.regions)
+        #expect(listening.sections(by: .country, locale: Self.german).isEmpty)
+    }
+
+    @Test func closedConnectionsStayVisibleButDoNotCount() {
+        let closing = [process(10, "safari", connections: [socket(remote: "192.0.2.10", 443),
+                                                           socket(local: "192.168.1.24", 50001, remote: "192.0.2.11",
+                                                                  443, isGone: true)])]
+        let germany = presentation(closing, regions: Self.regions).sections(by: .country, locale: Self.german)[0]
+        #expect(germany.rows.count == 2)
+        #expect(germany.openCount == 1)
+        #expect(germany.rate == TrafficRate(download: 10, upload: 5))
+    }
+
+    @Test func sectionHeaderReadsCountryCountAndTraffic() {
+        let sections = presentation(travelling, regions: Self.regions).sections(by: .country, locale: Self.german)
+        #expect(sections[0].rateText == "↓ 20 B/s ↑ 10 B/s")
+        #expect(sections[0].accessibilityLabel(for: .country)
+            == "Deutschland, 2 Verbindungen, empfängt 20 B/s, sendet 10 B/s")
+        #expect(sections[1].accessibilityLabel(for: .country)
+            == "Niederlande, 1 Verbindung, empfängt 10 B/s, sendet 5 B/s")
+    }
+
+    @Test func reachSectionsKeepTheirOrderAndFinding() {
+        let sections = presentation(travelling, regions: Self.regions).sections(by: .reach, locale: Self.german)
+        #expect(sections.map(\.title) == ["Aus dem Netz erreichbar", "Nur von diesem Mac erreichbar", "Verbindungen"])
+        #expect(sections.map(\.isFinding) == [true, false, false])
+        #expect(sections.map(\.tone) == [.warning, .positive, .neutral])
+        #expect(sections.flatMap(\.rows).count == presentation(travelling).rows.count)
+    }
+
+    @Test func accessibilityLabelNamesRegionAndDirection() {
+        let rows = presentation(travelling, regions: Self.regions).all
+        let mail = rows.first { $0.title == "mail" }
+        #expect(mail?.accessibilityLabel
+            == "mail, PID 11, TCP IPv4, ESTABLISHED, lokal 192.168.1.24:50000, entfernt 203.0.113.25:993, Land unbekannt, ausgehend")
+    }
+
+    // MARK: Ziele des Bogenfächers (#630)
+
+    @Test func destinationsFollowTheCountrySectionsWithTheirPrograms() {
+        let destinations = presentation(travelling, regions: Self.regions).destinations(locale: Self.german)
+        #expect(destinations.map(\.title) == ["Deutschland", "Niederlande", "Vereinigte Staaten", "Land unbekannt",
+                                              "Lokales Netz", "Dieser Mac"])
+        #expect(destinations.map(\.connectionCount) == [2, 1, 1, 1, 1, 1])
+        #expect(destinations.map(\.isCountry) == [true, true, true, false, false, false])
+        #expect(destinations[0].programs == [NetworkDestination.Program(title: "safari", connectionCount: 2)])
+        #expect(destinations[0].region == .country("DE"))
+    }
+
+    @Test func destinationsIgnoreFilterSearchAndClosedConnections() {
+        let closing = travelling + [process(12, "curl", connections: [socket(remote: "192.0.2.99", 443, isGone: true)])]
+        let filtered = presentation(closing, filter: .listening, query: "node", regions: Self.regions)
+        #expect(filtered.rows.count < filtered.all.count)
+        let germany = filtered.destinations(locale: Self.german)[0]
+        #expect(germany.connectionCount == 2)
+        #expect(germany.programs.map(\.title) == ["safari"])
+    }
+
+    @Test func destinationProgramsAreOrderedByConnectionsThenName() {
+        let shared = [process(10, "safari", connections: [socket(remote: "192.0.2.10", 443)]),
+                      process(11, "mail", connections: [socket(remote: "192.0.2.11", 993),
+                                                        socket(local: "192.168.1.24", 50001, remote: "192.0.2.12", 993)]),
+                      process(12, "curl", connections: [socket(remote: "192.0.2.13", 443)])]
+        let germany = presentation(shared, regions: Self.regions).destinations(locale: Self.german)[0]
+        #expect(germany.programs.map(\.title) == ["mail", "curl", "safari"])
+        #expect(germany.accessibilityLabel == "Deutschland, 4 Verbindungen: mail 2, curl 1, safari 1")
+    }
+
+    /// Nur eingehend gilt, wenn jede Verbindung dorthin auf einem lauschenden TCP-Port des Programms ankommt.
+    @Test func destinationKnowsWhenEverythingIsInbound() {
+        let destinations = presentation(travelling, regions: Self.regions).destinations(locale: Self.german)
+        #expect(destinations.first { $0.region == .localNetwork }?.isInboundOnly == true)
+        #expect(destinations.first { $0.region == .localNetwork }?.accessibilityLabel
+            == "Lokales Netz, 1 Verbindung, nur eingehend: node 1")
+        // Über Loopback steht dieselbe Verbindung einmal ausgehend (node) und einmal eingehend (postgres) da.
+        #expect(destinations.first { $0.region == .country("DE") }?.isInboundOnly == false)
+        #expect(destinations.first { $0.region == .country("US") }?.isInboundOnly == false)
+    }
+
+    @Test func withoutConnectionsThereAreNoDestinations() {
+        #expect(presentation([process(1, "node", listening: [listening(3000)])]).destinations().isEmpty)
+    }
+
+    @Test func dataDateReadsMonthAndYear() {
+        let date = DateComponents(year: 2026, month: 11, day: 13)
+        #expect(NetworkConnectionTexts.dataDate(date, locale: Self.german) == "Länderdaten: Stand November 2026")
+        #expect(NetworkConnectionTexts.dataDate(nil, locale: Self.german) == nil)
     }
 }

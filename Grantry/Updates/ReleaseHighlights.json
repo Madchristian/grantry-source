@@ -1,31 +1,31 @@
 {
-  "version": "2026.11.13",
-  "intro": "Die Übersicht in der Menüleiste zeigt mehr auf einen Blick – dazu drei Korrekturen am Lagebild.",
+  "version": "2026.11.14",
+  "intro": "Verbindungen nach Land – komplett offline – und Karten, die die ganze Seite füllen.",
   "highlights": [
     {
+      "symbol": "globe.europe.africa",
+      "title": "Verbindungen nach Land",
+      "body": "Netzwerk › Verbindungen ordnet die Tabelle auf Wunsch nach Land. Die Zuordnung kommt aus einer mitgelieferten Tabelle: keine Online-Abfrage, kein zusätzlicher Netzverkehr."
+    },
+    {
+      "symbol": "point.3.connected.trianglepath.dotted",
+      "title": "Karte „Ziele“ als Bogenfächer",
+      "body": "Linien von diesem Mac zu den Ländern der offenen Verbindungen; die Linienstärke folgt der Zahl der Verbindungen, gestrichelt heißt nur eingehend."
+    },
+    {
+      "symbol": "arrow.up.left.and.arrow.down.right",
+      "title": "Karten auf die ganze Seite",
+      "body": "„Erreichbarkeit“, „Ziele“ und „Rechte-Schichten“ lassen sich vergrößern und zeigen dann jeden Eintrag einzeln; zurück mit dem Knopf oder Escape."
+    },
+    {
+      "symbol": "text.below.photo",
+      "title": "Beschriftungen ohne Überlappung",
+      "body": "Im Erreichbarkeitsradar und in den Rechte-Schichten nimmt jede Beschriftung den ersten freien Platz an ihrem Punkt."
+    },
+    {
       "symbol": "menubar.rectangle",
-      "title": "Übersicht der Menüleiste dichter",
-      "body": "Karten stehen paarweise nebeneinander, Prozesse zeigt fünf Einträge mit Lastbalken und Arbeitsspeicher, Arbeitsspeicher und GPU nennen mehr Werte – bei weniger Höhe."
-    },
-    {
-      "symbol": "checkmark.shield",
-      "title": "Listen zeigen den neuen Stand",
-      "body": "Nach „Risiko akzeptieren“ wechselt die Zeile in Apps sofort ihren Zustand; ebenso in Berechtigungen, Autostart, Agenten und Beobachtungen."
-    },
-    {
-      "symbol": "power",
-      "title": "Autostart vollständig geprüft",
-      "body": "Leere Platzhalter-Dateien von Updatern gelten nicht mehr als Lücke; die Ansicht bleibt nicht dauerhaft auf „Teilweise geprüft“."
-    },
-    {
-      "symbol": "cpu",
-      "title": "GPU-Zellen als Pegel",
-      "body": "Die Chip-Ansicht füllt die GPU-Zellen nach der Gesamtauslastung, statt alle gleich zu tönen."
-    },
-    {
-      "symbol": "rectangle.3.group",
-      "title": "Ganz Grantry im Lagebild",
-      "body": "Seit 2026.11.12 beginnen alle Ansichten mit einem Urteil in Worten, darunter Liste und Detail."
+      "title": "Übersicht der Menüleiste sparsamer",
+      "body": "Das geöffnete Popover braucht wieder weniger Rechenzeit, bei gleichem Aussehen und Inhalt."
     }
   ]
 }

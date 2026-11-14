@@ -14,6 +14,13 @@ public enum ConnectionDirection: Hashable, Sendable {
         case .outbound: "Ausgehend"
         }
     }
+
+    /// TCP auf einem lauschenden Port des Programms ist eingehend, sonst ausgehend; `nil` bei UDP und QUIC, die
+    /// keinen Verbindungsaufbau zeigen.
+    init?(of connection: ConnectionTraffic, listeningPorts: Set<UInt16>) {
+        guard connection.transport == .tcp else { return nil }
+        self = connection.local.port.map(listeningPorts.contains) == true ? .inbound : .outbound
+    }
 }
 
 /// Netzwerkaktivität eines Lauschers im Detail des Bereichs „Dienste“: alle gemessenen Prozesse seines Programms
@@ -139,19 +146,14 @@ public enum ListenerActivityPresenter {
                                  connectionCount: process.connections.count { !$0.isGone }, isGone: process.isGone)
     }
 
-    /// TCP auf einem lauschenden Port des Programms ist eingehend, sonst ausgehend; UDP/QUIC ohne Richtung.
     private static func connection(of process: ProcessActivity, _ activity: ConnectionActivity,
                                    listeningPorts: Set<UInt16>, hostNames: [String: String])
         -> ListenerActivity.Connection {
         let connection = activity.connection
-        let direction: ConnectionDirection? = if connection.transport == .tcp {
-            connection.local.port.map(listeningPorts.contains) == true ? .inbound : .outbound
-        } else {
-            nil
-        }
         return ListenerActivity.Connection(
             id: "\(process.key.id)|\(activity.key.id)", pid: process.key.pid, connection: connection,
-            hostName: connection.remote.address.flatMap { hostNames[$0] }, direction: direction,
+            hostName: connection.remote.address.flatMap { hostNames[$0] },
+            direction: ConnectionDirection(of: connection, listeningPorts: listeningPorts),
             location: connection.remote.address.map(IPAddressScope.location(of:)), rate: activity.rate,
             transferred: activity.transferred, isNew: activity.isNew, isGone: activity.isGone
         )

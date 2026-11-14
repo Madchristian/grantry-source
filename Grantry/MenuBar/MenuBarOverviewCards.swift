@@ -11,11 +11,12 @@ extension EnvironmentValues {
     @Entry var overviewCardFillsRow = false
 }
 
-/// Rahmen einer Karte: Titel als Überschrift, Detail, Wert rechts, darunter der Inhalt. Die Legende (`accessory`) steht
-/// in der Kopfzeile, solange sie dort Platz hat, sonst darunter; passt auch das Detail nicht neben Titel und Wert
-/// (schmale Karte, langer Name), rückt es in eine eigene Zeile, statt abzuschneiden. Ein Klick springt in den
-/// Task-Manager; VoiceOver bietet dafür eine eigene Aktion, die Elemente der Karte bleiben einzeln erreichbar. Die Karte
-/// selbst heißt „Titel, Wert“ (ohne Wert mit `spokenValue` bzw. dem Detail), wie die Kacheln des Task-Managers.
+/// Rahmen einer Karte: Titel als Überschrift, Detail, Wert rechts, darunter der Inhalt. Die Legende (`accessory`, eine
+/// Ansicht) steht in der Kopfzeile, solange sie dort Platz hat, sonst darunter; passt auch das Detail nicht neben Titel
+/// und Wert (schmale Karte, langer Name), rückt es in eine eigene Zeile, statt abzuschneiden (`CardHeadline`). Ein Klick
+/// springt in den Task-Manager; VoiceOver bietet dafür eine eigene Aktion, die Elemente der Karte bleiben einzeln
+/// erreichbar. Die Karte selbst heißt „Titel, Wert“ (ohne Wert mit `spokenValue` bzw. dem Detail), wie die Kacheln des
+/// Task-Managers.
 struct OverviewCard<Accessory: View, Content: View>: View {
     let title: String
     let detail: String
@@ -42,18 +43,24 @@ struct OverviewCard<Accessory: View, Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.item) {
-            ViewThatFits(in: .horizontal) {
-                headline(showsDetail: true) { accessory }
-                VStack(alignment: .leading, spacing: InstrumentSpacing.item) {
-                    headline(showsDetail: true) { EmptyView() }
-                    accessory
+            CardHeadline {
+                Text(verbatim: title)
+                    .font(InstrumentFont.body.weight(.semibold))
+                    .lineLimit(1)
+                    .accessibilityAddTraits(.isHeader)
+                    .cardHeadline(.title)
+                if !detail.isEmpty {
+                    Text(verbatim: detail).font(InstrumentFont.label).foregroundStyle(.instrumentSecondary)
+                        .lineLimit(1).truncationMode(.middle)
+                        .cardHeadline(.detail)
                 }
-                VStack(alignment: .leading, spacing: InstrumentSpacing.item) {
-                    VStack(alignment: .leading, spacing: InstrumentSpacing.stack) {
-                        headline(showsDetail: false) { EmptyView() }
-                        if !detail.isEmpty { detailText.truncationMode(.middle) }
-                    }
-                    accessory
+                accessory.cardHeadline(.legend)
+                if !value.isEmpty {
+                    Text(verbatim: value)
+                        .font(InstrumentFont.tileValue)
+                        .foregroundStyle(valueColor ?? .primary)
+                        .lineLimit(1)
+                        .cardHeadline(.value)
                 }
             }
             content
@@ -70,28 +77,6 @@ struct OverviewCard<Accessory: View, Content: View>: View {
         .accessibilityAction(named: Text("Im Task-Manager öffnen"), open)
         .accessibilityIdentifier("popoverCard")
         .help("Im Task-Manager anzeigen")
-    }
-
-    private func headline(showsDetail: Bool, @ViewBuilder legend: () -> some View) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: InstrumentSpacing.group) {
-            Text(verbatim: title)
-                .font(InstrumentFont.body.weight(.semibold))
-                .lineLimit(1)
-                .accessibilityAddTraits(.isHeader)
-            if showsDetail, !detail.isEmpty { detailText }
-            legend()
-            Spacer(minLength: InstrumentSpacing.inline)
-            if !value.isEmpty {
-                Text(verbatim: value)
-                    .font(InstrumentFont.tileValue)
-                    .foregroundStyle(valueColor ?? .primary)
-                    .lineLimit(1)
-            }
-        }
-    }
-
-    private var detailText: some View {
-        Text(verbatim: detail).font(InstrumentFont.label).foregroundStyle(.instrumentSecondary).lineLimit(1)
     }
 }
 
@@ -114,9 +99,11 @@ private struct LegendValue: View {
     @Environment(\.self) private var environment
 
     var body: some View {
-        HStack(spacing: InstrumentSpacing.inline) {
+        // Gestreckt trägt der `Spacer` den Abstand: So ist die Zeile in Wunschbreite genau so breit wie ohne `isSpread`
+        // und passt in einen `FittingLine` nebeneinander wie untereinander.
+        HStack(spacing: isSpread ? 0 : InstrumentSpacing.inline) {
             LegendItem(title: title, hue: hue).lineLimit(1)
-            if isSpread { Spacer(minLength: 0) }
+            if isSpread { Spacer(minLength: InstrumentSpacing.inline) }
             Text(verbatim: value).font(InstrumentFont.numeric).foregroundStyle(environment.instrumentTextColor(hue))
                 .lineLimit(1)
         }
@@ -130,16 +117,10 @@ private struct LegendPair: View {
     let second: (title: String, value: String, hue: InstrumentHue)
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: InstrumentSpacing.bar) { values(isSpread: false) }
-            VStack(spacing: InstrumentSpacing.inline) { values(isSpread: true) }
+        FittingLine(spacing: InstrumentSpacing.bar, stackedSpacing: InstrumentSpacing.inline) {
+            LegendValue(title: first.title, value: first.value, hue: first.hue, isSpread: true)
+            LegendValue(title: second.title, value: second.value, hue: second.hue, isSpread: true)
         }
-    }
-
-    @ViewBuilder
-    private func values(isSpread: Bool) -> some View {
-        LegendValue(title: first.title, value: first.value, hue: first.hue, isSpread: isSpread)
-        LegendValue(title: second.title, value: second.value, hue: second.hue, isSpread: isSpread)
     }
 }
 
@@ -232,10 +213,7 @@ struct OverviewCoresCard: View {
                      open: open) {
             // Drei Kernklassen (Super-, Leistungs-, Effizienzkerne, #589) passen nicht in eine Zeile der Karte:
             // dann untereinander statt abgeschnitten, die Breite bleibt.
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: InstrumentSpacing.cell) { averages }
-                VStack(alignment: .leading, spacing: InstrumentSpacing.inline) { averages }
-            }
+            FittingLine(spacing: InstrumentSpacing.cell, stackedSpacing: InstrumentSpacing.inline) { averages }
         } content: {
             CoreRingBoard(groups: cores.groups.map { group in
                 CoreRingBoard.Group(tag: group.label ?? tag(of: group.kind), hue: group.kind.hue,
@@ -382,16 +360,11 @@ struct OverviewMemoryCard: View {
                         .padding(.leading, InstrumentSize.legendStroke.width + InstrumentSpacing.inline)
                 }
             }
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: InstrumentSpacing.group) {
-                    pressure
-                    Spacer(minLength: 0)
-                    usage
-                }
-                VStack(alignment: .leading, spacing: InstrumentSpacing.inline) {
-                    pressure
-                    usage
-                }
+            // Abstand wie zuvor beiderseits eines `Spacer`.
+            FittingLine(spacing: 2 * InstrumentSpacing.group, stackedSpacing: InstrumentSpacing.inline,
+                        isJustified: true) {
+                pressure
+                usage
             }
         }
     }

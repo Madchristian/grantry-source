@@ -4,7 +4,8 @@ import SwiftUI
 /// Bereich „Erweiterungen“ im Lagebild mit festen Beispieldaten (TM-13.5, #391): Zustandszeile und `ExtensionBoard` wie in
 /// der App. Erfundene Hersteller und Team-IDs; die Texte folgen der Darstellung in ManagerKit (`ExtensionPresentation`).
 /// Sechs Lagen: Befund im Kern gewählt, akzeptierte Netzwerkerweiterung gewählt, Video-Plug-in gewählt (Papierkorb), ohne
-/// fremde Erweiterungen (ruhiges Urteil), nichts gewählt und unvollständig geprüft (keine Entwarnung, TM-13.7).
+/// fremde Erweiterungen (ruhiges Urteil), nichts gewählt und unvollständig geprüft (keine Entwarnung, TM-13.7). Dazu
+/// viele Erweiterungen in der kleinen Karte und mit vergrößerten Rechte-Schichten (nicht in der Galerie).
 @MainActor
 extension SnapshotGallery {
     enum ExtensionScene: String, CaseIterable, Sendable {
@@ -14,6 +15,11 @@ extension SnapshotGallery {
         case calm = "leer"
         case noSelection = "ohne-auswahl"
         case incomplete = "unvollstaendig"
+        case crowded = "viele"
+        case expanded = "vergroessert"
+
+        /// Lagen mit vielen Erweiterungen je Schicht.
+        var isCrowded: Bool { self == .crowded || self == .expanded }
     }
 
     static let extensionsSize = CGSize(width: 1240, height: 860)
@@ -60,7 +66,8 @@ private struct ExtensionBoardSample: View {
                 .padding([.horizontal, .top], InstrumentSpacing.page)
             ExtensionBoard(content: ExtensionSamples.content(scene), query: .constant(""),
                            filter: .constant(SampleFilter.all), filters: SampleFilter.options,
-                           selection: .constant(ExtensionSamples.selection(scene))) {
+                           selection: .constant(ExtensionSamples.selection(scene)),
+                           isRadarExpanded: scene == .expanded) {
                 ExtensionSamples.detail(scene)
             } empty: {
                 if scene == .incomplete {
@@ -119,6 +126,39 @@ private enum ExtensionSamples {
 
     static let incompleteNotice = "Teilweise geprüft: Systemerweiterungen nicht lesbar (systemextensionsctl fehlt)"
 
+    /// Erfundene weitere Erweiterungen einer Schicht für die Lagen mit vielen Einträgen.
+    static func crowd(_ names: [String], layer: String, symbol: String, kind: String) -> [ExtensionRowContent] {
+        names.enumerated().map { index, name in
+            ExtensionRowContent(
+                id: "\(layer)|crowd|\(name)", symbol: symbol, title: name, kind: kind, vendor: "Werkbank Systeme",
+                vendorDetail: "W3RK8B4N2K", version: "1.\(index)", state: index % 3 == 0 ? installed : active,
+                rating: index % 5 == 0 ? notice : nil, radarLabel: name)
+        }
+    }
+
+    static let crowdedSystem = crowd(["Netzwache", "Paketfilter", "Tunnelblick Pro", "Kamerabrücke", "Dateiwächter",
+                                      "Proxyweiche", "Inhaltsfilter", "Schutzschild", "Sichtschutz"],
+                                     layer: "system", symbol: "network", kind: "Netzwerkerweiterung")
+    static let crowdedDrivers = crowd(["Tablettreiber", "Audiointerface", "Dockstation", "Seriellwandler",
+                                       "Grafiktablett", "Messadapter", "Funkempfänger", "Laufwerksbrücke", "Pultsteuerung",
+                                       "Kartenleser", "Lichtsteuerung"],
+                                      layer: "driver", symbol: "cable.connector", kind: "Treiber")
+    static let crowdedPlugins = crowd(["Hallraum", "Mischpult", "Bandmaschine", "Stimmgabel", "Echokammer", "Pegelwächter",
+                                       "Raumklang", "Tonspur", "Kompressor", "Bildmischer", "Greenscreen", "Zweitkamera",
+                                       "Klangfarbe", "Lautmacher", "Mitschnitt", "Streamkamera", "Tiefpass", "Vorverstärker"],
+                                      layer: "plugin", symbol: "speaker.wave.2", kind: "Audio-Plug-in")
+
+    /// Schichten mit vielen Erweiterungen: mehr, als die kleine Karte je Ring einzeln zeigt.
+    static var crowdedLayers: [ExtensionLayerContent] {
+        let layers = layers(calm: false)
+        let extra = [[], crowdedSystem, crowdedDrivers, crowdedPlugins]
+        return layers.indices.map { index in
+            ExtensionLayerContent(id: layers[index].id, title: layers[index].title, ringTitle: layers[index].ringTitle,
+                                  explanation: layers[index].explanation, rows: layers[index].rows + extra[index],
+                                  note: layers[index].note)
+        }
+    }
+
     static func layers(calm: Bool) -> [ExtensionLayerContent] {
         [
             ExtensionLayerContent(
@@ -142,10 +182,11 @@ private enum ExtensionSamples {
     static func content(_ scene: SnapshotGallery.ExtensionScene) -> ExtensionBoardContent {
         let calm = scene == .calm
         let empty = calm || scene == .incomplete
-        let layers = layers(calm: empty)
+        let layers = scene.isCrowded ? crowdedLayers : layers(calm: empty)
+        let count = layers.reduce(0) { $0 + $1.rows.count }
         return ExtensionBoardContent(
-            layers: layers, sections: layers.filter { !$0.rows.isEmpty }, radarValue: empty ? "0" : "8",
-            shownText: empty ? "0 von 0" : "8 von 8", notice: scene == .incomplete ? incompleteNotice : nil,
+            layers: layers, sections: layers.filter { !$0.rows.isEmpty }, radarValue: "\(count)",
+            shownText: "\(count) von \(count)", notice: scene == .incomplete ? incompleteNotice : nil,
             calm: calm ? ExtensionCalmContent(
                 title: "Kein fremder Code mit Sonderrechten",
                 reason: "Grantry hat keine Kernel-Erweiterung, keine Systemerweiterung, keinen Treiber und kein Plug-in "
@@ -175,6 +216,7 @@ private enum ExtensionSamples {
         case .finding: storageBridge.id
         case .accepted: fernweg.id
         case .plugin: bildbruecke.id
+        case .crowded, .expanded: wachposten.id
         case .calm, .noSelection, .incomplete: nil
         }
     }
@@ -204,7 +246,7 @@ private enum ExtensionSamples {
                 Button("Im Finder zeigen") {}
                 Button("In den Papierkorb …") {}
             }
-        case .calm, .noSelection, .incomplete:
+        case .calm, .noSelection, .incomplete, .crowded, .expanded:
             ExtensionNoSelection()
         }
     }
