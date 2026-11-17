@@ -143,6 +143,8 @@ public enum InstrumentSize {
     public static let overviewLoadBar: CGFloat = 72
     public static let valueRing: CGFloat = 60
     public static let overviewMirror: CGFloat = 32
+    /// Zeilenhöhe des Übersichts-Baukastens (Spec 2026-11-09-uebersicht-baukasten § 3); Spaltenbreite aus der Breite.
+    public static let boardRow: CGFloat = 80
     public static let panelGraph: CGFloat = 120
     public static let coreCell: CGFloat = 30
     public static let gpuCell: CGFloat = 12

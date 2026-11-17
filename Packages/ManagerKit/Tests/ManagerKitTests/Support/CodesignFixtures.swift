@@ -131,3 +131,17 @@ enum InstalledApps {
         return fields
     }
 }
+
+extension Codesign {
+    /// Framework wie in Python-Bundles (#650): `PrivateHeaders` → `Versions/Current/PrivateHeaders`, das im Bundle fehlt.
+    /// Liefert den Framework-Ordner.
+    static func frameworkWithDanglingLink(in bundle: URL) throws -> URL {
+        let framework = bundle.appending(path: "Contents/Frameworks/Tcl.framework")
+        try FileManager.default.createDirectory(at: framework.appending(path: "Versions/8.6"), withIntermediateDirectories: true)
+        try FileManager.default.createSymbolicLink(atPath: framework.appending(path: "Versions/Current").path,
+                                                   withDestinationPath: "8.6")
+        try FileManager.default.createSymbolicLink(atPath: framework.appending(path: "PrivateHeaders").path,
+                                                   withDestinationPath: "Versions/Current/PrivateHeaders")
+        return framework
+    }
+}

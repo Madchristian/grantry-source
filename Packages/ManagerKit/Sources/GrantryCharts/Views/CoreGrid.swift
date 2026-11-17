@@ -33,8 +33,9 @@ public struct CoreGrid: View {
 
     public struct Cluster: Identifiable, Sendable {
         public enum Kind: Sendable {
-            /// `uniform`: ohne Kerntypen (Intel, virtuelle Maschine), in der Farbe der CPU.
-            case performance, efficiency, uniform
+            /// `super`: Super-Kerne (ab M5) im eigenen Ton (#592). `uniform`: ohne Kerntypen (Intel, virtuelle Maschine),
+            /// in der Farbe der CPU.
+            case `super`, performance, efficiency, uniform
         }
 
         public let kind: Kind
@@ -262,6 +263,7 @@ extension CoreGrid.Cluster.Kind {
     /// Farbe der Kernart, auch für die Taktbänder des Chip-Tabs.
     public var hue: InstrumentHue {
         switch self {
+        case .super: .superCores
         case .performance, .uniform: .cpu
         case .efficiency: .efficiencyCores
         }
@@ -269,7 +271,7 @@ extension CoreGrid.Cluster.Kind {
 
     var symbol: String {
         switch self {
-        case .performance: "bolt.fill"
+        case .super, .performance: "bolt.fill"
         case .efficiency: "leaf.fill"
         case .uniform: "cpu"
         }

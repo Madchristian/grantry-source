@@ -3,7 +3,8 @@ import SwiftUI
 
 /// Karte „Ziele“ (Netzwerk › Verbindungen): Bogenfächer von diesem Mac zu den Ländern seiner Verbindungen – mit
 /// wenigen Ländern, mit vielen (der Rest als „+n“), nur mit lokalen Gegenstellen und auf die ganze Seite vergrößert
-/// mit den Programmen als zweiter Stufe.
+/// mit den Programmen als zweiter Stufe; mit Zielfilter (#633) ein gewähltes Land, der gewählte Sammel-Ast und ein
+/// gewähltes Land auf der vergrößerten Seite.
 @MainActor
 extension SnapshotGallery {
     enum ArcFanScene: String, CaseIterable, Sendable {
@@ -11,8 +12,20 @@ extension SnapshotGallery {
         case many = "viele"
         case localOnly = "nur-lokal"
         case page = "seite"
+        case picked = "gefiltert"
+        case pickedSummary = "gefiltert-sammel"
+        case pickedPage = "seite-gefiltert"
 
-        var isExpanded: Bool { self == .page }
+        var isExpanded: Bool { self == .page || self == .pickedPage }
+
+        /// Äste des Zielfilters: ein Land bzw. alle, die der Sammel-Ast „+n“ vertritt.
+        var picked: Set<ArcFan.Branch.ID> {
+            switch self {
+            case .few, .many, .localOnly, .page: []
+            case .picked, .pickedPage: ["Irland"]
+            case .pickedSummary: Set(branches.dropFirst(ArcFanLayout.compactCapacity - 1).map(\.id))
+            }
+        }
 
         var size: CGSize {
             isExpanded ? CGSize(width: 1100, height: 760) : CGSize(width: InstrumentSize.columnRadar, height: 372)
@@ -21,7 +34,8 @@ extension SnapshotGallery {
         var branches: [ArcFan.Branch] {
             switch self {
             case .few: Array(SnapshotGallery.fanCountries.prefix(3)) + SnapshotGallery.fanHome
-            case .many, .page: SnapshotGallery.fanCountries + SnapshotGallery.fanHome
+            case .many, .page, .pickedSummary, .pickedPage: SnapshotGallery.fanCountries + SnapshotGallery.fanHome
+            case .picked: Array(SnapshotGallery.fanCountries.prefix(3)) + SnapshotGallery.fanHome
             case .localOnly: SnapshotGallery.fanHome
             }
         }
@@ -63,10 +77,12 @@ extension SnapshotGallery {
             PeilHead("Ziele", detail: "Wohin dieser Mac verbindet", value: "\(scene.branches.count)",
                      expansion: .constant(scene.isExpanded))
             if scene.isExpanded {
-                ArcFan(branches: scene.branches, originSymbol: "laptopcomputer", title: "Ziele", isExpanded: true)
+                ArcFan(branches: scene.branches, originSymbol: "laptopcomputer", title: "Ziele", picked: scene.picked,
+                       isExpanded: true)
                     .frame(maxHeight: .infinity)
             } else {
-                ArcFan(branches: scene.branches, originSymbol: "laptopcomputer", title: "Ziele", selection: "Deutschland")
+                ArcFan(branches: scene.branches, originSymbol: "laptopcomputer", title: "Ziele", selection: "Deutschland",
+                       picked: scene.picked)
                     .frame(height: InstrumentSize.radar)
             }
         }

@@ -4,7 +4,8 @@ import Synchronization
 /// bis dahin, echte Wartezeiten gibt es nicht.
 ///
 /// Weil Schläfer asynchron (aus anderen Tasks) eintreffen, bietet die Uhr `waitForSleeper(until:)`: Tests warten damit,
-/// bis ein Schlaf mit genau dieser Frist registriert ist, bevor sie die Zeit vorstellen.
+/// bis ein Schlaf mit genau dieser Frist registriert ist, bevor sie die Zeit vorstellen. `nextSleeperDeadline()` wartet
+/// auf irgendeinen Schläfer und nennt die früheste Frist – für Abläufe, deren Fristen der Test nicht vorab kennt.
 public final class TestClock: Clock, Sendable {
     public struct Instant: InstantProtocol, Sendable {
         /// Abstand zum Startzeitpunkt der Uhr.
@@ -23,7 +24,8 @@ public final class TestClock: Clock, Sendable {
     }
 
     private struct Watcher {
-        let deadline: Instant
+        /// `nil`: jeder Schläfer.
+        let deadline: Instant?
         let continuation: CheckedContinuation<Void, Never>
     }
 
@@ -39,6 +41,8 @@ public final class TestClock: Clock, Sendable {
     public init() {}
 
     public var now: Instant { state.withLock { $0.now } }
+    /// Zahl der wartenden Schläfer.
+    public var sleeperCount: Int { state.withLock { $0.sleepers.count } }
     public var minimumResolution: Duration { .zero }
 
     public func sleep(until deadline: Instant, tolerance: Duration? = nil) async throws {
@@ -59,7 +63,7 @@ public final class TestClock: Clock, Sendable {
                         return nil
                     }
                     state.sleepers[id] = Sleeper(deadline: deadline, continuation: continuation)
-                    let matching = state.watchers.filter { $0.value.deadline == deadline }
+                    let matching = state.watchers.filter { $0.value.deadline.map { $0 == deadline } ?? true }
                     matching.keys.forEach { state.watchers.removeValue(forKey: $0) }
                     return Array(matching.values)
                 }
@@ -90,6 +94,17 @@ public final class TestClock: Clock, Sendable {
     /// Kehrt zurück, sobald ein Schläfer mit genau dieser Frist wartet – oder wenn der Test abgebrochen wird
     /// (etwa durch `.timeLimit`), damit ein fehlender Schläfer den Testlauf nicht blockiert.
     public func waitForSleeper(until deadline: Instant) async {
+        await waitForSleeper(matching: deadline)
+    }
+
+    /// Kehrt zurück, sobald irgendein Schläfer wartet, mit der frühesten Frist aller wartenden; `nil` nur nach Abbruch.
+    public func nextSleeperDeadline() async -> Instant? {
+        await waitForSleeper(matching: nil)
+        return state.withLock { $0.sleepers.values.map(\.deadline).min() }
+    }
+
+    /// `deadline == nil`: jeder Schläfer.
+    private func waitForSleeper(matching deadline: Instant?) async {
         let id = state.withLock { state in
             defer { state.nextID += 1 }
             return state.nextID
@@ -97,7 +112,8 @@ public final class TestClock: Clock, Sendable {
         await withTaskCancellationHandler {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 let resumeNow = state.withLock { state in
-                    if Task.isCancelled || state.sleepers.values.contains(where: { $0.deadline == deadline }) {
+                    if Task.isCancelled
+                        || state.sleepers.values.contains(where: { sleeper in deadline.map { sleeper.deadline == $0 } ?? true }) {
                         return true
                     }
                     state.watchers[id] = Watcher(deadline: deadline, continuation: continuation)

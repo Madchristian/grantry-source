@@ -172,11 +172,13 @@ extension PerformanceMetric {
 }
 
 extension CoreKind {
-    /// Darstellung der Kernklasse in Kernraster, Chip-Tab und Menüleiste (#589): Super- und Leistungskerne in der Farbe
-    /// der CPU mit Blitz, Effizienzkerne Lila, unbekannte Klassen neutral; unterschieden werden sie über Titel und Kürzel.
+    /// Darstellung der Kernklasse in Kernraster, Chip-Tab und Menüleiste (#589, #592): Super-Kerne Zitronengelb,
+    /// Leistungskerne in der Farbe der CPU, beide mit Blitz, Effizienzkerne Lila, unbekannte Klassen neutral; Titel und
+    /// Kürzel (S, P, E) unterscheiden sie zusätzlich ohne Farbe.
     var chartKind: CoreGrid.Cluster.Kind {
         switch self {
-        case .super, .performance: .performance
+        case .super: .super
+        case .performance: .performance
         case .efficiency: .efficiency
         case .other, .unknown: .uniform
         }

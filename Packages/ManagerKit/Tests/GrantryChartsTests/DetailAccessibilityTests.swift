@@ -104,6 +104,33 @@ import Testing
         }
     }
 
+    /// Umgebung eines MCP-Servers (#582): Die Zeile einer Umgebungsvariable liest den auswählbaren Namen als Beschriftung
+    /// und die Art als Wert, statt eines AXUnknown nur mit der Art.
+    @Test func environmentVariableRowReadsNameAndKind() async throws {
+        let facts = [DetailFactContent("API_BASE_URL", value: "Umgebungsvariable"),
+                     DetailFactContent("API_TOKEN", value: "Wert im Klartext in der Datei", tone: .finding),
+                     DetailFactContent("Authorization", value: "Header")]
+        let content = RecordDetailContent(symbol: "server.rack", title: "beispiel", subtitle: "~/.config/beispiel.json",
+                                          groups: [DetailGroupContent(id: "environment", title: "Umgebung",
+                                                                      count: facts.count, facts: facts)])
+        let nodes = try await AccessibilityTree.nodes(of: RecordDetailPanel(content: content),
+                                                      size: CGSize(width: 700, height: 500))
+        for fact in facts {
+            #expect(nodes.contains(Self.staticText(fact.key, fact.value)), "Umgebung „\(fact.key)“: \(nodes)")
+        }
+        #expect(!nodes.contains { $0.role == "AXUnknown" }, "\(nodes)")
+    }
+
+    /// Ergebnis der Selbst-Deinstallation (#582): Banner mit auswählbarem Text (manuelle Wege bleiben kopierbar); VoiceOver
+    /// liest Ergebnis und Details, nicht nur einen Teil.
+    @Test func selectableBannerReadsTitleAndMessage() async throws {
+        let message = "• Grantry liegt im Papierkorb.\n• tccutil reset All de.cstrube.grantry"
+        let nodes = try await AccessibilityTree.nodes(of: InstrumentBanner("Grantry ist entfernt", message: message,
+                                                                           tone: .positive)
+            .textSelection(.enabled))
+        #expect(nodes == [Self.staticText("Grantry ist entfernt", message)], "\(nodes)")
+    }
+
     /// Takt in der Tab-Leiste: Das Menü trägt seinen Titel selbst; über den sichtbaren Text allein (AXTitleUIElement)
     /// sehen die UI-Tests der Abnahme ein Bedienelement ohne Beschriftung (#566).
     @Test func titledMenuCarriesItsTitle() async throws {

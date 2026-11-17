@@ -1,17 +1,20 @@
 import SwiftUI
 
 /// Feste Farbe je Messgröße, Gestaltung „Lagebild“ (docs/design/instrumententafel.md §2.3): eine kühle Reihe aus dem
-/// Grantry-Verlauf – CPU Petrol-Türkis, Effizienzkerne Lila, Arbeitsspeicher Violett, GPU Limette, Neural Engine
-/// Rosé, Netz Blau und Pink, Datenträger Grün und Cyan, Leistung Koralle, Akku Gelbgrün. Orange und Bernstein bleiben dem
-/// Befund vorbehalten. Dunkel unverändert; hell für Grafik ×0,62 und für Text ×0,50 abgedunkelt (≥ 3 : 1 bzw. ≥ 4,5 : 1
+/// Grantry-Verlauf – CPU Petrol-Türkis, Super-Kerne Zitronengelb, Effizienzkerne Lila, Arbeitsspeicher Violett, GPU
+/// Limette, Neural Engine Rosé, Netz Blau und Pink, Datenträger Grün und Cyan, Leistung Koralle, Akku Gelbgrün. Orange
+/// und Bernstein bleiben dem Befund vorbehalten. Dunkel unverändert; hell für Grafik ×0,62 und für Text ×0,50 abgedunkelt (≥ 3 : 1 bzw. ≥ 4,5 : 1
 /// auf Weiß), bei „Kontrast erhöhen“ ×0,42.
 public enum InstrumentHue: Sendable, CaseIterable {
-    case cpu, efficiencyCores, memory, diskRead, diskWrite, received, sent, gpu, power, battery, neuralEngine
+    case cpu, superCores, efficiencyCores, memory, diskRead, diskWrite, received, sent, gpu, power, battery, neuralEngine
 
     /// Farbe im dunklen Erscheinungsbild (RGB 0…1).
     var base: (red: Double, green: Double, blue: Double) {
         switch self {
         case .cpu: (0.18, 0.83, 0.75)
+        // Zitronengelb (#592): neben Türkis und Lila der einzige Ton außerhalb von Orange und Rot, der sich von beiden
+        // auch bei Farbsehschwäche um mindestens ΔE 20 abhebt (ColorVisionTests); Bernstein bleibt dem Befund.
+        case .superCores: (0.91, 0.96, 0.00)
         // Lila statt Himmelblau (#495): neben dem Türkis der Leistungskerne auch bei Farbsehschwäche klar getrennt.
         case .efficiencyCores: (0.75, 0.35, 1.00)
         case .memory: (0.66, 0.55, 0.98)

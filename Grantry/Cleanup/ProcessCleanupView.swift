@@ -3,10 +3,11 @@ import ManagerKit
 import SwiftUI
 
 /// Segment „Prozesse“ (#221) im Lagebild (LB-4.4, #550; Entwurf LB-4.1, #547, Spec 2026-11-10 § 11.4): Zustandszeile mit
-/// Speicherstand, Umschalter mit Stand des Scans, Banner (fehlender Festplattenvollzugriff, Prozesse nicht lesbar, Ergebnis
-/// des letzten Beendens), verwaiste Agenten-Bäume (aufklappbar) und gebootete Simulatoren als Häkchenzeilen, Aktionsleiste
-/// unten. Sammeldialog vor dem Beenden und – für Überlebende des SIGTERM – eine zweite Bestätigung für SIGKILL. Fehlt der
-/// Festplattenvollzugriff, sagt `PrerequisitesBanner`, dass die Prozessliste davon nicht betroffen ist (#226).
+/// Speicherstand, Umschalter mit Stand und Zeit des Scans, Banner (fehlender Festplattenvollzugriff, Prozesse nicht lesbar,
+/// Scan abgebrochen, Ergebnis des letzten Beendens zum Schließen), verwaiste Agenten-Bäume (aufklappbar) und gebootete
+/// Simulatoren als Häkchenzeilen, Aktionsleiste unten mit Scannen bzw. Abbrechen (#611). Sammeldialog vor dem Beenden
+/// und – für Überlebende des SIGTERM – eine zweite Bestätigung für SIGKILL. Fehlt der Festplattenvollzugriff, sagt
+/// `PrerequisitesBanner`, dass die Prozessliste davon nicht betroffen ist (#226).
 struct ProcessCleanupView: View {
     @Bindable var model: ProcessCleanupModel
     /// Öffnet die Einstellungen zum Festplattenvollzugriff; `nil`, wenn er nicht fehlt.
@@ -50,8 +51,15 @@ struct ProcessCleanupView: View {
         if let error = model.scanError {
             InstrumentBanner(String(localized: "Prozesse nicht lesbar"), message: error, tone: .critical)
         }
-        if let result = ProcessCleanupBoardMapping.result(model.lastOutcomes) {
-            InstrumentBanner(result.title, message: result.message, tone: result.tone)
+        if model.isScanCancelled {
+            InstrumentBanner(String(localized: "Scan abgebrochen"),
+                             message: ProcessCleanupPresentation.cancelledMessage(scannedAt: model.scannedAt),
+                             tone: .neutral)
+        }
+        if !model.isResultDismissed, let result = ProcessCleanupBoardMapping.result(model.lastOutcomes) {
+            InstrumentBanner(result.title, message: result.message, tone: result.tone) {
+                BannerDismissButton(action: model.dismissResult)
+            }
         }
     }
 
@@ -131,9 +139,13 @@ struct ProcessCleanupView: View {
                                                              simulators: model.selectedSimulators),
             runningText: model.phase == .cleaning ? String(localized: "Wird beendet …") : nil
         ) {
-            Button("Scannen", action: model.scan)
-                .disabled(model.scanProgress.isRunning || model.phase == .cleaning)
-                .help("Liest nur – beendet nichts")
+            if model.phase == .scanning {
+                Button("Abbrechen", action: model.cancelScan)
+            } else {
+                Button("Scannen", action: model.scan)
+                    .disabled(model.scanProgress.isRunning || model.phase == .cleaning)
+                    .help("Liest nur – beendet nichts")
+            }
         } trailing: {
             if !model.forceOffer.isEmpty {
                 Button("Sofort beenden (SIGKILL) …") { isConfirmingForce = true }

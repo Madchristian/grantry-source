@@ -140,6 +140,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
     }
     #if DEBUG
     let developmentTools: DevelopmentTools
+    /// Debug-Builds (Xcode, UI-Tests) registrieren den Helper nie von selbst um, sonst zeigte der Helper des Systems auf
+    /// einen Build aus DerivedData.
+    private static let renewsHelperAtLaunch = false
+    #else
+    /// Release-Builds erneuern die Registrierung des Helpers beim Start, wenn das App-Bundle ausgetauscht wurde.
+    private static let renewsHelperAtLaunch = true
     #endif
 
     override init() {
@@ -152,6 +158,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         prerequisites = PrerequisitesModel(
             helperClient: appModel.helperClient, helperActivity: appModel.helperActivity,
             abandonRunningAction: { await appModel.actions.abandonRunningAction() },
+            renewsHelperAtLaunch: Self.renewsHelperAtLaunch,
             afterHelperRegistration: { listenerSchedule.reset() },
             // Auch eine Genehmigung in den Systemeinstellungen (ohne erneute Registrierung) macht den Helper verfügbar:
             // Der Lauscher-Takt wird zurückgesetzt, damit der Scan ihn sofort fragt statt erst nach bis zu 15 min.
@@ -251,11 +258,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, UNUserNotificationCent
         // Erst nach den Szenen: So stehen die Elemente beim ersten Start links neben dem Schild.
         Task { meterItems.activate() }
         Task {
-            #if !DEBUG
-            if await prerequisites.renewHelperRegistrationIfNeeded() {
+            if Self.renewsHelperAtLaunch, await prerequisites.renewHelperRegistrationIfNeeded() {
                 onboarding.presentIfNeeded(prerequisites.checklist)
             }
-            #endif
             await appModel.start()
         }
     }

@@ -3,7 +3,8 @@ import SwiftUI
 
 /// Aufräumen › Prozesse im Lagebild (LB-4.4, #550) mit festen Beispieldaten wie im abgenommenen Entwurf LB-4.1 (#547):
 /// erfundene Ordner unter `~/Projects/beispiel-*`, keine Benutzernamen oder echten Pfade. Aufbau wie
-/// `ProcessCleanupView`: Zustandszeile, Umschalter mit Stand, Banner, Funde, Aktionsleiste.
+/// `ProcessCleanupView`: Zustandszeile, Umschalter mit Stand und Scanzeit, Banner (Ergebnis zum Schließen, Abbruch),
+/// Funde, Aktionsleiste mit Scannen bzw. Abbrechen (#611).
 @MainActor
 extension SnapshotGallery {
     enum ProcessesScene: String, CaseIterable, Sendable {
@@ -14,6 +15,7 @@ extension SnapshotGallery {
         case partial = "teilerfolg"
         case unreadable = "fehler"
         case nothingFound = "nichts-gefunden"
+        case cancelled = "abgebrochen"
     }
 
     static let processesSize = CGSize(width: 1000, height: 640)
@@ -31,8 +33,9 @@ private enum ProcessesData {
                 StatusItem("Druck normal", tone: .positive)],
         facts: facts
     )
-    static let fresh = CleanupProgress(title: "Scan vollständig", detail: "Prozesse und Simulatoren gelesen",
-                                       fraction: 1, tone: .positive)
+    static let fresh = CleanupProgress(title: "Scan vollständig",
+                                       detail: "Prozesse und Simulatoren gelesen · Scan 14:32", fraction: 1,
+                                       tone: .positive)
     static let selected = "Ausgewählt: 2 Agenten-Bäume · 7 Prozesse · 1,3 GB"
     static let nothing = "Nichts ausgewählt"
     static let members = [("node server.js", "PID 48211 · 512 MB"), ("node worker.js", "PID 48230 · 204 MB"),
@@ -66,7 +69,7 @@ private struct ProcessesSample: View {
                 InstrumentEmptyState(symbol: "magnifyingglass", title: "Prozesse werden gelesen",
                                      message: "Grantry liest Prozesse und gebootete Simulatoren – beendet nichts.")
             } bar: {
-                ProcessesBar(scope: ProcessesData.nothing, isScanLocked: true, isActionLocked: true)
+                ProcessesBar(scope: ProcessesData.nothing, isScanning: true, isActionLocked: true)
             }
         case .cleaning:
             board(ProcessesData.head, progress: ProcessesData.fresh) {
@@ -83,7 +86,9 @@ private struct ProcessesSample: View {
                                 facts: ProcessesData.facts),
                   progress: ProcessesData.fresh) {
                 InstrumentBanner("1 beendet (470 MB Arbeitsspeicher), 1 läuft noch",
-                                 message: "„node“ läuft nach SIGTERM weiter.", tone: .finding)
+                                 message: "„node“ läuft nach SIGTERM weiter.", tone: .finding) {
+                    BannerDismissButton {}
+                }
             } content: {
                 CleanupFindingList {
                     SelectionGroupHeader(title: "Details", count: 2)
@@ -100,8 +105,9 @@ private struct ProcessesSample: View {
                                 items: [StatusItem("2 verwaiste Agenten", tone: .finding),
                                         StatusItem("Druck normal", tone: .positive)],
                                 facts: ProcessesData.facts),
-                  progress: CleanupProgress(title: "Scan unvollständig", detail: "Simulatoren nicht lesbar",
-                                            fraction: 1, tone: .finding)) {
+                  progress: CleanupProgress(title: "Scan unvollständig",
+                                            detail: "Simulatoren nicht lesbar · Scan 14:32", fraction: 1,
+                                            tone: .finding)) {
                 CleanupFindingList {
                     InstrumentNote("Simulatoren nicht lesbar: Die Entwicklerwerkzeuge antworten nicht.",
                                    kind: .critical)
@@ -118,6 +124,17 @@ private struct ProcessesSample: View {
                                      message: "Keine verwaisten Agenten-Prozesse und keine gebooteten Simulatoren.")
             } bar: {
                 ProcessesBar(scope: ProcessesData.nothing, isActionLocked: true)
+            }
+        case .cancelled:
+            // Abgebrochen: Das frühere vollständige Ergebnis bleibt mit seiner Zeit, ein Teilergebnis gibt es nicht.
+            board(ProcessesData.head, progress: ProcessesData.fresh) {
+                InstrumentBanner("Scan abgebrochen",
+                                 message: "Scan abgebrochen – angezeigt bleibt das Ergebnis des vollständigen Scans "
+                                     + "von 14:32.", tone: .neutral)
+            } content: {
+                CleanupFindingList { ProcessesFindings() }
+            } bar: {
+                ProcessesBar(scope: ProcessesData.selected)
             }
         }
     }
@@ -179,17 +196,23 @@ private struct ProcessesFindings: View {
     }
 }
 
-/// Leiste: Scannen, Umfang, „Sofort beenden (SIGKILL) …“ nur nach Teilerfolg, „Beenden …“.
+/// Leiste: Scannen bzw. während des Scans Abbrechen, Umfang, „Sofort beenden (SIGKILL) …“ nur nach Teilerfolg,
+/// „Beenden …“.
 private struct ProcessesBar: View {
     let scope: String
     var runningText: String?
+    var isScanning = false
     var isScanLocked = false
     var isActionLocked = false
     var offersForce = false
 
     var body: some View {
         InstrumentActionBar(scope: scope, runningText: runningText) {
-            Button("Scannen") {}.disabled(isScanLocked)
+            if isScanning {
+                Button("Abbrechen") {}
+            } else {
+                Button("Scannen") {}.disabled(isScanLocked)
+            }
         } trailing: {
             if offersForce {
                 Button("Sofort beenden (SIGKILL) …") {}

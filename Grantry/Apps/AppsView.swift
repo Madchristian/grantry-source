@@ -18,11 +18,8 @@ struct AppsView: View {
         let presentation = appModel.presentation
         InventoryBoard(head: AppsBoardMapping.head(presentation, acceptedCount: appModel.monitoring.acceptedAppIDs.count,
                                                    scannedAt: appModel.monitoring.snapshot?.takenAt)) {
-            VStack(alignment: .leading, spacing: 0) {
-                if let coverage { AreaCoverageBar(coverage: coverage) }
-                FlaggedNoticeBar(breakdown: presentation?.metrics.flagged, area: .apps,
-                                 filter: window.appFilter.findings)
-            }
+            InventoryCoverageControls(coverage: coverage, flagged: presentation?.metrics.flagged, area: .apps,
+                                      filter: window.appFilter.findings)
         } list: {
             list
         } detail: {

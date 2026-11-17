@@ -17,7 +17,8 @@ extension EnvironmentValues {
     @Entry var coverageSteps: CoverageStepHandler?
 }
 
-/// Scan-Abdeckung eines Inventarbereichs (#142) – derselbe Baustein über jeder Liste und in der Übersicht: Zustand mit
+/// Scan-Abdeckung eines Inventarbereichs (#142) als Hinweisleiste – in der Übersicht, bei Sicherheit und Netzwerk; über den
+/// Listen von Berechtigungen, Autostart, Agenten und Apps steht seit #613 die Spur (`AreaCoverageSpur`). Zustand mit
 /// Symbol, Farbe und Text, Zeitpunkt, bei Lücken Umfang und Grund sowie der passende nächste Schritt (falls einer hilft).
 /// Aktuelle Bereiche zeigen nur eine dezente Zeile, dazu ruhige Hinweise zu bewusst nicht gescannten Quellen. Die
 /// Gestaltung teilt sie mit anderen Hinweisleisten (`NoticeBarLayout`).
@@ -71,9 +72,7 @@ struct AreaCoverageBar: View {
         }
         CoverageCopyButton(report: report)
         if let step, let steps {
-            Button(step.title) { steps.perform(step) }
-                .disabled(step == .rescan && steps.isScanning)
-                .accessibilityHint(Text(verbatim: step.hint))
+            CoverageNextStepButton(step: step, handler: steps)
         }
         if let onShow {
             Button("\(coverage.area.title) anzeigen") { onShow() }
@@ -81,14 +80,27 @@ struct AreaCoverageBar: View {
     }
 }
 
+/// Nächster Schritt einer Abdeckungslücke (`AreaCoverage.nextStep(missingSetupSteps:)`); „Erneut prüfen“ ist während
+/// eines Scans gesperrt. Gemeinsam für Hinweisleiste und Spur (`AreaCoverageSpur`).
+struct CoverageNextStepButton: View {
+    let step: CoverageNextStep
+    let handler: CoverageStepHandler
+
+    var body: some View {
+        Button(step.title) { handler.perform(step) }
+            .disabled(step == .rescan && handler.isScanning)
+            .accessibilityHint(Text(verbatim: step.hint))
+    }
+}
+
 /// Bericht und Präsentation bilden einen Zustand; der beim Öffnen übernommene Text bleibt eingefroren.
-private struct CoverageDetailReport: Identifiable {
+struct CoverageDetailReport: Identifiable {
     let id = UUID()
     let text: String
 }
 
 /// Begrenzte Höhe hält auch lange Diagnosen aus der Mindestgrößenberechnung des Hauptfensters heraus.
-private struct CoverageDetailsView: View {
+struct CoverageDetailsView: View {
     let report: String
     @Environment(\.dismiss) private var dismiss
 
@@ -113,15 +125,18 @@ private struct CoverageDetailsView: View {
     }
 }
 
-private struct CoverageCopyButton: View {
+struct CoverageCopyButton: View {
     let report: String
 
     var body: some View {
-        Button("Diagnose kopieren") {
-            NSPasteboard.general.clearContents()
-            NSPasteboard.general.setString(report, forType: .string)
-            AccessibilityNotification.Announcement(String(localized: "Diagnose kopiert")).post()
-        }
+        Button("Diagnose kopieren") { Self.copy(report) }
+    }
+
+    /// Legt den Bericht in die Zwischenablage und sagt es VoiceOver an.
+    static func copy(_ report: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(report, forType: .string)
+        AccessibilityNotification.Announcement(String(localized: "Diagnose kopiert")).post()
     }
 }
 

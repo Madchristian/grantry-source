@@ -11,17 +11,18 @@ enum ProcessCleanupBoardMapping {
     /// Zustandszeile; vor dem ersten Ergebnis offene Schildform ohne Chips (Korrektur 3).
     static func head(_ model: ProcessCleanupModel) -> InventoryHead {
         let verdict = ProcessCleanupVerdict(overview: model.overview, isScanning: model.phase == .scanning,
-                                            scanError: model.scanError,
+                                            isCancelled: model.isScanCancelled, scanError: model.scanError,
                                             survivorCount: model.forceOffer.map(\.survivors.count).reduce(0, +))
         return InventoryHead(verdict: verdict.title, shield: verdict.shield.shieldForm,
                              items: verdict.items.map(\.statusItem), facts: verdict.facts)
     }
 
-    /// Spur neben dem Umschalter: laufender Scan, sonst Stand des letzten Ergebnisses; vor dem ersten Scan keine.
+    /// Spur neben dem Umschalter: laufender Scan, sonst Stand des letzten Ergebnisses mit Scanzeit (#611); vor dem ersten
+    /// Scan keine.
     static func progress(_ model: ProcessCleanupModel) -> CleanupProgress? {
         if let current = model.scanProgress.current { return .scanning(current) }
         guard let overview = model.overview else { return nil }
-        let state = ProcessCleanupPresentation.scanState(overview)
+        let state = ProcessCleanupPresentation.scanState(overview, scannedAt: model.scannedAt)
         return CleanupProgress(title: state.title, detail: state.detail, fraction: 1,
                                tone: state.isComplete ? .positive : .finding)
     }

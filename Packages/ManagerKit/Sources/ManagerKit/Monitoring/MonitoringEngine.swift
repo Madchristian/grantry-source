@@ -80,6 +80,13 @@ extension ScanTriggers: ScanTriggering {}
 /// prüft eine Hintergrund-Task nacheinander, und jedes Ergebnis, das die Findings ändert, wird nachveröffentlicht.
 /// Scans warten nie auf diese Prüfungen.
 ///
+/// Komplettprüfung der Code-Bäume (#649): Start und manueller Scan traversieren alle Bäume am Stück; Intervall- und
+/// Teilscans bestätigen nur die Bundle-Stempel, ein Dateiänderungs-Scan dazu den Baum, in dem die Änderung liegt
+/// (`CompleteTreeSelection`). Die übrigen Komplettprüfungen verteilt eine Plan-Task (`SignatureRevalidationSchedule`)
+/// Baum für Baum mit Hintergrund-Priorität über die Periode; jeder Baum ist spätestens `maximumAge` nach seiner letzten
+/// Komplettprüfung erneut geprüft. Ein Baum, dessen Komplettprüfung länger zurückliegt oder fehlt, zählt in
+/// `pendingSignatureChecks` als offen, bis der Plan ihn nachgeholt hat.
+///
 /// Lebenszyklus: `idle` → `starting` → `running` → `stopped`, wobei `stopped` endgültig ist – `ScanTriggers` liefert
 /// seinen Strom nur einem Konsumenten. `start()` und `stop()` setzen den Übergang vor ihrem ersten `await`, deshalb
 /// starten gleichzeitige Aufrufe nur eine Schleife, und ein `stop()` während des Starts bricht diesen ab.
@@ -130,6 +137,22 @@ public actor MonitoringEngine {
     private var verification: Task<Void, Never>?
     private var activeVerificationPath: String?
     private var lastSignaturePublication = ContinuousClock.now
+    /// Ziele des aktuellen Snapshots in Prüfreihenfolge (`verificationTargets` als Liste).
+    private var orderedVerificationTargets: [String] = []
+    /// Beginn der letzten Komplettprüfung je Ziel auf der Zeitachse des Plans (`scheduleTime`), wie der Verifier sie
+    /// zuletzt meldete (#649).
+    private var signatureCheckDates: [String: Date] = [:]
+    /// Plan-Task der verteilten Komplettprüfung (#649); endet bei `stop()` und wenn kein Ziel planbar ist.
+    private var revalidation: Task<Void, Never>?
+    /// Letzter Besuch des Plans je Ziel: wann auf der Zeitachse des Plans (`SignatureRevalidationSchedule.retryPause` für
+    /// Ziele ohne Komplettprüfung) und als wievielter (Reihenfolge bei gleicher Frist).
+    private var revalidationVisits: [String: (date: Date, order: Int)] = [:]
+    private var revalidationVisitCount = 0
+    private let signatureSchedule: SignatureRevalidationSchedule
+    /// Uhr der Plan-Task: Sie schläft darauf, und ihre Zeitachse (`scheduleTime`) trägt Fristen und Prüfalter – monoton,
+    /// unabhängig von der Wanduhr `now` (Codex-Review zu PR 655).
+    private let clock: any Clock<Duration>
+    private let scheduleTime: ElapsedTime
 
     public init(
         coordinator: ScanCoordinator,
@@ -143,7 +166,9 @@ public actor MonitoringEngine {
         appRiskAcceptances: AppRiskAcceptanceStore = AppRiskAcceptanceStore(),
         extensionRiskAcceptances: ExtensionRiskAcceptanceStore = ExtensionRiskAcceptanceStore(),
         scanDurationsURL: URL? = nil,
-        now: @escaping @Sendable () -> Date = Date.init
+        now: @escaping @Sendable () -> Date = Date.init,
+        clock: any Clock<Duration> = ContinuousClock(),
+        signatureSchedule: SignatureRevalidationSchedule = SignatureRevalidationSchedule()
     ) {
         self.coordinator = coordinator
         self.store = store
@@ -157,6 +182,9 @@ public actor MonitoringEngine {
         self.extensionRiskAcceptances = extensionRiskAcceptances
         self.scanDurationStore = ScanDurationStore(url: scanDurationsURL)
         self.now = now
+        self.clock = clock
+        scheduleTime = ElapsedTime(clock)
+        self.signatureSchedule = signatureSchedule
         state.activeSources = coordinator.sourceIDs
     }
 
@@ -189,6 +217,8 @@ public actor MonitoringEngine {
         lifecycle = .stopped
         verification?.cancel()
         verification = nil
+        revalidation?.cancel()
+        revalidation = nil
         switch previous {
         case .stopped:
             return
@@ -278,17 +308,36 @@ public actor MonitoringEngine {
         lifecycle = .running
     }
 
+    /// Wartender Scan: Anlass nach `ScanReason.merging` und die Vereinigung der komplett zu prüfenden Bäume aller
+    /// zusammengefassten Anlässe – ein manueller Scan geht so nicht in einer späteren Dateiänderung auf (#649).
+    private struct PendingScan: Sendable {
+        var reason: ScanReason
+        var completeTrees: CompleteTreeSelection
+
+        init(_ reason: ScanReason) {
+            self.reason = reason
+            completeTrees = CompleteTreeSelection(reason)
+        }
+
+        func merging(_ newer: ScanReason) -> PendingScan {
+            var merged = self
+            merged.reason = reason.merging(newer)
+            merged.completeTrees = completeTrees.union(CompleteTreeSelection(newer))
+            return merged
+        }
+    }
+
     /// Leitet die Auslöser in die Scan-Schleife. Was während eines Scans eintrifft, verdichtet sich über
     /// `ScanReason.merging` auf genau einen Folgescan – ein Teilscan verdrängt so nie einen wartenden Vollscan. Beide
     /// Hälften laufen als Kinder einer Task-Gruppe; endet der Zulauf, läuft die Schleife leer, ein Abbruch beendet
     /// beide.
     private nonisolated func run(_ feed: some AsyncSequence<ScanReason, Never> & Sendable) async {
-        let pending = Mutex<ScanReason?>(nil)
+        let pending = Mutex<PendingScan?>(nil)
         let (signals, continuation) = AsyncStream<Void>.makeStream(bufferingPolicy: .bufferingNewest(1))
         await withTaskGroup(of: Void.self) { group in
             group.addTask {
                 for await reason in feed {
-                    pending.withLock { $0 = $0.map { $0.merging(reason) } ?? reason }
+                    pending.withLock { $0 = $0.map { $0.merging(reason) } ?? PendingScan(reason) }
                     continuation.yield()
                 }
                 continuation.finish()
@@ -296,8 +345,8 @@ public actor MonitoringEngine {
             group.addTask {
                 for await _ in signals {
                     guard !Task.isCancelled else { break }
-                    guard let reason = pending.withLock({ $0.take() }) else { continue }
-                    await self.performScan(reason: reason)
+                    guard let scan = pending.withLock({ $0.take() }) else { continue }
+                    await self.performScan(reason: scan.reason, completeTrees: scan.completeTrees)
                 }
             }
         }
@@ -316,7 +365,9 @@ public actor MonitoringEngine {
     /// mit veralteten Sichtungen entprellt. Fehler und Einschränkungen zählen eigens, weil sie die Äquivalenz nicht
     /// berühren: Fällt etwa der Helper weg, kommt „nur eigene Sockets“ hinzu, während fremde Lauscher fortgeschrieben
     /// werden – der Hinweis soll sofort erscheinen, nicht erst mit dem nächsten Vollscan.
-    private func performScan(reason: ScanReason) async {
+    ///
+    /// `completeTrees`: Code-Bäume, die ein Vollscan komplett prüft (#649); Teilscans prüfen nur Bundle-Stempel.
+    private func performScan(reason: ScanReason, completeTrees: CompleteTreeSelection) async {
         let only = reason.refreshedSources
         let isFullScan = only == nil || state.snapshot == nil
         if isFullScan {
@@ -359,11 +410,11 @@ public actor MonitoringEngine {
             return  // Abbruch durch `stop()`: nichts speichern, die Schleife endet.
         }
         state.snapshot = current
-        await refreshSignatureVerdicts(for: current, revalidation: isFullScan ? .completeTree : .bundleMetadata)
+        await refreshSignatureVerdicts(for: current, completeTrees: isFullScan ? completeTrees : .containing([]))
         let findings = findings(for: current)
         if !isFullScan, let previous, current.isEquivalent(to: previous), findings == state.findings,
            current.sourceLimitations == previous.sourceLimitations, current.sourceErrors == previous.sourceErrors {
-            startPendingVerifications()
+            startSignatureWork()
             return
         }
         publishes = true
@@ -385,7 +436,7 @@ public actor MonitoringEngine {
             }
             scanProgressTracker = nil
         }
-        startPendingVerifications()
+        startSignatureWork()
     }
 
     private func recordScanCompletion(_ completion: ScanSourceCompletion) {
@@ -399,17 +450,36 @@ public actor MonitoringEngine {
     // MARK: Tiefe Signaturprüfung
 
     /// Übernimmt die noch gültigen Ergebnisse für die Ziele von `snapshot` aus dem Cache des Verifiers und merkt die
-    /// übrigen zur Prüfung vor. Teilscans bestätigen nur Bundle-Metadaten (`bundleMetadata`), Vollscans den ganzen
-    /// Code-Baum (#259): Eine in place überschriebene Ressource fällt spätestens beim nächsten Vollscan auf.
-    private func refreshSignatureVerdicts(for snapshot: Snapshot, revalidation: DeepSignatureRevalidation) async {
+    /// übrigen zur Prüfung vor. Die Bäume aus `completeTrees` prüft der Scan komplett (#259), die übrigen über ihre
+    /// Bundle-Metadaten (`bundleMetadata`); deren Komplettprüfung verteilt die Plan-Task (#649). Eine in place
+    /// überschriebene Ressource fällt so spätestens `SignatureRevalidationSchedule.maximumAge` nach der letzten
+    /// Komplettprüfung ihres Baums auf.
+    private func refreshSignatureVerdicts(for snapshot: Snapshot, completeTrees: CompleteTreeSelection) async {
         guard let deepVerifier else { return }
         let targets = InvalidSignatureRule.verificationTargets(in: snapshot)
-        let cached = await deepVerifier.cachedVerdicts(for: targets, revalidation: revalidation)
+        let complete = completeTrees.targets(in: targets)
+        let stamped = targets.filter { !complete.contains($0) }
+        var cached: [String: DeepSignatureVerdict] = [:]
+        if !complete.isEmpty {
+            cached = await deepVerifier.cachedVerdicts(for: targets.filter(complete.contains), revalidation: .completeTree)
+        }
+        if !stamped.isEmpty {
+            cached.merge(await deepVerifier.cachedVerdicts(for: stamped, revalidation: .bundleMetadata)) { $1 }
+        }
+        orderedVerificationTargets = targets
         verificationTargets = Set(targets)
+        revalidationVisits = revalidationVisits.filter { verificationTargets.contains($0.key) }
         signatureVerdicts = cached
         pendingVerifications = targets.filter { cached[$0] == nil && $0 != activeVerificationPath }
+        signatureCheckDates = await completeCheckDates(for: targets)
         updateSignatureCheckCount()
         state.signatureChecksTimedOut = await deepVerifier.hasTimedOutChecks(for: verificationTargets)
+    }
+
+    /// Nach einem Scan: Tiefenprüfung offener Ziele und Plan der Komplettprüfungen anstoßen.
+    private func startSignatureWork() {
+        startPendingVerifications()
+        startRevalidationSchedule()
     }
 
     /// Startet die Hintergrund-Prüfung, sofern Ziele offen sind und sie nicht schon läuft. Sie arbeitet
@@ -430,6 +500,7 @@ public actor MonitoringEngine {
             activeVerificationPath = nil
             guard !Task.isCancelled else { return }
             state.signatureChecksTimedOut = await deepVerifier.hasTimedOutChecks(for: verificationTargets)
+            signatureCheckDates[path] = await completeCheckDates(for: [path])[path]
             guard !Task.isCancelled else { return }
             let findingsChanged = record(verdict, for: path)
             updateSignatureCheckCount()
@@ -440,14 +511,133 @@ public actor MonitoringEngine {
                 publish()
             }
         }
+        // Ziele, die bisher alle in der Tiefenprüfung steckten, sind jetzt planbar.
+        if !Task.isCancelled { startRevalidationSchedule() }
     }
 
+    /// Offen sind ausstehende und laufende Tiefenprüfungen sowie Ziele, deren Komplettprüfung länger als
+    /// `SignatureRevalidationSchedule.maximumAge` zurückliegt oder fehlt (#649): Deren Ergebnis gilt nicht als aktuell.
     private func updateSignatureCheckCount() {
-        state.pendingSignatureChecks = Set(pendingVerifications + [activeVerificationPath].compactMap { $0 }).count
+        let running = Set(pendingVerifications + [activeVerificationPath].compactMap { $0 })
+        let overdue = signatureSchedule.overdueTargets(orderedVerificationTargets, completedAt: signatureCheckDates,
+                                                       now: scheduleTime.date)
+        state.pendingSignatureChecks = running.union(overdue).count
     }
 
-    /// Übernimmt ein Prüfergebnis; die Drain-Schleife veröffentlicht Ergebnis und Restarbeit gemeinsam.
-    private func record(_ verdict: DeepSignatureVerdict, for path: String) -> Bool {
+    // MARK: Verteilte Komplettprüfung (#649)
+
+    /// Beginn der letzten Komplettprüfung je Ziel auf der Zeitachse des Plans, aus dem Alter laut Verifier (eigene Uhr).
+    private func completeCheckDates(for paths: [String]) async -> [String: Date] {
+        guard let deepVerifier else { return [:] }
+        let ages = await deepVerifier.completeCheckAges(for: paths)
+        let now = scheduleTime.date
+        return ages.mapValues { now.addingTimeInterval(-$0) }
+    }
+
+    /// Ziele, die der Plan prüfen darf: nicht in der Tiefenprüfung (die prüft den Baum ohnehin vollständig). Am längsten
+    /// nicht vom Plan besuchte zuerst, sonst in Snapshot-Reihenfolge – das entscheidet bei gleicher Frist.
+    private var schedulableTargets: [String] {
+        let running = Set(pendingVerifications + [activeVerificationPath].compactMap { $0 })
+        return orderedVerificationTargets.filter { !running.contains($0) }.enumerated()
+            .sorted { (revalidationVisits[$0.element]?.order ?? 0, $0.offset) < (revalidationVisits[$1.element]?.order ?? 0, $1.offset) }
+            .map(\.element)
+    }
+
+    /// Startet die Plan-Task, sofern sie nicht läuft und Ziele planbar sind; Scans und das Ende der Tiefenprüfung rufen
+    /// das auf. Kein zusätzlicher Dauer-Takt: Die Task schläft bis zum nächsten Schritt und endet bei `stop()`.
+    private func startRevalidationSchedule() {
+        guard deepVerifier != nil, revalidation == nil, lifecycle != .stopped, !schedulableTargets.isEmpty else { return }
+        revalidation = Task { await self.runRevalidationSchedule() }
+    }
+
+    /// Kürzere Wartezeiten gelten als fällig (Auflösung der Zeitgeber).
+    private static let schedulingTolerance: TimeInterval = 0.001
+
+    /// Prüft je Schritt einen Block von Bäumen komplett (`SignatureRevalidationSchedule.nextStep`), dazwischen schläft
+    /// sie höchstens so viele Abstände, wie der vorige Block Bäume hatte, und plant danach neu – so zählen inzwischen
+    /// gelaufene Scans, neue und entfernte Ziele. Nach dem Ruhezustand des Macs feuert der Zeitgeber verspätet: Die Task
+    /// stellt die überfälligen Bäume als offen dar und holt sie im Abstand von `catchUpPause` nach. Endet bei Abbruch
+    /// oder ohne planbare Ziele.
+    private func runRevalidationSchedule() async {
+        defer { revalidation = nil }
+        var previousStep = scheduleTime.date
+        var previousBlock = 1
+        while deepVerifier != nil, !Task.isCancelled {
+            let targets = schedulableTargets
+            let completed = await completeCheckDates(for: targets)
+            guard !Task.isCancelled else { return }
+            for target in targets { signatureCheckDates[target] = completed[target] }
+            publishIfSignatureCheckCountChanges()
+            let now = scheduleTime.date
+            let attempted = revalidationVisits.mapValues(\.date)
+            guard let step = signatureSchedule.nextStep(
+                targets: targets, completedAt: completed, attemptedAt: attempted, previousStep: previousStep,
+                previousBlockSize: previousBlock, now: now
+            ) else { return }
+            let delay = step.date.timeIntervalSince(now)
+            if delay > Self.schedulingTolerance {
+                let wait = min(delay, signatureSchedule.gap(forTargetCount: targets.count) * Double(previousBlock))
+                do { try await clock.sleep(for: .seconds(wait)) } catch { return }
+                continue
+            }
+            previousStep = now
+            previousBlock = await revalidateBlock(
+                signatureSchedule.dueOrder(targets, completedAt: completed, attemptedAt: attempted, now: now)
+            )
+        }
+    }
+
+    /// Ein Schritt des Plans: die Bäume in Fristreihenfolge komplett prüfen, mindestens den fälligen, weitere solange
+    /// der Block unter `SignatureRevalidationSchedule.blockBudget` Wanduhr-Zeit bleibt (echte Zeit, nicht die Uhr des
+    /// Plans). Liefert die Zahl geprüfter Bäume.
+    private func revalidateBlock(_ paths: [String]) async -> Int {
+        let started = ContinuousClock.now
+        let budget = Duration.seconds(signatureSchedule.blockBudget)
+        var count = 0
+        for path in paths {
+            guard !Task.isCancelled, count == 0 || started.duration(to: .now) < budget else { break }
+            // Inzwischen in der Tiefenprüfung oder kein Ziel mehr: nicht hier.
+            guard schedulableTargets.contains(path) else { continue }
+            await revalidateTree(path)
+            count += 1
+        }
+        return max(count, 1)
+    }
+
+    /// Baum `path` komplett prüfen. Ist er unverändert, bleibt sein Urteil; sonst entfällt es, und die Tiefenprüfung
+    /// prüft das Ziel neu.
+    private func revalidateTree(_ path: String) async {
+        guard let deepVerifier else { return }
+        revalidationVisitCount += 1
+        revalidationVisits[path] = (scheduleTime.date, revalidationVisitCount)
+        let verdict = await deepVerifier.revalidateTree(at: path)
+        let date = await completeCheckDates(for: [path])[path]
+        guard !Task.isCancelled, verificationTargets.contains(path) else { return }
+        signatureCheckDates[path] = date
+        if verdict == nil { Self.logger.debug("Komplettprüfung: Baum verändert, Tiefenprüfung folgt") }
+        publishIfSignatureCheckCountChanges {
+            var changed = verdict != signatureVerdicts[path] && record(verdict, for: path)
+            if verdict == nil, !pendingVerifications.contains(path), activeVerificationPath != path {
+                pendingVerifications.append(path)
+                changed = true
+            }
+            return changed
+        }
+        startPendingVerifications()
+    }
+
+    /// Führt `update` aus und veröffentlicht, wenn es die Findings ändert (Rückgabe `true`) oder sich die Zahl offener
+    /// Prüfungen ändert.
+    private func publishIfSignatureCheckCountChanges(_ update: () -> Bool = { false }) {
+        let before = state.pendingSignatureChecks
+        let changed = update()
+        updateSignatureCheckCount()
+        if changed || state.pendingSignatureChecks != before { publish() }
+    }
+
+    /// Übernimmt ein Prüfergebnis (`nil`: keines mehr); die Drain-Schleife veröffentlicht Ergebnis und Restarbeit
+    /// gemeinsam.
+    private func record(_ verdict: DeepSignatureVerdict?, for path: String) -> Bool {
         guard verificationTargets.contains(path), let snapshot = state.snapshot else { return false }
         signatureVerdicts[path] = verdict
         let previousAppFindings = state.appFindings

@@ -14,11 +14,8 @@ struct AgentsView: View {
     var body: some View {
         let presentation = appModel.presentation
         InventoryBoard(head: AgentsBoardMapping.head(presentation, scannedAt: appModel.monitoring.snapshot?.takenAt)) {
-            VStack(alignment: .leading, spacing: 0) {
-                if let coverage { AreaCoverageBar(coverage: coverage) }
-                FlaggedNoticeBar(breakdown: presentation?.metrics.flagged, area: .agents,
-                                 filter: window.filter(for: .agents).findings)
-            }
+            InventoryCoverageControls(coverage: coverage, flagged: presentation?.metrics.flagged, area: .agents,
+                                      filter: window.filter(for: .agents).findings)
         } list: {
             list(presentation)
         } detail: {

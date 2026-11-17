@@ -41,5 +41,14 @@ import Testing
                                                       size: SnapshotGallery.processesSize)
         #expect(nodes.contains { $0.label == "node" && $0.value == "läuft weiter, 1 Prozess läuft noch." }, "\(nodes)")
         #expect(nodes.contains { $0.label == "1 beendet (470 MB Arbeitsspeicher), 1 läuft noch" }, "\(nodes)")
+        #expect(nodes.contains { $0.role == "AXButton" && $0.label == "Meldung schließen" }, "\(nodes)")
+    }
+
+    /// Abbruch (#611): Banner mit Grund und Zeit des stehen gebliebenen Ergebnisses, Stand mit Scanzeit.
+    @Test func cancelledReadsBannerAndScanTime() async throws {
+        let nodes = try await AccessibilityTree.nodes(of: SnapshotGallery.processes(.cancelled),
+                                                      size: SnapshotGallery.processesSize)
+        #expect(nodes.contains { $0.label == "Scan abgebrochen" }, "\(nodes)")
+        #expect(nodes.contains { ($0.label + " " + $0.value).contains("Scan 14:32") }, "\(nodes)")
     }
 }

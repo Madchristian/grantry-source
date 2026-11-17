@@ -21,6 +21,13 @@ final class StorageCleanupModel {
     private(set) var reports: [StorageCategoryReport] = []
     var selection: Set<String> = []
     private(set) var lastOutcomes: [StorageCleanOutcome] = []
+    /// Der Nutzer hat das Ergebnis-Banner geschlossen; die Ausgänge je Eintrag bleiben bis zur nächsten Aktion.
+    private(set) var isResultDismissed = false
+    /// Kategorien des Katalogs im letzten Scan – Gesamtzahl neben den gelesenen (#611).
+    private(set) var categoryCount = 0
+    /// Ende des letzten nicht abgebrochenen Scans (#611); `nil` vor dem ersten und nach einem abgebrochenen
+    /// vollständigen Scan.
+    private(set) var scannedAt: Date?
     /// Neueste zuerst.
     private(set) var recentLog: [CleanupLogEntry] = []
     /// Belegung des Volumes, nur wenn für jede Kategorie ein Bericht vorliegt (für „Keiner Kategorie zugeordnet“, #226).
@@ -52,6 +59,10 @@ final class StorageCleanupModel {
     var sortedReports: [StorageCategoryReport] { reports.sorted { $0.knownBytes > $1.knownBytes } }
 
     func scan() { scan(only: nil) }
+
+    func dismissResult() {
+        isResultDismissed = true
+    }
 
     func cancel() {
         task?.cancel()
@@ -121,6 +132,7 @@ final class StorageCleanupModel {
     /// verbirgt den Lauf so nicht.
     private func show(_ outcomes: [StorageCleanOutcome], at date: Date) {
         lastOutcomes = outcomes
+        isResultDismissed = false
         let entries = outcomes.reversed().map { CleanupLogEntry(date: date, outcome: $0) }
         recentLog = Array((entries + recentLog).prefix(Self.recentLogLimit))
     }
@@ -137,7 +149,9 @@ final class StorageCleanupModel {
             lastOutcomes = []
             timeMachine = nil
             timeMachineSelection = []
+            scannedAt = nil
         }
+        categoryCount = order.count
         let exclusions = timeMachineExclusions
         volume = nil
         phase = .scanning
@@ -171,6 +185,7 @@ final class StorageCleanupModel {
             guard !Task.isCancelled, let self else { return }
             // Nach einem abgebrochenen Scan fehlen Kategorien auch nach dem Nachscan einzelner – dann keine Bilanz.
             self.volume = Set(order).isSubset(of: self.reports.map(\.id)) ? volume : nil
+            self.scannedAt = .now
             self.phase = .scanned
             // Der Nachscan einzelner Kategorien ersetzt die Gewichte des vollständigen Scans nicht.
             self.scanProgress.finish(recordingDurations: ids == nil)

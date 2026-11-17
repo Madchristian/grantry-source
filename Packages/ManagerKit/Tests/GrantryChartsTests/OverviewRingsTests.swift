@@ -57,6 +57,31 @@ import Testing
     }
 
     /// Ohne feste Breite (ideale Größe) eine Zeile mit den kleinsten Ringen; ohne Gruppen nichts.
+    /// In einer Kachel fester Höhe (Kerne 4 × 1) wachsen die Ringe nur so weit, wie Kürzel und Ring in die Höhe passen.
+    @Test func ringsStopGrowingAtTheAvailableHeight() {
+        let arrangement = CoreRingBoard.arrangement(ringCounts: [4, 4], width: 388, height: 34, overhead: 13)
+        #expect(arrangement.lines == [[0, 1]])
+        #expect(arrangement.ringSize == 21)
+        // Reicht die Höhe, bleibt es bei der Obergrenze wie ohne Höhe.
+        #expect(CoreRingBoard.arrangement(ringCounts: [4, 4], width: 388, height: 100, overhead: 13).ringSize
+            == InstrumentSize.coreRingWide)
+    }
+
+    /// Passen umgebrochene Zeilen nicht in die Höhe (Ultra in 4 × 1), bleiben alle Gruppen in einer Zeile mit kleineren
+    /// Ringen, statt abgeschnitten zu werden.
+    @Test func wrappedLinesBeyondTheHeightShrinkTheRings() {
+        let arrangement = CoreRingBoard.arrangement(ringCounts: [12, 12, 4, 4], width: 388, height: 34, overhead: 13)
+        #expect(arrangement.lines == [[0, 1, 2, 3]])
+        #expect(arrangement.ringSize == 7)
+    }
+
+    /// Reicht die Höhe für umgebrochene Zeilen (Kerne 4 × 2), brechen Gruppen wie ohne Höhe um.
+    @Test func wrappedLinesWithinTheHeightKeepTheSmallestRings() {
+        let arrangement = CoreRingBoard.arrangement(ringCounts: [8, 8, 8, 8], width: 392, height: 100, overhead: 13)
+        #expect(arrangement.lines == [[0, 1], [2, 3]])
+        #expect(arrangement.ringSize == InstrumentSize.coreRing)
+    }
+
     @Test func arrangementWithoutWidthUsesSmallestRings() {
         #expect(CoreRingBoard.arrangement(ringCounts: [6, 4], width: .infinity)
             == CoreRingBoard.Arrangement(ringSize: InstrumentSize.coreRing, lines: [[0, 1]]))

@@ -142,7 +142,10 @@ private final class MenuBarMeterStatusItem: NSObject, NSPopoverDelegate {
             return
         }
         guard Date().timeIntervalSince(closedAt) > Self.reopenDelay, let button = statusItem.button else { return }
-        let controller = NSHostingController(rootView: content(kind) { [weak self] in self?.popover.performClose(nil) })
+        // Das Popover öffnet auf dem Bildschirm des Statusobjekts; nach ihm richtet sich die Höhe der Übersicht.
+        let screen = (button.window?.screen ?? NSScreen.main)?.visibleFrame
+        let controller = NSHostingController(rootView: content(kind) { [weak self] in self?.popover.performClose(nil) }
+            .environment(\.statusItemScreenFrame, screen))
         controller.sizingOptions = .preferredContentSize
         popover.contentViewController = controller
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)

@@ -153,4 +153,14 @@ enum PeilPoint {
         context.fill(Path(ellipseIn: CGRect(x: point.x - dot, y: point.y - dot, width: dot * 2, height: dot * 2)),
                      with: .color(color))
     }
+
+    /// Fokusring im Grantry-Verlauf um einen Peilpunkt, etwa um das Element der gewählten Zeile.
+    static func drawFocus(at point: CGPoint, gradient: Gradient, in context: inout PlotContext) {
+        let ring = InstrumentSize.findingDot
+        let frame = CGRect(x: point.x - ring, y: point.y - ring, width: ring * 2, height: ring * 2)
+        context.stroke(Path(ellipseIn: frame),
+                       with: .linearGradient(gradient, startPoint: frame.origin,
+                                             endPoint: CGPoint(x: frame.maxX, y: frame.maxY)),
+                       lineWidth: InstrumentStroke.focus)
+    }
 }

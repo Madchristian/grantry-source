@@ -79,6 +79,38 @@ extension SnapshotGallery {
         .instrumentBackground()
     }
 
+    /// Chip mit drei Kernklassen (#592): Super-, Leistungs- und Effizienzkerne, je mit Taktband; Farben wie
+    /// `CoreKind.chartKind` in der App.
+    static var chipThreeClasses: some View {
+        let energy = readouts(["21,7 W", "15,8 W", "5,02 W", "0,88 W"], fractions: [0.52, 0.38, 0.12, 0.02],
+                              thermal: "Normal")
+        return ChipDashboard(
+            title: "Apple-Chip mit drei Kernklassen",
+            summary: "4 Super-Kerne · 6 Leistungskerne · 4 Effizienzkerne · 40 GPU-Kerne · 64 GB gemeinsamer Arbeitsspeicher",
+            engines: "Media Engine: 2 Videoencoder · 1 Videodecoder · 2 ProRes-Engines · Neural Engine",
+            total: energy.total, energy: energy.strip,
+            levels: [
+                level(.super, "Super-Kerne", detail: "4 Kerne · 1 Cluster · 16 MB L2",
+                      facts: [PanelFact("Takt max.", "4,6 GHz"), PanelFact("L1 Befehle/Daten", "192 kB/128 kB")],
+                      clusters: [("Cluster S", "4,3 GHz · 8,7 W", Array(10...13), 0.71)]),
+                level(.performance, "Leistungskerne", detail: "6 Kerne · 1 Cluster · 16 MB L2",
+                      facts: [PanelFact("Takt max.", "3,9 GHz"), PanelFact("L1 Befehle/Daten", "128 kB/64 kB")],
+                      clusters: [("Cluster P", "2,8 GHz · 4,6 W", Array(4...9), 0.38)]),
+                level(.efficiency, "Effizienzkerne", detail: "4 Kerne · 1 Cluster · 4 MB L2",
+                      facts: [PanelFact("Takt max.", "2,6 GHz"), PanelFact("L1 Befehle/Daten", "128 kB/64 kB")],
+                      clusters: [("Cluster E", "2,1 GHz · 0,4 W", Array(0...3), 0.47)]),
+            ],
+            gpu: gpuUnit(cores: 40, value: 0.27, facts: [PanelFact("Takt", "1,1 GHz"), PanelFact("Leistung", "5,02 W"),
+                                                         PanelFact("Gemeinsamer Speicher", "3,4 GB")]),
+            neuralEngine: ChipUnit(title: "Neural Engine", detail: "1 Block", value: "0,88 W",
+                                   facts: [PanelFact("Zustand", "aktiv")],
+                                   series: series { $0 > 30 ? 0.16 * (0.7 + 0.3 * sin($0 / 3)) : 0 },
+                                   scale: .automatic(minimum: 1), hue: .neuralEngine, format: { "\($0) W" }),
+            clock: clockPanelThreeClasses
+        )
+        .instrumentBackground()
+    }
+
     static var chipUltra: some View {
         let energy = readouts(["–", "–", "–", "–"], fractions: [nil, nil, nil, nil], thermal: "Normal")
         return ChipDashboard(

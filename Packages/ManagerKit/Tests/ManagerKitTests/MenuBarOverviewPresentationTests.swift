@@ -168,14 +168,17 @@ import Testing
         #expect(overview.cpu?.clock == "3,5 GHz")
     }
 
-    // MARK: - Fehlende Quellen und ausgeblendete Karten
+    // MARK: - Fehlende Quellen und Kacheln der Tafel
 
-    @Test func emptySnapshotShowsOnlySummary() {
+    @Test func emptySnapshotHasOnlyContextValues() {
         let overview = Self.overview(TaskManagerSnapshot(), context: MenuBarOverviewContext(uptime: 90))
-        #expect(overview.cards == [.summary])
+        #expect(overview.summary?.uptimeFigures != nil)
+        #expect([overview.cpu == nil, overview.cores == nil, overview.processes == nil, overview.gpu == nil,
+                 overview.memory == nil, overview.disk == nil, overview.network == nil, overview.thermal == nil,
+                 overview.battery == nil].allSatisfy { $0 })
     }
 
-    @Test func cardsFollowFixedOrder() {
+    @Test func everyTileHasItsValue() {
         var snapshot = TaskManagerSnapshot()
         snapshot.cpu = Self.cpu([.performance])
         snapshot.memory = MemoryStatus(physicalBytes: 16, usedBytes: 8, swapUsedBytes: 0, swapTotalBytes: 0,
@@ -189,49 +192,45 @@ import Testing
         snapshot.processes = [ProcessMeasurement(key: ProcessKey(pid: 10, startTime: 1), parentPID: 1, uid: 0,
                                                  name: "kernel_task", cpuLoad: 0.02, memoryBytes: nil,
                                                  diskReadPerSecond: nil, diskWritePerSecond: nil, threadCount: nil)]
-        let overview = Self.overview(snapshot, context: MenuBarOverviewContext(uptime: 60))
-        #expect(overview.cards == MenuBarOverviewCard.allCases)
+        let overview = Self.overview(snapshot, context: MenuBarOverviewContext(
+            loadAverage: LoadAverage(one: 1, five: 1, fifteen: 1), uptime: 60))
+        #expect([overview.cpu != nil, overview.cores != nil, overview.processes != nil, overview.gpu != nil,
+                 overview.memory != nil, overview.disk != nil, overview.network != nil, overview.thermal != nil,
+                 overview.battery != nil, overview.summary?.loadFigures != nil,
+                 overview.summary?.uptimeFigures != nil].allSatisfy { $0 })
     }
 
-    /// GPU und Arbeitsspeicher, Datenträger und Netz, Thermik und Akku teilen sich je eine Zeile.
-    @Test func pairedCardsShareARow() {
-        var overview = MenuBarOverview()
-        overview.cpu = .init(total: nil, value: "", user: nil, system: nil, userText: "", systemText: "", clock: nil)
-        overview.gpu = .init(value: "", rings: [], clock: nil, memory: nil)
-        overview.memory = .init(usedShare: nil, value: "", detail: "", parts: [], pressure: nil, pressureText: "",
-                                swap: "")
-        overview.disk = .init(driveID: nil, usedShare: nil, free: nil, read: "", write: "")
-        overview.network = .init(interfaceName: "en0", title: "WLAN", received: "", sent: "")
-        overview.thermal = .init(state: .nominal, value: "", tone: .neutral, level: nil, lowPowerMode: "")
-        overview.battery = .init(charge: nil, value: "", state: "", isCharging: false)
-        overview.summary = .init(loadAverage: nil, uptime: "1")
-        #expect(overview.rows == [[.cpu], [.gpu, .memory], [.disk, .network], [.thermal, .battery], [.summary]])
-        #expect(overview.rows.flatMap(\.self) == overview.cards)
-    }
-
-    /// Ohne Partner (kein Akku, GPU ausgeblendet) behält die Karte die volle Breite.
-    @Test func cardWithoutPartnerKeepsItsRow() {
-        var overview = MenuBarOverview()
-        overview.memory = .init(usedShare: nil, value: "", detail: "", parts: [], pressure: nil, pressureText: "",
-                                swap: "")
-        overview.disk = .init(driveID: nil, usedShare: nil, free: nil, read: "", write: "")
-        overview.thermal = .init(state: .nominal, value: "", tone: .neutral, level: nil, lowPowerMode: "")
-        #expect(overview.rows == [[.memory], [.disk], [.thermal]])
-        overview.disk = nil
-        overview.network = .init(interfaceName: "en0", title: "WLAN", received: "", sent: "")
-        overview.battery = .init(charge: nil, value: "", state: "", isCharging: false)
-        // Akku ohne Thermik davor steht allein, Netz rückt nicht neben den Arbeitsspeicher.
-        overview.thermal = nil
-        #expect(overview.rows == [[.memory], [.network], [.battery]])
-    }
-
-    @Test func hiddenCardsAreLeftOut() {
+    /// Gerechnet wird nur, was auf der Tafel steht (Baukasten #503); Last und Laufzeit gehören zu ihren Kacheln.
+    @Test func onlyTilesOnTheBoardAreComputed() {
         var snapshot = TaskManagerSnapshot()
         snapshot.cpu = Self.cpu([.performance])
-        let overview = Self.overview(snapshot, context: MenuBarOverviewContext(hidden: [.cores, .summary]))
-        #expect(overview.cards == [.cpu])
+        let overview = Self.overview(snapshot, context: MenuBarOverviewContext(uptime: 60, tiles: [.cpu, .uptime]))
+        #expect(overview.cpu != nil)
         #expect(overview.cores == nil)
-        #expect(overview.summary == nil)
+        #expect(overview.summary?.uptimeFigures != nil)
+        #expect(Self.overview(snapshot, context: MenuBarOverviewContext(uptime: 60, tiles: [.cpu])).summary == nil)
+    }
+
+    /// Kontext nur laut Bedarf der Kacheln: ohne Prozess-Kachel keine Apps, ohne Laufzeit-Kachel keine Systemabfrage.
+    @MainActor @Test func contextReadsOnlyWhatTheBoardNeeds() {
+        var asked: [String] = []
+        func context(_ tiles: [OverviewTile]) -> MenuBarOverviewContext {
+            MenuBarOverviewContext(board: OverviewBoardLayout(tiles: tiles), sensors: SensorReading(),
+                                   startupVolume: VolumeUsage(totalBytes: 2, availableBytes: 1),
+                                   apps: { asked.append("apps"); return [] },
+                                   loadAverage: { asked.append("load"); return nil },
+                                   uptime: { asked.append("uptime"); return 5 })
+        }
+        let small = context([OverviewTile(.memory, .wide)])
+        #expect(asked.isEmpty)
+        #expect(small.sensors == nil)
+        #expect(small.startupVolume == nil)
+        #expect(small.tiles == [.memory])
+        let full = context(OverviewTileKind.allCases.map { OverviewTile($0, $0.defaultSpan) })
+        #expect(Set(asked) == ["apps", "load", "uptime"])
+        #expect(full.sensors != nil)
+        #expect(full.startupVolume != nil)
+        #expect(full.uptime == 5)
     }
 
     @Test func gpuWithoutUtilizationHasNoCard() {
@@ -289,11 +288,13 @@ import Testing
         #expect(processes.entries.map(\.name) == ["Editor", "WindowServer", "cloudd", "trustd", "bird"])
         #expect(processes.entries[0].app == app)
         #expect(processes.entries[1].isSystem)
-        #expect(processes.entries.map { Self.plain($0.value) } == ["3,0 %", "2,5 %", "0,4 %", "0,3 %", "0,2 %"])
+        // Kachel 4 × 2 wie die Karte vor dem Baukasten: fünf Einträge.
+        let shown = processes.entries(for: .panel)
+        #expect(shown.map { Self.plain($0.value) } == ["3,0 %", "2,5 %", "0,4 %", "0,3 %", "0,2 %"])
         // Speicher der App samt Helfer; ohne Messung ein Strich, nie 0.
-        #expect(processes.entries.map { Self.plain($0.memory) } == ["2 GB", "–", "–", "–", "–"])
-        #expect(Self.plain(processes.widestMemory) == "2 GB")
-        #expect(Self.plain(processes.widestValue) == "3,0 %")
+        #expect(shown.map { Self.plain($0.memory) } == ["2 GB", "–", "–", "–", "–"])
+        #expect(Self.plain(MenuBarOverview.Processes.widestMemory(of: shown)) == "2 GB")
+        #expect(Self.plain(MenuBarOverview.Processes.widestValue(of: shown)) == "3,0 %")
     }
 
     /// Balken im Verhältnis zum obersten Eintrag; unter 10 % aller Kerne bleibt auch der oberste kürzer als voll.
@@ -329,7 +330,7 @@ import Testing
         #expect(memory.value == "50 %")
         #expect(memory.parts.map(\.kind) == [.app, .wired, .compressed])
         #expect(memory.parts.map(\.share) == [0.25, 0.125, 0.125])
-        #expect(memory.parts.map { Self.plain($0.value) } == ["4 GB", "2 GB", "2 GB"])
+        #expect(memory.parts.map { Self.plain($0.amount) } == ["4 GB", "2 GB", "2 GB"])
         #expect(memory.pressure == .warning)
         #expect(memory.pressureText == "erhöht")
         #expect(Self.plain(memory.swap) == "1 GB von 2 GB")
@@ -407,8 +408,8 @@ import Testing
         let context = MenuBarOverviewContext(loadAverage: LoadAverage(one: 2.5, five: 1.25, fifteen: 0.5),
                                              uptime: 90_061)
         let summary = try #require(Self.overview(TaskManagerSnapshot(), context: context).summary)
-        #expect(summary.loadAverage == "2,50 · 1,25 · 0,50")
-        #expect(summary.uptime == "1:01:01:01")
+        #expect(summary.loadFigures == MenuBarOverview.LoadAverageFigures(one: "2,50", five: "1,25", fifteen: "0,50"))
+        #expect(summary.uptimeFigures?.detailed == "1 T 1 h 1 min")
     }
 
     /// Sprung in „Leistung“ auf die Kachel der Karte: Datenträger das erste Laufwerk, Netz die Schnittstelle der Karte.
@@ -424,15 +425,9 @@ import Testing
         #expect(overview.metric(for: .disk) == .drive("disk3"))
         #expect(overview.metric(for: .network) == .interface("en8"))
         #expect(overview.metric(for: .processes) == nil)
+        #expect(overview.metric(for: .loadAverage) == .cpu)
+        #expect(overview.metric(for: .uptime) == .cpu)
         #expect(Self.overview(TaskManagerSnapshot()).metric(for: .disk) == nil)
-    }
-
-    /// Das offene Popover liest nur die Quellen sichtbarer Karten: ohne Prozess-Karte keine Prozessquelle (#495).
-    @Test func popoverReadsOnlySourcesOfShownCards() {
-        #expect(MenuBarOverviewPresentation.sources(hiding: []) == Set(TaskManagerSource.allCases))
-        #expect(MenuBarOverviewPresentation.sources(hiding: [.processes, .gpu, .battery])
-            == [.cpu, .memory, .disks, .interfaces])
-        #expect(MenuBarOverviewPresentation.sources(hiding: [.cpu]).contains(.cpu))
     }
 
     @Test func summaryWithoutValuesIsLeftOut() {

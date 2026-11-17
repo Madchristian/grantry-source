@@ -3,7 +3,8 @@ import Testing
 @testable import GrantryCharts
 
 /// Karte „Ziele“ als Bogenfächer in hell, dunkel und „Kontrast erhöhen“: wenige Länder, viele Länder (der Rest als
-/// „+n“), nur lokale Gegenstellen und auf die ganze Seite vergrößert mit den Programmen als zweiter Stufe.
+/// „+n“), nur lokale Gegenstellen und auf die ganze Seite vergrößert mit den Programmen als zweiter Stufe; dazu mit
+/// Zielfilter (#633) ein gewähltes Land, der gewählte Sammel-Ast und ein gewähltes Land auf der Seite.
 /// Neu aufzeichnen mit `GRANTRY_RECORD_SNAPSHOTS=1`.
 @MainActor
 @Suite struct ArcFanSnapshotTests {
@@ -33,12 +34,40 @@ import Testing
         #expect(page.marks.allSatisfy { !$0.isSummary })
     }
 
-    /// VoiceOver liest jedes Ziel einzeln mit Gewicht und Programmen, auch die im Bild zusammengefassten.
+    /// VoiceOver liest jedes Ziel einzeln mit Gewicht und Programmen, auch die im Bild zusammengefassten: der Name als
+    /// Beschriftung, Gewicht und Blätter als Wert.
     @Test func spokenListNamesEveryBranch() {
         let spoken = ArcFan.spoken(SnapshotGallery.ArcFanScene.many.branches)
         #expect(spoken.count == 15)
-        #expect(spoken[1].text == "Deutschland, 9: Safari 5, Firefox 4")
-        #expect(ArcFan.spoken([ArcFan.Branch(id: "a", label: "A", weight: 1, accessibilityLabel: "eigener Text")])[0].text
-            == "eigener Text")
+        #expect(spoken[1].label == "Deutschland")
+        #expect(spoken[1].value == "9: Safari 5, Firefox 4")
+        let own = ArcFan.spoken([ArcFan.Branch(id: "a", label: "A", weight: 1, accessibilityValue: "eigener Text")])[0]
+        #expect(own.label == "A")
+        #expect(own.value == "eigener Text")
+    }
+
+    /// Ein Ast gilt als gewählt, wenn er im Zielfilter steht; der Sammel-Ast, sobald einer der Äste gewählt ist, die er
+    /// vertritt.
+    @Test func pickedMarksFollowTheirMembers() {
+        let branches = SnapshotGallery.ArcFanScene.many.branches.map {
+            ArcFanLayout.Branch(id: $0.id, label: $0.label, weight: $0.weight)
+        }
+        let card = ArcFanLayout(size: CGSize(width: 376, height: 280), branches: branches, measure: .system)
+        let summary = try! #require(card.marks.last)
+        #expect(summary.isSummary)
+        #expect(ArcFan.isPicked(summary, picked: SnapshotGallery.ArcFanScene.pickedSummary.picked))
+        #expect(ArcFan.isPicked(summary, picked: ["Dieser Mac", "mac"]))
+        #expect(!ArcFan.isPicked(summary, picked: ["Irland"]))
+        #expect(ArcFan.isPicked(card.marks[2], picked: ["Irland"]))
+        #expect(!ArcFan.isPicked(card.marks[2], picked: []))
+    }
+
+    /// Der Rückruf geht nicht in den Vergleich ein: Ein neuer Messtakt mit gleichen Ästen zeichnet den Fächer nicht neu.
+    @Test func equalityIgnoresThePickAction() {
+        let branches = SnapshotGallery.ArcFanScene.few.branches
+        let first = ArcFan(branches: branches, originSymbol: "laptopcomputer", title: "Ziele", picked: ["Irland"]) { _ in }
+        let second = ArcFan(branches: branches, originSymbol: "laptopcomputer", title: "Ziele", picked: ["Irland"]) { _ in }
+        #expect(first == second)
+        #expect(first != ArcFan(branches: branches, originSymbol: "laptopcomputer", title: "Ziele") { _ in })
     }
 }

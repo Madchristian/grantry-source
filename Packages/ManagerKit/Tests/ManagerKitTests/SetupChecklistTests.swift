@@ -97,6 +97,33 @@ import ManagerKit
         #expect(item.tone == HelperStatePresentation(state).tone)
     }
 
+    /// Nach einem Austausch des App-Bundles meldet der noch laufende alte Helper ein anderes Protokoll (`.outdated`) oder
+    /// antwortet nicht, bis die Neuregistrierung beim Start durch ist. So lange gilt der Schritt als in Prüfung: Die
+    /// Prüfung des Fensters beim Start zeigte sonst „Grantry einrichten“, obwohl die Erneuerung ihn gleich darauf
+    /// bereitstellte (Bundle-Tausch 953 ↔ 1572, Protokoll 8 ↔ 9; #566).
+    @Test(arguments: [HelperState.outdated(installed: 8, expected: 9), .unreachable("Zeitüberschreitung"), .ready])
+    func helperBeingRenewedIsStillChecking(state: HelperState) throws {
+        var status = Self.complete
+        status.helper = state
+        status.isRenewingHelper = true
+        let checklist = SetupChecklist(status)
+        let item = try #require(checklist.item(for: .helper))
+        #expect(item.state == .checking)
+        #expect(item.action == nil)
+        #expect(checklist.missingRequired.isEmpty)
+        #expect(checklist.bannerText == nil)
+        #expect(!checklist.shouldPresentAutomatically(hasCompletedOnboarding: true))
+    }
+
+    /// Andere fehlende Schritte meldet die Checkliste auch während der Erneuerung.
+    @Test func renewalDoesNotHideOtherMissingSteps() {
+        var status = Self.complete
+        status.fullDiskAccess = false
+        status.isRenewingHelper = true
+        #expect(SetupChecklist(status).missingRequired.map(\.step) == [.fullDiskAccess])
+        #expect(SetupChecklist(status).shouldPresentAutomatically(hasCompletedOnboarding: true))
+    }
+
     @Test func bannerNamesEveryMissingRequiredStep() {
         let checklist = SetupChecklist(SetupStatus(fullDiskAccess: false, helper: .notInstalled))
         #expect(checklist.missingRequired.map(\.step) == [.fullDiskAccess, .helper])

@@ -3,8 +3,11 @@ import Darwin
 import Foundation
 
 /// Metadaten aller Einträge statt nur des Bundle-Siegels: liest keine Ressourceninhalte.
-/// Physischer Baum, kein Betreten von Symlinks. Interne Links sind durch ihre Ziele im Baum abgedeckt;
-/// externe/fehlende Ziele, Sonderdateien, Lesefehler und erreichte Grenzen verhindern jede Cache-Wiederverwendung.
+/// Physischer Baum, kein Betreten von Symlinks. Interne Links sind durch ihre Ziele im Baum abgedeckt; ebenso ein
+/// verwaister Link, dessen fehlendes Ziel im Baum liegt (#650, etwa `PrivateHeaders` → `Versions/Current/PrivateHeaders`
+/// in Python-Frameworks): Entsteht das Ziel später, ist es ein neuer Eintrag im Baum und ändert den Fingerabdruck.
+/// Externe Ziele, fehlende Ziele außerhalb des Baums, Sonderdateien, Lesefehler und erreichte Grenzen verhindern jede
+/// Cache-Wiederverwendung.
 /// ctime mit Nanosekunden erkennt auch gleich große Änderungen mit zurückgesetzter mtime.
 /// `path` ist bereits kanonisch (`FileFingerprint.target`), damit interne Links vergleichbar sind.
 struct CodeTreeFingerprint {
@@ -34,13 +37,18 @@ struct CodeTreeFingerprint {
             let status = info.pointee
             if FileType.isSymbolicLink(status) {
                 // Keine Metadaten externer Link-Ziele lesen (z. B. Automounter/Netzlaufwerk).
+                var missingInTree = false
                 guard let target = LocalPathResolver.resolve(itemPath, volumes: volumes, entry: { candidate in
                     guard candidate == path || path.hasPrefix(candidate + "/") || candidate.hasPrefix(path + "/")
                     else { return .unavailable }
-                    return LocalPathResolver.entry(at: candidate)
+                    let entry = LocalPathResolver.entry(at: candidate)
+                    if case .missing = entry { missingInTree = candidate.hasPrefix(path + "/") }
+                    return entry
                 }), target.path.hasPrefix(path + "/") else { return nil }
                 switch target.entry {
                 case .directory, .regularFile: break
+                // Fehlt das Ziel nachweislich im Baum, deckt dessen Fingerabdruck ein späteres Erscheinen ab (#650).
+                case .missing where missingInTree: break
                 default: return nil
                 }
             }

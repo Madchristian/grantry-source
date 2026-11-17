@@ -3,7 +3,8 @@ import SwiftUI
 
 /// Aufräumen › Speicher im Lagebild (LB-4.3, #549) mit festen Beispieldaten wie im abgenommenen Entwurf LB-4.1 (#547):
 /// Ergebnis, vor dem Scan ohne Festplattenvollzugriff, Scan läuft, Aufräumen läuft und Teilerfolg. Erfundene Ordner unter
-/// `com.example`, keine Benutzernamen oder echten Pfade. Texte wie aus `StoragePresentation` (ManagerKit).
+/// `com.example`, keine Benutzernamen oder echten Pfade. Texte wie aus `StoragePresentation` (ManagerKit): gelesene von
+/// allen Kategorien mit Scanzeit, Risiko je Eintrag abweichend von „gering“, Ergebnis zum Schließen (#611).
 @MainActor
 extension SnapshotGallery {
     enum StorageScene: String, CaseIterable, Sendable {
@@ -28,9 +29,9 @@ private enum StorageSampleData {
         verdict: "28,4 GB aufräumbar", finding: true,
         items: [StatusItem("1 Ordner nicht erfasst", tone: .finding),
                 StatusItem("2 Vorschläge Time Machine", tone: .neutral)],
-        facts: "4 Kategorien")
-    static let complete = CleanupProgress(title: "Scan unvollständig", detail: "4 Kategorien gelesen", fraction: 1,
-                                          tone: .finding)
+        facts: "4 Kategorien · Scan 14:32")
+    static let complete = CleanupProgress(title: "Scan unvollständig", detail: "4 Kategorien gelesen · Scan 14:32",
+                                          fraction: 1, tone: .finding)
     static let selection = "Ausgewählt: 2 Einträge · 13,1 GB"
 }
 
@@ -50,7 +51,9 @@ private struct StorageBoardSample: View {
             case .partial:
                 InstrumentBanner("1 von 2 Einträgen aufgeräumt",
                                  message: "12,8 GB in den Papierkorb gelegt (frei nach dem Leeren), 1 übersprungen",
-                                 tone: .finding)
+                                 tone: .finding) {
+                    BannerDismissButton {}
+                }
             case .result, .scanning, .cleaning:
                 EmptyView()
             }
@@ -79,7 +82,7 @@ private struct StorageBoardSample: View {
         case .notScanned:
             InventoryHead(verdict: "Noch nicht gescannt", shield: .open, items: [], facts: "liest nur auf Knopfdruck")
         case .scanning:
-            InventoryHead(verdict: "Scan läuft", shield: .open, items: [], facts: "3 Kategorien gelesen")
+            InventoryHead(verdict: "Scan läuft", shield: .open, items: [], facts: "3 von 4 Kategorien")
         case .result, .cleaning, .partial:
             StorageSampleData.resultHead
         }
@@ -114,7 +117,7 @@ private struct StorageBoardSample: View {
                               size: "12,8 GB", isOn: .constant(true))
                 .disabled(scene == .cleaning)
             SelectionCheckRow("Archives", detail: "~/Library/Developer/Xcode/Archives", size: "5,5 GB",
-                              isOn: .constant(false))
+                              isOn: .constant(false), hint: StorageSampleData.medium)
                 .disabled(scene == .cleaning)
             // Ohne Verweis-Knopf: Links zeichnet `ImageRenderer` nicht, die Galerie zeigt sie (offscreen).
             ReportRow(symbol: "lock", title: "Module-Cache", detail: "Wird gerade benutzt von Xcode", size: "310 MB")

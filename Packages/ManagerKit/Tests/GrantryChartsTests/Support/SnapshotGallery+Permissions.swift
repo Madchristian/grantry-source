@@ -134,8 +134,8 @@ private struct PermissionsSample: View {
                                                        StatusItem("1 prüfen", tone: .finding)],
                                                facts: "2 Apps · 4 Berechtigungen · Scan 14:32")) {
                 controls(grouping: "app", coverage: ProgressSpur(title: "Abdeckung unvollständig",
-                                                                 detail: "Systemdatenbank ohne Helper nicht gelesen",
-                                                                 fraction: 2.0 / 3, tone: .finding))
+                                                                 detail: "Quelle nicht gelesen · Stand von gestern, 18:05",
+                                                                 fraction: 0, tone: .finding))
             } list: {
                 InstrumentList("Apps", count: "2", sections: [SnapshotGallery.lagebildSections[0]],
                                selection: .constant(nil))
@@ -148,7 +148,7 @@ private struct PermissionsSample: View {
     }
 
     private var complete: ProgressSpur<EmptyView> {
-        ProgressSpur(title: "Abdeckung vollständig", detail: "alle Quellen gelesen · 14:32", fraction: 1,
+        ProgressSpur(title: "Abdeckung vollständig", detail: "Quelle gelesen · Geprüft heute, 14:32", fraction: 1,
                      tone: .positive)
     }
 

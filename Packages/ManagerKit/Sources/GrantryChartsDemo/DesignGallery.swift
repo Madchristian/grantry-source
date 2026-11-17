@@ -113,6 +113,7 @@ private extension InstrumentHue {
     var galleryTitle: String {
         switch self {
         case .cpu: "CPU · Leistungskerne"
+        case .superCores: "Super-Kerne"
         case .efficiencyCores: "Effizienzkerne"
         case .memory: "Arbeitsspeicher"
         case .diskRead: "Datenträger lesen"
@@ -456,11 +457,25 @@ private struct GraphSection: View {
     }
 }
 
+/// Radar mit Klickbedienung (#640): Ein Klick auf ein Echo wählt es und zeigt den Filter als Chip; ein zweiter Klick
+/// oder der Chip hebt die Wahl auf.
 private struct RadarSection: View {
+    @State private var picked: Set<ReachRadar.Echo.ID> = []
+
     var body: some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.cell) {
             PeilHead("Erreichbarkeit", detail: "Wer diesen Mac erreichen kann", value: "2", finding: true)
-            ReachRadar(echoes: GallerySamples.echoes).frame(height: InstrumentSize.radar)
+            ReachRadar(echoes: GallerySamples.echoes, picked: picked,
+                       pickHint: "Filtert die Tabelle auf dieses Programm; ein zweiter Klick hebt den Filter auf") { ids in
+                picked = picked == ids ? [] : ids
+            }
+            .frame(height: InstrumentSize.radar)
+            let labels = GallerySamples.echoes.filter { picked.contains($0.id) }.map(\.label)
+            if !labels.isEmpty {
+                InstrumentFilterChip(labels.count == 1 ? "Programm" : "Programme",
+                                     value: labels.joined(separator: ", "),
+                                     removeHint: "Hebt den Programmfilter auf") { picked = [] }
+            }
         }
         .instrumentPanel()
     }

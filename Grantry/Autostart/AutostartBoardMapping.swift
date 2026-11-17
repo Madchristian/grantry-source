@@ -6,6 +6,9 @@ import ManagerKit
 // Zustandszeile, Listenzeilen und Detail, damit Liste und Detail denselben Eintrag gleich zeigen.
 
 enum AutostartBoardMapping {
+    /// Kennung der Listenzeilen für die Performance-UI-Tests (Barrierefreiheit, #612).
+    static let rowIdentifier = "autostartRow"
+
     /// Zustandszeile (Spec §11.2 a) über alle Einträge, unabhängig von Suche und Filter.
     static func head(_ presentation: PresentationSnapshot?, scannedAt: Date?) -> InventoryHead {
         guard let presentation else {
@@ -37,7 +40,7 @@ enum AutostartBoardMapping {
         InstrumentListItem(id: item.id, content: row(
             item, badges: presentation.badges.badges(for: item.id),
             sharesService: !presentation.autostartItems(sharingServiceWith: item).isEmpty
-        ))
+        ), accessibilityIdentifier: rowIdentifier)
     }
 
     /// Zeile: Label, Besitzer bzw. Programm (bei gleichem Label in mehreren Plists auch die Datei, #138), Prüf-Badges,

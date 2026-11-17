@@ -79,6 +79,9 @@ public enum HistoryLoadMore: Hashable, Sendable {
 /// „Wiederherstellen …“. Angesprungen (Wachbuch, Benachrichtigung) mit Fläche und Fokusleiste und aufgeklapptem Befehl.
 /// Für VoiceOver ein Element mit dem Namen als Beschriftung und „ungelesen, Zustand. Detail, Zeit“ als Wert; Knöpfe eigen.
 public struct HistoryRow: View {
+    /// Kennung des Zeilenkopfs (Name und Wert) für die Performance-UI-Tests (Barrierefreiheit, #612).
+    public static let accessibilityIdentifier = "historyRow"
+
     let entry: HistoryEntry
     let isFocused: Bool
     let restore: () -> Void
@@ -106,6 +109,7 @@ public struct HistoryRow: View {
             }
             .help(Text(verbatim: entry.help ?? ""))
             .accessibilityReading(Text(verbatim: entry.content.title), value: Text(verbatim: entry.spokenValue))
+            .accessibilityIdentifier(Self.accessibilityIdentifier)
             if let command = entry.command {
                 CommandChangeWell(before: command.before, after: command.after, isExpanded: $isExpanded, copy: copy)
                     .padding(.leading, Self.indent)

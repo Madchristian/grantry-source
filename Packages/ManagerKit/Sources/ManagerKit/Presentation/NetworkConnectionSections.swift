@@ -114,7 +114,7 @@ extension NetworkConnectionsPresentation {
 
 /// Ein Ziel der Karte „Ziele“ (#630): ein Land, „Land unbekannt“, das lokale Netz oder dieser Mac mit der Zahl der
 /// offenen Verbindungen dorthin und den beteiligten Programmen.
-public struct NetworkDestination: Identifiable, Hashable, Sendable {
+public struct NetworkDestination: Identifiable, Hashable, Sendable, NetworkPickElement {
     public struct Program: Hashable, Sendable {
         public let title: String
         public let connectionCount: Int
@@ -130,17 +130,21 @@ public struct NetworkDestination: Identifiable, Hashable, Sendable {
     /// Programme mit den meisten Verbindungen zuerst.
     public let programs: [Program]
 
+    public var pickKey: RemoteRegion { region }
+
     /// Ob das Ziel ein Land ist (für „x Länder“).
     public var isCountry: Bool {
         if case .country = region { true } else { false }
     }
 
     /// „Deutschland, 3 Verbindungen, nur eingehend: Safari 2, Mail 1“.
-    public var accessibilityLabel: String {
+    public var accessibilityLabel: String { "\(title), \(accessibilityValue)" }
+
+    /// „3 Verbindungen, nur eingehend: Safari 2, Mail 1“ – Wert zum Namen des Ziels.
+    public var accessibilityValue: String {
         let count = connectionCount == 1 ? String(localized: "1 Verbindung")
             : String(localized: "\(connectionCount) Verbindungen")
-        let head = ([title, count] + (isInboundOnly ? [String(localized: "nur eingehend")] : []))
-            .joined(separator: ", ")
+        let head = ([count] + (isInboundOnly ? [String(localized: "nur eingehend")] : [])).joined(separator: ", ")
         return "\(head): " + programs.map { "\($0.title) \($0.connectionCount)" }.joined(separator: ", ")
     }
 }

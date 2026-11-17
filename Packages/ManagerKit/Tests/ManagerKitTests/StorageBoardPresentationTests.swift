@@ -64,6 +64,42 @@ import Testing
         #expect(StoragePresentation.isComplete([report("a", status: .notInstalled, [])]))
     }
 
+    // MARK: - Gesamtzahl und Scanzeit (#611)
+
+    @Test func categoryFactsNameTheTotalAndTheScanTime() {
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let time = date.formatted(date: .omitted, time: .shortened)
+        #expect(StoragePresentation.categoryFacts(read: 9, total: 9, scannedAt: date) == "9 Kategorien · Scan \(time)")
+        #expect(StoragePresentation.categoryFacts(read: 3, total: 9, scannedAt: nil) == "3 von 9 Kategorien")
+        #expect(StoragePresentation.categoryFacts(read: 1, total: 1, scannedAt: nil) == "1 Kategorie")
+    }
+
+    @Test func scanStandIsCompleteOnlyWithAllCategories() {
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let time = date.formatted(date: .omitted, time: .shortened)
+        let all = [report("a", [("/a", .bytes(1), .delete)]), report("b", [])]
+        let complete = StoragePresentation.scanStand(all, total: 2, scannedAt: date)
+        #expect(complete.title == "Scan vollständig")
+        #expect(complete.detail == "2 Kategorien gelesen · Scan \(time)")
+        #expect(complete.isComplete)
+        // Abgebrochen: Teilergebnis ohne Scanzeit, nie als vollständig.
+        let cancelled = StoragePresentation.scanStand([all[0]], total: 2, scannedAt: nil)
+        #expect(cancelled.title == "Scan unvollständig")
+        #expect(cancelled.detail == "1 von 2 Kategorien gelesen")
+        #expect(!cancelled.isComplete)
+        let unreadable = StoragePresentation.scanStand([report("a", status: .needsFullDiskAccess, [])], total: 1,
+                                                       scannedAt: date)
+        #expect(!unreadable.isComplete)
+        #expect(unreadable.detail == "1 Kategorie gelesen · Scan \(time)")
+    }
+
+    /// Risiko je Eintrag wie im Entwurf: nur, wenn es von „gering“ abweicht (dann ist nichts vorausgewählt).
+    @Test func entryRiskOnlyBesideLowRisk() {
+        #expect(StoragePresentation.entryRiskText(.low) == nil)
+        #expect(StoragePresentation.entryRiskText(.medium) == StoragePresentation.riskText(.medium))
+        #expect(StoragePresentation.entryRiskText(.reportOnly) == nil)
+    }
+
     @Test func statusToneMarksMissingAccessAndErrors() {
         #expect(StoragePresentation.statusTone(.available) == nil)
         #expect(StoragePresentation.statusTone(.notInstalled) == .neutral)

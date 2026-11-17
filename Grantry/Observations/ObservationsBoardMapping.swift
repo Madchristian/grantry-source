@@ -8,6 +8,8 @@ import ManagerKit
 
 enum ObservationsBoardMapping {
     static let symbol = MainSection.observations.systemImage
+    /// Kennung der Listenzeilen für die Performance-UI-Tests (Barrierefreiheit, #612).
+    static let rowIdentifier = "observationRow"
 
     // MARK: - Zustandszeile
 
@@ -36,7 +38,7 @@ enum ObservationsBoardMapping {
                 symbol: symbol, title: summary.name,
                 detail: listDetail(summary, liveAddedCount: liveAddedCount),
                 status: summary.isActive ? StatusItem(String(localized: "läuft"), tone: .info) : nil
-            ))
+            ), accessibilityIdentifier: rowIdentifier)
         }
         let running = summaries.filter(\.isActive).map(item)
         let saved = summaries.filter { !$0.isActive }.map(item)

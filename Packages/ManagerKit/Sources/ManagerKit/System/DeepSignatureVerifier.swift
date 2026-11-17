@@ -166,21 +166,31 @@ public enum DeepSignatureRevalidation: Sendable {
 /// bestätigen nur billige Bundle-Metadaten (`DeepSignatureRevalidation.bundleMetadata`, nur im Prozess).
 /// Metadatenabfragen haben eine eigene Queue und bleiben auch während langer Prüfungen bedienbar.
 /// Zeitüberschreitungen werden nicht persistiert; die Wiederholpause gilt nur für denselben Baum.
+///
+/// Je Baum merkt der Verifier den Beginn seiner letzten Komplettprüfung (`completeCheckAges(for:)`, #649): vollständige
+/// Traversierung wie im Cache, abgeschlossene Tiefenprüfung des unveränderten Baums oder ein fehlendes Ziel. Bundle-Stempel
+/// zählen nicht; ein veränderter Baum verliert ihn, bis die Tiefenprüfung ihn wieder bestätigt. Gemessen auf der monotonen
+/// Uhr `clock` (Standard `ContinuousClock`, läuft im Ruhezustand weiter), nicht auf der Wanduhr `now`, und nur im Prozess.
 public actor DeepSignatureVerifier {
     public static let timeoutRetryDelay: TimeInterval = 30 * 60
 
     private let validator: any SignatureValidating
     private let now: @Sendable () -> Date
+    /// Monotone Zeit für die Prüfalter (#649).
+    private let elapsed: ElapsedTime
     private let cacheURL: URL?
     private let treeFingerprint: @Sendable (String) -> String?
     private let queue = DispatchQueue(label: "de.cstrube.Grantry.deep-signature", qos: .background)
-    private let metadataQueue = DispatchQueue(label: "de.cstrube.Grantry.signature-metadata", qos: .utility)
+    /// Ohne eigene QoS: Jeder Auftrag trägt seine (`metadata(qos:_:)`), sonst setzte die Queue eine Untergrenze.
+    private let metadataQueue = DispatchQueue(label: "de.cstrube.Grantry.signature-metadata")
     private var cache: DeepSignatureCache?
     private var timeouts: [String: (fingerprint: String, date: Date)] = [:]
     private var running: [String: RunningCheck] = [:]
     private var timedOutPaths: Set<String> = []
     /// Letztes bestätigtes Ergebnis je Pfad samt Bundle-Metadaten zum Zeitpunkt der Bestätigung.
     private var confirmations: [String: Confirmation] = [:]
+    /// Beginn der letzten Komplettprüfung je Pfad in Sekunden von `elapsed` (#649), nur im Prozess.
+    private var completeChecks: [String: TimeInterval] = [:]
     private(set) var requestCount = 0
 
     private struct CheckResult: Sendable {
@@ -198,8 +208,9 @@ public actor DeepSignatureVerifier {
     private enum CacheLookup: Sendable {
         /// Bundle-Metadaten wie bei der letzten Bestätigung.
         case confirmed(DeepSignatureVerdict)
-        /// Vollständiger Baum wie im Cache; `stamp` sind die aktuellen Bundle-Metadaten.
-        case revalidated(DeepSignatureVerdict, stamp: String?)
+        /// Vollständiger Baum wie im Cache, gelesen ab `checkedAt` (Sekunden von `elapsed`); `stamp` sind die aktuellen
+        /// Bundle-Metadaten.
+        case revalidated(DeepSignatureVerdict, stamp: String?, checkedAt: TimeInterval)
         case stale
     }
 
@@ -209,23 +220,30 @@ public actor DeepSignatureVerifier {
         let task: Task<CheckResult, Never>
     }
 
+    /// - Parameters:
+    ///   - now: Wanduhr (Wiederholpause nach Zeitüberschreitungen).
+    ///   - clock: monotone Uhr der Prüfalter (`completeCheckAges(for:)`).
     public init(
         validator: any SignatureValidating = SecuritySignatureValidator(),
         now: @escaping @Sendable () -> Date = Date.init,
+        clock: any Clock<Duration> = ContinuousClock(),
         cacheURL: URL? = nil
     ) {
-        self.init(validator: validator, now: now, cacheURL: cacheURL, treeFingerprint: { CodeTreeFingerprint.read(at: $0) })
+        self.init(validator: validator, now: now, clock: clock, cacheURL: cacheURL,
+                  treeFingerprint: { CodeTreeFingerprint.read(at: $0) })
     }
 
     /// `treeFingerprint` ersetzt in Tests `CodeTreeFingerprint.read`, etwa um vollständige Traversierungen zu zählen.
     init(
         validator: any SignatureValidating = SecuritySignatureValidator(),
         now: @escaping @Sendable () -> Date = Date.init,
+        clock: any Clock<Duration> = ContinuousClock(),
         cacheURL: URL? = nil,
         treeFingerprint: @escaping @Sendable (String) -> String?
     ) {
         self.validator = validator
         self.now = now
+        elapsed = ElapsedTime(clock)
         self.cacheURL = cacheURL
         self.treeFingerprint = treeFingerprint
     }
@@ -237,9 +255,12 @@ public actor DeepSignatureVerifier {
         if cache == nil { cache = loaded }
     }
 
-    private func metadata<Value: Sendable>(_ body: @escaping @Sendable () -> Value) async -> Value {
+    /// `body` auf der Metadaten-Queue mit Priorität `qos` (`.background` für die verteilte Revalidierung, #649).
+    private func metadata<Value: Sendable>(
+        qos: DispatchQoS = .utility, _ body: @escaping @Sendable () -> Value
+    ) async -> Value {
         await withCheckedContinuation { continuation in
-            metadataQueue.async { continuation.resume(returning: body()) }
+            metadataQueue.async(qos: qos, flags: .enforceQoS) { continuation.resume(returning: body()) }
         }
     }
 
@@ -253,20 +274,43 @@ public actor DeepSignatureVerifier {
     public func cachedVerdicts(
         for paths: [String], revalidation: DeepSignatureRevalidation = .completeTree
     ) async -> [String: DeepSignatureVerdict] {
+        await lookUp(paths, revalidation: revalidation, qos: .utility)
+    }
+
+    /// Komplettprüfung genau eines Baums mit Hintergrund-Priorität für die verteilte Revalidierung (#649): das Urteil,
+    /// wenn der vollständige Baum dem Cache entspricht, sonst `nil` – dann braucht das Ziel `verify(path:)`.
+    public func revalidateTree(at path: String) async -> DeepSignatureVerdict? {
+        await lookUp([path], revalidation: .completeTree, qos: .background)[path]
+    }
+
+    /// Alter der letzten Komplettprüfung je Pfad aus `paths` in Sekunden seit ihrem Beginn, auf der monotonen Uhr des
+    /// Verifiers (unabhängig von der Wanduhr); ohne Eintrag gilt der Baum nicht als geprüft (#649). Ein Alter statt eines
+    /// Zeitpunkts, damit Aufrufer mit eigener Uhr es richtig einordnen.
+    public func completeCheckAges(for paths: [String]) -> [String: TimeInterval] {
+        let now = elapsed.seconds
+        return paths.reduce(into: [:]) { ages, path in ages[path] = completeChecks[path].map { now - $0 } }
+    }
+
+    private func lookUp(
+        _ paths: [String], revalidation: DeepSignatureRevalidation, qos: DispatchQoS
+    ) async -> [String: DeepSignatureVerdict] {
         await loadCache()
         let entries = cache?.entries ?? [:]
         let confirmed = revalidation == .bundleMetadata ? confirmations : [:]
-        let treeFingerprint = treeFingerprint
+        let (treeFingerprint, elapsed) = (treeFingerprint, elapsed)
         // Ein gemeinsamer Queue-Auftrag statt einer Dispatch-Runde je Datei.
-        let lookups = await metadata {
+        let lookups = await metadata(qos: qos) {
             var lookups: [String: CacheLookup] = [:]
             for path in paths {
                 let target = FileFingerprint.target(of: path)
                 let stamp = CodeTreeFingerprint.stamp(at: target)
                 if let confirmation = confirmed[path], let stamp, confirmation.stamp == stamp {
                     lookups[path] = .confirmed(confirmation.verdict)
-                } else if let entry = entries[path], treeFingerprint(target) == entry.fingerprint {
-                    lookups[path] = .revalidated(entry.verdict, stamp: stamp)
+                    continue
+                }
+                let checkedAt = elapsed.seconds
+                if let entry = entries[path], treeFingerprint(target) == entry.fingerprint {
+                    lookups[path] = .revalidated(entry.verdict, stamp: stamp, checkedAt: checkedAt)
                 } else {
                     lookups[path] = .stale
                 }
@@ -278,24 +322,33 @@ public actor DeepSignatureVerifier {
             switch lookup {
             case .confirmed(let verdict):
                 verdicts[path] = verdict
-            case .revalidated(let verdict, let stamp):
+            case .revalidated(let verdict, let stamp, let checkedAt):
                 verdicts[path] = verdict
-                confirm(verdict, for: path, stamp: stamp)
+                confirm(verdict, for: path, stamp: stamp, checkedAt: checkedAt)
             case .stale:
-                confirmations[path] = nil
+                forget(path)
             }
         }
         return verdicts
     }
 
-    private func confirm(_ verdict: DeepSignatureVerdict, for path: String, stamp: String?) {
+    /// Bestätigt `verdict` für den ab `checkedAt` (Sekunden von `elapsed`) vollständig geprüften Baum `path`.
+    private func confirm(_ verdict: DeepSignatureVerdict, for path: String, stamp: String?, checkedAt: TimeInterval) {
         confirmations[path] = stamp.map { Confirmation(stamp: $0, verdict: verdict) }
+        completeChecks[path] = checkedAt
+    }
+
+    /// Kein bestätigtes Ergebnis mehr für `path`: Teilscans übernehmen nichts, und der Baum gilt nicht als geprüft.
+    private func forget(_ path: String) {
+        confirmations[path] = nil
+        completeChecks[path] = nil
     }
 
     public func verify(path: String) async -> DeepSignatureVerdict {
         requestCount += 1
         await loadCache()
         let treeFingerprint = treeFingerprint
+        let checkedAt = elapsed.seconds
         let (target, exists, stamp, fingerprint) = await metadata {
             let target = FileFingerprint.target(of: path)
             return (target, FileType.linkStatus(of: target) != nil, CodeTreeFingerprint.stamp(at: target),
@@ -303,18 +356,20 @@ public actor DeepSignatureVerifier {
         }
         guard exists else {
             cache?.entries[path] = nil
-            confirmations[path] = nil
+            forget(path)
+            // Nichts zu prüfen: abschließend, kein Dauer-Kandidat der verteilten Revalidierung.
+            completeChecks[path] = checkedAt
             timedOutPaths.remove(path)
             return .unverifiable
         }
         if let fingerprint, let entry = cache?.entries[path], entry.fingerprint == fingerprint {
-            confirm(entry.verdict, for: path, stamp: stamp)
+            confirm(entry.verdict, for: path, stamp: stamp, checkedAt: checkedAt)
             return entry.verdict
         }
         if let fingerprint, let timeout = timeouts[path], timeout.fingerprint == fingerprint,
            now().timeIntervalSince(timeout.date) < Self.timeoutRetryDelay {
             // Teilscans fragen bis zum nächsten Vollscan nicht erneut nach (keine Traversierung je Minute).
-            confirm(.unverifiable, for: path, stamp: stamp)
+            confirm(.unverifiable, for: path, stamp: stamp, checkedAt: checkedAt)
             return .unverifiable
         }
         if let check = running[path], check.target == target, check.fingerprint == fingerprint {
@@ -342,18 +397,18 @@ public actor DeepSignatureVerifier {
         if !result.validation.isConclusive { timedOutPaths.insert(path) }
         guard result.unchanged else {
             cache?.entries[path] = nil
-            confirmations[path] = nil
+            forget(path)
             return .unverifiable
         }
         // Auch unvollständig erfassbare Bäume und Zeitüberschreitungen: Teilscans starten sie nicht jede Minute neu,
-        // erst der nächste Vollscan (`completeTree` verwirft die Bestätigung ohne Cache-Eintrag).
-        confirm(result.validation.verdict, for: path, stamp: stamp == result.stamp ? stamp : nil)
+        // erst die nächste Komplettprüfung (`completeTree` verwirft die Bestätigung ohne Cache-Eintrag).
+        confirm(result.validation.verdict, for: path, stamp: stamp == result.stamp ? stamp : nil, checkedAt: checkedAt)
         if result.validation.isConclusive { timedOutPaths.remove(path) }
         if let fingerprint, result.validation.isConclusive {
             if cache?.entries.count ?? 0 >= DeepSignatureCache.maximumEntries,
                cache?.entries[path] == nil, let evicted = cache?.entries.keys.first {
                 cache?.entries[evicted] = nil
-                confirmations[evicted] = nil
+                forget(evicted)
             }
             cache?.entries[path] = .init(fingerprint: fingerprint, verdict: result.validation.verdict)
             timeouts[path] = nil

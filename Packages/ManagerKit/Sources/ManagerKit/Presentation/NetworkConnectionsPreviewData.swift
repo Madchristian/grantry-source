@@ -83,6 +83,14 @@ public enum NetworkConnectionsPreviewData {
         frame(of: processes.filter { !["Safari", "Mail"].contains($0.shortName) })
     }
 
+    /// Programmfilter aus dem Radar (#640): node auf Port 3000, mit seinen lauschenden Sockets und der Verbindung aus dem
+    /// lokalen Netz.
+    public static var echoFilter: NetworkEchoFilter? {
+        let echoes = NetworkConnectionsPresentation(frame: frame, filter: .all, query: "", userName: userName)
+            .reachEchoes()
+        return NetworkEchoFilter(echoes: echoes.filter { $0.label.hasSuffix(" :3000") })
+    }
+
     /// Feste Kurznamen zu den UIDs der Beispielprozesse – unabhängig von den Konten des Macs.
     public static func userName(_ uid: UInt32) -> String {
         [0: "root", 65: "_mdnsresponder", 501: "anna"][uid] ?? String(uid)

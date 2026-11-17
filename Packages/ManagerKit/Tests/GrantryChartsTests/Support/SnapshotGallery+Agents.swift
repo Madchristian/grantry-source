@@ -134,7 +134,7 @@ private struct AgentsSample: View {
             InventoryBoard(head: InventoryHead(verdict: "Nicht vollständig geprüft", finding: true,
                                                items: [StatusItem("1 Quelle fehlt", tone: .finding)],
                                                facts: "2 Server · 0 Freigaben · 1 Werkzeug · Scan 14:32")) {
-                ProgressSpur(title: "Abdeckung unvollständig", detail: "1 Konfigurationsdatei ließ sich nicht lesen",
+                ProgressSpur(title: "Abdeckung unvollständig", detail: "Quelle teilweise gelesen · Geprüft heute, 14:32",
                              fraction: 1.0 / 2, tone: .finding)
             } list: {
                 InstrumentList("Server und Freigaben", count: "2", sections: [SnapshotGallery.agentSections[1]],
@@ -153,7 +153,7 @@ private struct AgentsSample: View {
 
     private func board(selection: String?, @ViewBuilder detail: () -> some View) -> some View {
         InventoryBoard(head: SnapshotGallery.agentsHead) {
-            ProgressSpur(title: "Abdeckung vollständig", detail: "alle Quellen gelesen · 14:32", fraction: 1,
+            ProgressSpur(title: "Abdeckung vollständig", detail: "Quelle gelesen · Geprüft heute, 14:32", fraction: 1,
                          tone: .positive)
         } list: {
             InstrumentList("Server und Freigaben", count: "6", sections: SnapshotGallery.agentSections,

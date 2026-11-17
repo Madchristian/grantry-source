@@ -1,31 +1,31 @@
 {
-  "version": "2026.11.14",
-  "intro": "Verbindungen nach Land – komplett offline – und Karten, die die ganze Seite füllen.",
+  "version": "2026.11.16",
+  "intro": "Die Übersicht der Menüleiste nach eigenem Wunsch – und Grafiken, die per Klick filtern.",
   "highlights": [
     {
-      "symbol": "globe.europe.africa",
-      "title": "Verbindungen nach Land",
-      "body": "Netzwerk › Verbindungen ordnet die Tabelle auf Wunsch nach Land. Die Zuordnung kommt aus einer mitgelieferten Tabelle: keine Online-Abfrage, kein zusätzlicher Netzverkehr."
+      "symbol": "square.grid.2x2",
+      "title": "Übersicht selbst zusammenstellen",
+      "body": "Alle Anzeigen der Übersicht gibt es als Kacheln in mehreren Größen. Über „Anpassen“ ziehen, verschieben, vergrößern oder entfernen; ohne Anpassung bleibt alles wie bisher."
     },
     {
-      "symbol": "point.3.connected.trianglepath.dotted",
-      "title": "Karte „Ziele“ als Bogenfächer",
-      "body": "Linien von diesem Mac zu den Ländern der offenen Verbindungen; die Linienstärke folgt der Zahl der Verbindungen, gestrichelt heißt nur eingehend."
+      "symbol": "line.3.horizontal.decrease.circle",
+      "title": "Klicken filtert die Verbindungen",
+      "body": "Ein Klick auf ein Ziel im Bogenfächer oder auf ein Programm im Radar filtert die Tabelle; der Chip daneben hebt den Filter wieder auf."
     },
     {
-      "symbol": "arrow.up.left.and.arrow.down.right",
-      "title": "Karten auf die ganze Seite",
-      "body": "„Erreichbarkeit“, „Ziele“ und „Rechte-Schichten“ lassen sich vergrößern und zeigen dann jeden Eintrag einzeln; zurück mit dem Knopf oder Escape."
+      "symbol": "chart.bar.doc.horizontal",
+      "title": "Abdeckung auf einen Blick",
+      "body": "Berechtigungen, Autostart, Agenten und Apps zeigen über der Liste, wie vollständig Grantry den Bereich lesen konnte."
     },
     {
-      "symbol": "text.below.photo",
-      "title": "Beschriftungen ohne Überlappung",
-      "body": "Im Erreichbarkeitsradar und in den Rechte-Schichten nimmt jede Beschriftung den ersten freien Platz an ihrem Punkt."
+      "symbol": "xmark.circle",
+      "title": "Aufräumen mit Scanzeit und Abbrechen",
+      "body": "Prozesse und Speicher nennen den Stand des letzten Scans, der Prozess-Scan lässt sich abbrechen."
     },
     {
-      "symbol": "menubar.rectangle",
-      "title": "Übersicht der Menüleiste sparsamer",
-      "body": "Das geöffnete Popover braucht wieder weniger Rechenzeit, bei gleichem Aussehen und Inhalt."
+      "symbol": "waveform.path.ecg",
+      "title": "Ruhiger im Hintergrund",
+      "body": "Die Signaturprüfung verteilt sich über das Intervall, der Scan alle 15 Minuten erzeugt keine Lastspitze mehr. Nach einem Update erscheint die Einrichtung nicht mehr grundlos."
     }
   ]
 }

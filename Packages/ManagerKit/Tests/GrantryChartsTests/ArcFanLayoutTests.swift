@@ -193,4 +193,34 @@ import Testing
     @Test func sameInputGivesTheSameLayout() {
         #expect(Self.layout(Self.branches(12)) == Self.layout(Self.branches(12)))
     }
+
+    // MARK: Klickflächen (#633)
+
+    /// Jeder Ast vertritt sich selbst, der Sammel-Ast alle Äste, die keinen Platz fanden.
+    @Test func summaryRepresentsTheBranchesItStandsFor() {
+        let branches = Self.branches(16)
+        let layout = Self.layout(branches)
+        #expect(layout.marks.dropLast().map(\.members) == branches.prefix(9).map { [$0.id] })
+        #expect(layout.marks.last?.members == branches.dropFirst(9).map(\.id))
+    }
+
+    /// Die Klickfläche eines Asts umfasst Punkt und Beschriftung und berührt keine andere.
+    @Test func hitFramesCoverPointAndCaptionWithoutOverlap() {
+        for (layout, size) in [(Self.layout(Self.branches(16)), Self.cardSize),
+                               (Self.layout(Self.branches(6, leaves: 3), size: Self.pageSize, isExpanded: true),
+                                Self.pageSize)] {
+            for mark in layout.marks {
+                #expect(mark.hitFrame.contains(mark.point))
+                let caption = Self.frame(of: mark.caption, at: mark.point)
+                #expect(mark.hitFrame.contains(CGPoint(x: caption.maxX - 0.5, y: caption.midY)))
+                #expect(mark.hitFrame.height >= ArcFanLayout.minimumPitch - 2 * ArcFanLayout.hitInset)
+                #expect(CGRect(origin: .zero, size: size).contains(mark.hitFrame))
+                #expect(mark.captionFrame == caption)
+            }
+            let frames = layout.marks.map(\.hitFrame)
+            for (index, frame) in frames.enumerated() {
+                #expect(frames[(index + 1)...].allSatisfy { !$0.intersects(frame) })
+            }
+        }
+    }
 }

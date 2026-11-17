@@ -99,7 +99,9 @@ public struct ValueRing: View {
 /// Kernringe je Cluster (#495): je Gruppe ihr Kürzel („P0“, „E“) über einer Reihe kleiner Lastringe in der Farbe der
 /// Kernart; zwischen Gruppen mehr Abstand als zwischen Kernen. Kernarten unterscheiden sich so auch ohne Farbe. Die Ringe
 /// wachsen, bis die Reihe die Breite füllt (höchstens `InstrumentSize.coreRingWide`); reicht die Breite auch für die
-/// kleinsten nicht (Ultra), brechen ganze Gruppen um. Jeder Ring ist ein eigenes VoiceOver-Element.
+/// kleinsten nicht (Ultra), brechen ganze Gruppen um. In fester Höhe (Kachel des Baukastens) wachsen sie nur, soweit die
+/// Höhe reicht, und passen umgebrochene Zeilen nicht hinein, bleibt es bei einer Zeile mit kleineren Ringen. Jeder Ring
+/// ist ein eigenes VoiceOver-Element.
 public struct CoreRingBoard: View {
     public struct Ring: Identifiable, Sendable, Equatable {
         public let id: Int
@@ -161,22 +163,40 @@ public struct CoreRingBoard: View {
 
     /// Passen alle Gruppen mit den kleinsten Ringen in eine Zeile, wachsen die Ringe auf ganze Punkte, bis die Zeile die
     /// Breite füllt oder die Obergrenze erreicht ist. Sonst bleiben sie klein, und ganze Gruppen brechen um.
-    nonisolated static func arrangement(ringCounts: [Int], width: CGFloat) -> Arrangement {
+    ///
+    /// Mit `height` (feste Höhe einer Kachel) wachsen die Ringe höchstens bis `height − overhead`; `overhead` ist die
+    /// Höhe einer Gruppe ohne Ring (Kürzel und Abstand). Passen umgebrochene Zeilen nicht in die Höhe, stehen alle Gruppen
+    /// in einer Zeile mit so großen Ringen, wie Breite und Höhe erlauben.
+    nonisolated static func arrangement(ringCounts: [Int], width: CGFloat, height: CGFloat? = nil,
+                                        overhead: CGFloat = 0) -> Arrangement {
         let minimum = InstrumentSize.coreRing
         let rings = ringCounts.reduce(0, +)
         guard rings > 0, width.isFinite else {
             return Arrangement(ringSize: minimum, lines: ringCounts.isEmpty ? [] : [Array(ringCounts.indices)])
         }
+        let oneLine = [Array(ringCounts.indices)]
+        let tallest = height.flatMap { $0.isFinite ? ($0 - overhead).rounded(.down) : nil }
         let gaps = CGFloat(ringCounts.count - 1) * groupSpacing
             + ringCounts.map { groupWidth(rings: $0, ringSize: 0) }.reduce(0, +)
         let fitting = ((width - gaps) / CGFloat(rings)).rounded(.down)
         if fitting >= minimum {
-            return Arrangement(ringSize: min(fitting, InstrumentSize.coreRingWide), lines: [Array(ringCounts.indices)])
+            let size = min(fitting, InstrumentSize.coreRingWide, tallest ?? .infinity)
+            return Arrangement(ringSize: max(size, 1), lines: oneLine)
         }
+        let lines = wrapped(ringCounts: ringCounts, width: width, ringSize: minimum)
+        let wrappedHeight = CGFloat(lines.count) * (overhead + minimum) + CGFloat(lines.count - 1) * lineSpacing
+        if let height, height.isFinite, wrappedHeight > height {
+            return Arrangement(ringSize: max(min(fitting, tallest ?? fitting), 1), lines: oneLine)
+        }
+        return Arrangement(ringSize: minimum, lines: lines)
+    }
+
+    /// Ganze Gruppen je Zeile, so viele, wie mit Ringen der Größe `ringSize` in die Breite passen.
+    private nonisolated static func wrapped(ringCounts: [Int], width: CGFloat, ringSize: CGFloat) -> [[Int]] {
         var lines: [[Int]] = [[]]
         var used: CGFloat = 0
         for (index, count) in ringCounts.enumerated() {
-            let groupWidth = groupWidth(rings: count, ringSize: minimum)
+            let groupWidth = groupWidth(rings: count, ringSize: ringSize)
             if !lines[lines.count - 1].isEmpty, used + groupSpacing + groupWidth > width {
                 lines.append([])
                 used = 0
@@ -184,7 +204,7 @@ public struct CoreRingBoard: View {
             used += (lines[lines.count - 1].isEmpty ? 0 : groupSpacing) + groupWidth
             lines[lines.count - 1].append(index)
         }
-        return Arrangement(ringSize: minimum, lines: lines)
+        return lines
     }
 }
 
@@ -194,20 +214,32 @@ private struct CoreRingFlow: Layout {
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let width = proposal.width.flatMap { $0.isFinite ? $0 : nil }
-        let frames = frames(width: width ?? .infinity, subviews: subviews)
+        let frames = frames(width: width ?? .infinity, height: proposal.height, subviews: subviews)
         return CGSize(width: width ?? frames.map(\.maxX).max() ?? 0, height: frames.map(\.maxY).max() ?? 0)
     }
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        for (subview, frame) in zip(subviews, frames(width: bounds.width, subviews: subviews)) {
+        // Die Höhe des Vorschlags, nicht die der Grenzen: So stehen die Ringe so groß, wie `sizeThatFits` sie gemeldet hat.
+        for (subview, frame) in zip(subviews, frames(width: bounds.width, height: proposal.height, subviews: subviews)) {
             subview.place(at: CGPoint(x: bounds.minX + frame.minX, y: bounds.minY + frame.minY),
                           proposal: ProposedViewSize(frame.size))
         }
     }
 
-    private func frames(width: CGFloat, subviews: Subviews) -> [CGRect] {
+    /// Höhe einer Gruppe ohne Ring: Kürzel und Abstand, gemessen mit den kleinsten Ringen.
+    private func overhead(of subviews: Subviews) -> CGFloat {
+        let ring = InstrumentSize.coreRing
+        return zip(subviews, ringCounts).map { subview, count in
+            let width = CoreRingBoard.groupWidth(rings: count, ringSize: ring)
+            return subview.sizeThatFits(ProposedViewSize(width: width, height: nil)).height - ring
+        }.max() ?? 0
+    }
+
+    private func frames(width: CGFloat, height: CGFloat?, subviews: Subviews) -> [CGRect] {
         guard subviews.count == ringCounts.count else { return [] }
-        let arrangement = CoreRingBoard.arrangement(ringCounts: ringCounts, width: width)
+        let height = height.flatMap { $0.isFinite ? $0 : nil }
+        let arrangement = CoreRingBoard.arrangement(ringCounts: ringCounts, width: width, height: height,
+                                                    overhead: height == nil ? 0 : overhead(of: subviews))
         var frames = Array(repeating: CGRect.zero, count: subviews.count)
         var top: CGFloat = 0
         for line in arrangement.lines {

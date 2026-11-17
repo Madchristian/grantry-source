@@ -14,11 +14,8 @@ struct AutostartView: View {
     var body: some View {
         let presentation = appModel.presentation
         InventoryBoard(head: AutostartBoardMapping.head(presentation, scannedAt: appModel.monitoring.snapshot?.takenAt)) {
-            VStack(alignment: .leading, spacing: 0) {
-                if let coverage { AreaCoverageBar(coverage: coverage) }
-                FlaggedNoticeBar(breakdown: presentation?.metrics.flagged, area: .autostart,
-                                 filter: window.filter(for: .autostart).findings)
-            }
+            InventoryCoverageControls(coverage: coverage, flagged: presentation?.metrics.flagged, area: .autostart,
+                                      filter: window.filter(for: .autostart).findings)
         } list: {
             list(presentation)
         } detail: {

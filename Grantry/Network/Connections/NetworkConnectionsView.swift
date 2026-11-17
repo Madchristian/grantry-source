@@ -19,6 +19,8 @@ struct NetworkConnectionsView: View {
     @State private var filter = NetworkConnectionFilter.all
     @State private var grouping = NetworkConnectionGrouping.reach
     @State private var query = ""
+    /// Klickfilter aus Bogenfächer (#633) und Radar (#640); nicht gespeichert, gelten bis zum Verlassen der Ansicht.
+    @State private var picks = NetworkPickFilters()
     @State private var selection: NetworkSocketRow.ID?
 
     private var model: NetworkActivityModel { appModel.networkActivity }
@@ -26,6 +28,7 @@ struct NetworkConnectionsView: View {
 
     var body: some View {
         let presentation = NetworkConnectionsPresentation(frame: model.frame, filter: filter, query: query,
+                                                          destination: picks.destination, echo: picks.echo,
                                                           regions: Self.regions)
         let verdict = presentation.verdict(firewallOn: firewallOn)
         VStack(spacing: 0) {
@@ -38,7 +41,8 @@ struct NetworkConnectionsView: View {
                 .padding([.horizontal, .top], InstrumentSpacing.page)
             NetworkConnectionsBoard(
                 presentation: presentation, total: model.frame.report.total, history: model.frame.report.history,
-                filter: $filter, grouping: $grouping, query: $query, selection: $selection,
+                filter: $filter, grouping: $grouping, query: $query, picks: $picks,
+                selection: $selection,
                 visibility: String(localized: "alle Benutzer"), countryDataDate: Self.regions.dataDate
             ) {
                 ActionResultContainer(actions: appModel.actions, context: .network) {
@@ -77,6 +81,8 @@ struct NetworkConnectionsView: View {
                                    description: Text("Ohne nettop zeigt Grantry keine Verbindungen."))
         } else if presentation.all.isEmpty {
             ProgressView("Messe Sockets …")
+        } else if let notice = presentation.pickNotice() {
+            NetworkPickFilterEmpty(notice: notice) { picks.clear(notice.kind) }
         } else if !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             ContentUnavailableView.search(text: query)
         } else {

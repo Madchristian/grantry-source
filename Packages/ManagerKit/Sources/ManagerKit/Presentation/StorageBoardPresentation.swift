@@ -28,6 +28,40 @@ extension StoragePresentation {
         count == 1 ? "1 Kategorie" : "\(count) Kategorien"
     }
 
+    /// Rechts in der Zustandszeile (#611): „9 Kategorien · Scan 14:32“; fehlen Kategorien (Scan läuft oder abgebrochen)
+    /// „3 von 9 Kategorien“.
+    public static func categoryFacts(read: Int, total: Int, scannedAt: Date?) -> String {
+        CleanupScanTime.appending(to: categoryProgressText(read: read, total: total), scannedAt: scannedAt)
+    }
+
+    /// „9 Kategorien“, solange alle gelesen sind, sonst „3 von 9 Kategorien“.
+    static func categoryProgressText(read: Int, total: Int) -> String {
+        read >= total ? categoryCountText(read) : "\(read) von \(categoryCountText(total))"
+    }
+
+    /// Stand des letzten Scans neben dem Umschalter.
+    public struct ScanStand: Hashable, Sendable {
+        public let title: String
+        public let detail: String
+        public let isComplete: Bool
+    }
+
+    /// Vollständig nur mit allen `total` Kategorien und allen Ordnern; ein abgebrochener Scan bleibt unvollständig
+    /// (#611). `scannedAt` ist das Ende des letzten nicht abgebrochenen Scans.
+    public static func scanStand(_ reports: [StorageCategoryReport], total: Int, scannedAt: Date?) -> ScanStand {
+        let isComplete = reports.count >= total && isComplete(reports)
+        let detail = CleanupScanTime.appending(to: categoryProgressText(read: reports.count, total: total) + " gelesen",
+                                               scannedAt: scannedAt)
+        return ScanStand(title: isComplete ? "Scan vollständig" : "Scan unvollständig", detail: detail,
+                         isComplete: isComplete)
+    }
+
+    /// Risiko neben einem wählbaren Eintrag wie im Entwurf: nur, wenn es von „gering“ abweicht – solche Einträge sind
+    /// nie vorausgewählt. Einträge tragen das Risiko ihrer Kategorie.
+    public static func entryRiskText(_ risk: StorageRisk) -> String? {
+        risk == .medium ? riskText(risk) : nil
+    }
+
     /// Alle Kategorien gelesen, alle Ordner erfasst – sonst keine Entwarnung.
     public static func isComplete(_ reports: [StorageCategoryReport]) -> Bool {
         uncoveredPaths(reports).isEmpty && !reports.contains { report in

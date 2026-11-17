@@ -6,7 +6,8 @@ import CoreGraphics
 ///
 /// Die Äste stehen in der übergebenen Reihenfolge. Fasst die Höhe nicht alle, steht der letzte Platz als Sammel-Ast
 /// „+n“ für den Rest; ebenso das letzte Blatt eines Asts. Beschriftungen stehen rechts neben ihrem Punkt und werden
-/// gekürzt, bis sie in ihre Spalte passen. Die Liste für VoiceOver nennt weiter jeden Eintrag einzeln.
+/// gekürzt, bis sie in ihre Spalte passen. Die Liste für VoiceOver nennt weiter jeden Eintrag einzeln. Jeder Ast hat
+/// eine Klickfläche über Punkt und Beschriftung (#633); der Sammel-Ast vertritt die Äste, die keinen Platz fanden.
 struct ArcFanLayout: Equatable {
     struct Leaf: Hashable {
         let id: String
@@ -43,6 +44,12 @@ struct ArcFanLayout: Equatable {
         /// Beginn der zweiten Fächerstufe hinter der Beschriftung; `nil` ohne Blätter.
         let stem: CGPoint?
         let leaves: [LeafMark]
+        /// Kennungen der Äste, für die der Punkt steht: der Ast selbst bzw. beim Sammel-Ast alle zusammengefassten.
+        let members: [String]
+        /// Fläche der Beschriftung rechts neben dem Punkt.
+        let captionFrame: CGRect
+        /// Klickfläche: eine Zeile hoch, vom Punkt bis zum Ende der Beschriftung.
+        let hitFrame: CGRect
     }
 
     /// Mittelpunkt des Ursprungs am linken Rand.
@@ -71,6 +78,8 @@ struct ArcFanLayout: Equatable {
     /// Linienstärke des leichtesten und des schwersten Asts.
     static let minimumLine: CGFloat = 1
     static let maximumLine: CGFloat = 6
+    /// Abstand der Klickflächen benachbarter Äste zur Zeilengrenze.
+    static let hitInset: CGFloat = 0.5
     /// Kürzeste gekürzte Beschriftung in Zeichen.
     static let shortestLabel = 3
 
@@ -98,15 +107,21 @@ struct ArcFanLayout: Equatable {
             row += item.rowCount
             let point = CGPoint(x: branchX, y: rows.reduce(0, +) / CGFloat(rows.count))
             let caption = Self.caption(item.label, weight: item.weight, limit: branchLimit, measure: measure)
-            let stem = item.leaves.isEmpty ? nil : CGPoint(
-                x: branchX + Self.captionOffset + measure.label(caption).width + Self.stemGap, y: point.y)
+            let captionSize = measure.label(caption)
+            let captionFrame = CGRect(x: branchX + Self.captionOffset, y: point.y - captionSize.height / 2,
+                                      width: captionSize.width, height: captionSize.height)
+            let stem = item.leaves.isEmpty ? nil : CGPoint(x: captionFrame.maxX + Self.stemGap, y: point.y)
             let leaves = zip(item.leaves, rows).map { leaf, y in
                 LeafMark(id: leaf.id, caption: Self.caption(leaf.label, weight: leaf.weight, limit: leafLimit,
                                                             measure: measure),
                          point: CGPoint(x: leafX, y: y), isSummary: leaf.isSummary)
             }
+            // Eine Zeile hoch, um einen halben Punkt eingerückt, damit benachbarte Flächen sich nicht berühren.
+            let hitFrame = CGRect(x: branchX - pitch / 2, y: point.y - pitch / 2 + Self.hitInset,
+                                  width: captionFrame.maxX - branchX + pitch / 2, height: pitch - 2 * Self.hitInset)
             return Mark(id: item.id, caption: caption, weight: item.weight, isSummary: item.isSummary, point: point,
-                        lineWidth: Self.lineWidth(weight: item.weight, heaviest: heaviest), stem: stem, leaves: leaves)
+                        lineWidth: Self.lineWidth(weight: item.weight, heaviest: heaviest), stem: stem, leaves: leaves,
+                        members: item.members, captionFrame: captionFrame, hitFrame: hitFrame)
         }
     }
 
@@ -141,6 +156,7 @@ struct ArcFanLayout: Equatable {
         let weight: Int
         let isSummary: Bool
         let leaves: [PlannedLeaf]
+        let members: [String]
 
         var rowCount: Int { max(leaves.count, 1) }
     }
@@ -156,14 +172,14 @@ struct ArcFanLayout: Equatable {
             guard free >= 1 else { break }
             let leaves = withLeaves ? planned(branch.leaves, of: branch.id, limit: min(leafCapacity, free)) : []
             let item = PlannedBranch(id: branch.id, label: branch.label, weight: branch.weight, isSummary: false,
-                                     leaves: leaves)
+                                     leaves: leaves, members: [branch.id])
             result.append(item)
             used += item.rowCount
         }
         let rest = branches.dropFirst(result.count)
         if !rest.isEmpty {
             result.append(PlannedBranch(id: summaryID, label: "+\(rest.count)", weight: rest.reduce(0) { $0 + $1.weight },
-                                        isSummary: true, leaves: []))
+                                        isSummary: true, leaves: [], members: rest.map(\.id)))
         }
         return result
     }

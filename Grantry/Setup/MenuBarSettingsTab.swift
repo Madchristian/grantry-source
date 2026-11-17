@@ -4,8 +4,8 @@ import SwiftUI
 
 /// Tab „Menüleiste“ der Einstellungen (TM17, Spec 2026-11-09 § 4) im Lagebild (LB-5.2, #553): Live-Vorschau der
 /// eingeschalteten Elemente mit derselben Zeichnung wie in der Menüleiste auf der Mulde, je Element Schalter und
-/// Darstellung, die Karten der Übersicht als Häkchen (Mehrfachauswahl, Spec 2026-11-10 § 11.5 b), dazu Kurzbezeichnung
-/// und Takt.
+/// Darstellung, dazu Kurzbezeichnung und Takt. Ist die Übersicht an, öffnet „Übersicht anpassen …“ den Editor ihrer
+/// Tafel (Spec 2026-11-09-uebersicht-baukasten § 5, E3).
 struct MenuBarSettingsTab: View {
     let meters: MenuBarMetersModel
     @Bindable var taskManager: TaskManagerModel
@@ -15,7 +15,7 @@ struct MenuBarSettingsTab: View {
             MenuBarPreviewPanel(meters: meters, taskManager: taskManager)
             MenuBarMeterPanel(meters: meters)
             if meters.isShown(.overview) {
-                MenuBarOverviewCardSettings(meters: meters)
+                MenuBarOverviewBoardSettings(meters: meters, taskManager: taskManager)
             }
             SettingsPanel(String(localized: "Anzeige"), detail: String(localized: "Kurzbezeichnung und Takt")) {
                 SettingToggle(String(localized: "Kurzbezeichnung zeigen (CPU, GPU, RAM …)"),
@@ -153,28 +153,65 @@ private struct MenuBarMeterSettingsRow: View {
     }
 }
 
-/// Karten der Übersicht (#495) ein- und ausblenden; ausgeblendete Karten rechnet das Popover nicht. Häkchen statt
-/// Schalter, weil es eine Mehrfachauswahl ist (Spec 2026-11-10 § 11.5 b).
-private struct MenuBarOverviewCardSettings: View {
+/// Tafel der Übersicht: Anzahl der Kacheln und Einstieg in denselben Editor wie im Popover.
+private struct MenuBarOverviewBoardSettings: View {
     let meters: MenuBarMetersModel
-
-    private static let columns = Array(repeating: GridItem(.flexible(), spacing: InstrumentSpacing.group,
-                                                           alignment: .leading), count: 3)
+    let taskManager: TaskManagerModel
+    @State private var isEditing = false
 
     var body: some View {
-        SettingsPanel(String(localized: "Karten der Übersicht"), detail: String(localized: "im Popover „Übersicht“")) {
-            LazyVGrid(columns: Self.columns, alignment: .leading, spacing: InstrumentSpacing.item) {
-                ForEach(MenuBarOverviewCard.allCases) { card in
-                    Toggle(isOn: Binding(get: { meters.isCardShown(card) },
-                                         set: { meters.setCardShown($0, for: card) })) {
-                        Text(verbatim: card.title)
-                    }
-                    .toggleStyle(.checkbox)
-                    .font(InstrumentFont.body)
-                    .accessibilityIdentifier("menuBarOverviewCard.\(card.rawValue)")
-                }
+        let count = meters.overviewLayout.tiles.count
+        SettingsPanel(String(localized: "Tafel der Übersicht"), detail: String(localized: "im Popover „Übersicht“")) {
+            SettingActionLine(count == 1 ? String(localized: "1 Kachel") : String(localized: "\(count) Kacheln")) {
+                Button("Übersicht anpassen …") { isEditing = true }
+                    .accessibilityIdentifier("menuBarOverview.customize")
             }
-            InstrumentNote(String(localized: "Fehlt eine Messung auf diesem Mac (etwa Akku oder GPU), fehlt auch ihre Karte."))
+            InstrumentNote(String(localized: """
+            Kacheln wählen, anordnen und in der Größe ändern – auch im Popover über „Anpassen“. Gemessen wird nur, was \
+            auf der Tafel liegt.
+            """))
+        }
+        .sheet(isPresented: $isEditing) {
+            OverviewBoardEditorSheet(meters: meters, taskManager: taskManager) { isEditing = false }
+        }
+    }
+}
+
+/// Editor der Tafel im Blatt der Einstellungen, mit den aktuellen Messwerten: misst wie das offene Popover nur die
+/// Quellen der Kacheln auf der Tafel, solange das Blatt offen ist.
+private struct OverviewBoardEditorSheet: View {
+    let meters: MenuBarMetersModel
+    let taskManager: TaskManagerModel
+    let done: () -> Void
+    @State private var isOpen = false
+    @State private var startupVolume: VolumeUsage?
+
+    var body: some View {
+        let editing = meters.overviewEditing
+        let context = isOpen ? MenuBarOverviewContext(board: meters.overviewLayout, sensors: nil,
+                                                      startupVolume: startupVolume)
+            : MenuBarOverviewContext(tiles: Set(meters.overviewLayout.tiles.map(\.kind)))
+        VStack(alignment: .leading, spacing: InstrumentSpacing.panel) {
+            PeilHead(String(localized: "Übersicht anpassen"))
+            ScrollView {
+                OverviewBoardEditor(layout: editing.layout, configured: editing.configured,
+                                    source: TaskManagerMenuBarPopover.source(
+                                        frame: taskManager.latestFrame, measuredAt: taskManager.latestFrameDate,
+                                        profile: .current, context: context, isLive: isOpen),
+                                    metrics: TaskManagerMenuBarPopover.boardMetrics, done: done)
+            }
+        }
+        .padding(InstrumentSpacing.page)
+        .frame(width: TaskManagerMenuBarPopover.width, height: 640)
+        .instrumentBackground()
+        .readsStartupVolume(for: meters.overviewLayout, while: isOpen, into: $startupVolume)
+        .onAppear {
+            isOpen = true
+            meters.beginOverviewMeasurement()
+        }
+        .onDisappear {
+            isOpen = false
+            meters.endOverviewMeasurement()
         }
     }
 }

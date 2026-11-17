@@ -24,7 +24,7 @@ import Testing
     }()
 
     static func layout(_ entries: [RingRadarLayout.Entry], size: CGSize, isExpanded: Bool = false,
-                       preferred: String? = nil) -> RingRadarLayout {
+                       preferred: Set<String> = []) -> RingRadarLayout {
         RingRadarLayout(size: size, rings: reachRings, entries: entries, isExpanded: isExpanded, preferred: preferred,
                         measure: measure)
     }
@@ -159,7 +159,7 @@ import Testing
     /// Das gewählte Echo bekommt seinen Platz zuerst und behält die volle Beschriftung.
     @Test func preferredEntryKeepsItsFullCaption() {
         let entries = (0..<8).map { RingRadarLayout.Entry(id: "\($0)", label: "ein-langer-programmname-\($0)", ring: 0) }
-        let layout = Self.layout(entries, size: Self.cardSize, preferred: "7")
+        let layout = Self.layout(entries, size: Self.cardSize, preferred: ["7"])
         #expect(layout.marks.first { $0.id == "7" }?.caption?.text == "ein-langer-programmname-7")
         #expect(Self.overlaps(in: layout, size: Self.cardSize) == [])
     }
@@ -189,6 +189,33 @@ import Testing
         #expect(layout.titlePoints[2].y > layout.center.y - layout.radii[2])
     }
 
+    // MARK: Klickflächen (#640)
+
+    /// Das Sammel-Echo steht für die Echos, die keinen Platz fanden; jedes andere für sich selbst.
+    @Test func summaryEchoNamesItsMembers() throws {
+        let entries = (0..<12).map { RingRadarLayout.Entry(id: "\($0)", label: "p\($0)", ring: 2) }
+        let layout = Self.layout(entries, size: Self.cardSize)
+        let summary = try #require(layout.marks.last)
+        #expect(summary.isSummary)
+        #expect(summary.members == (ReachRadar.maximumPerRing - 1..<12).map { "\($0)" })
+        #expect(layout.marks.dropLast().allSatisfy { $0.members == [$0.id] })
+    }
+
+    /// Jede Klickfläche deckt Punkt und Beschriftung und erreicht keinen fremden Punkt – in der Karte und vergrößert.
+    @Test(arguments: [false, true])
+    func hitFramesCoverPointAndCaption(isExpanded: Bool) {
+        let size = isExpanded ? Self.pageSize : Self.cardSize
+        let layout = Self.layout(Self.reported, size: size, isExpanded: isExpanded)
+        for mark in layout.marks {
+            #expect(mark.hitFrame.contains(mark.point))
+            #expect(mark.hitFrame.width >= RingRadarLayout.hitSize)
+            if let caption = mark.caption { #expect(mark.hitFrame.contains(caption.frame)) }
+            for other in layout.marks where other.id != mark.id {
+                #expect(!mark.hitFrame.contains(other.point), "\(mark.label) erreicht \(other.label)")
+            }
+        }
+    }
+
     // MARK: VoiceOver und Knopf
 
     /// VoiceOver liest jedes Echo einzeln von innen nach außen, auch die im Bild zusammengefassten.
@@ -197,7 +224,7 @@ import Testing
         let echoes = [RingRadar.Echo(id: "a", label: "a", ring: 1), RingRadar.Echo(id: "b", label: "b", ring: 0),
                       RingRadar.Echo(id: "c", label: "c", ring: 0, accessibilityLabel: "c, eigener Text"),
                       RingRadar.Echo(id: "x", label: "x", ring: 7)]
-        #expect(RingRadar.spoken(echoes, rings: rings).map(\.text) == ["b, innen", "c, eigener Text", "a, außen"])
+        #expect(RingRadar.spoken(echoes, rings: rings).map(\.plainText) == ["b, innen", "c, eigener Text", "a, außen"])
     }
 
     @Test func expandButtonNamesItsCardAndState() {

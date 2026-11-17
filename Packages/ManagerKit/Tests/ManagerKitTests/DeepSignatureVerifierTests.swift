@@ -264,6 +264,81 @@ struct DeepSignatureVerifierTests {
         }
     }
 
+    /// #649: Alter der letzten Komplettprüfung je Baum (nach der Uhr des Verifiers). Vollständige Revalidierung (Vollscan
+    /// oder Plan) und abgeschlossene Tiefenprüfung setzen es zurück, die Bundle-Stempel der Teilscans nicht; ein
+    /// veränderter Baum verliert es.
+    @Test func completeChecksAreDatedOnlyByCompleteTreeRevalidation() async throws {
+        try await ScratchDirectory.with(prefix: "deep-dates") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Dated", adHoc: true, resources: ["config.txt": "x"])
+            let clock = TestClock()
+            let verifier = DeepSignatureVerifier(validator: ScriptedSignatureValidator(), clock: clock)
+            #expect(await verifier.completeCheckAges(for: [bundle.path]).isEmpty)
+            #expect(await verifier.verify(path: bundle.path) == .valid)
+            #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 0])
+
+            clock.advance(by: .seconds(60))
+            #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata) == [bundle.path: .valid])
+            #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 60],
+                    "Bundle-Stempel sind keine Komplettprüfung")
+
+            clock.advance(by: .seconds(60))
+            #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .completeTree) == [bundle.path: .valid])
+            #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 0])
+
+            clock.advance(by: .seconds(60))
+            #expect(await verifier.revalidateTree(at: bundle.path) == .valid)
+            #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 0])
+
+            try Data("neu".utf8).write(to: bundle.appending(path: "Contents/Resources/config.txt"))
+            #expect(await verifier.revalidateTree(at: bundle.path) == nil, "veränderter Baum braucht die Tiefenprüfung")
+            #expect(await verifier.completeCheckAges(for: [bundle.path]).isEmpty, "nie als aktuell geprüft")
+            #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata).isEmpty,
+                    "auch kein Teilscan übernimmt das alte Urteil")
+        }
+    }
+
+    /// Codex-Review zu PR 655: Das Prüfalter folgt der monotonen Uhr, nicht der Wanduhr – ein Rück- oder Vorsprung der
+    /// Systemzeit ändert es nicht.
+    @Test func completeCheckAgesFollowTheMonotonicClockNotTheWallClock() async throws {
+        try await ScratchDirectory.with(prefix: "deep-monotonic") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Monotonic", adHoc: true)
+            let wall = ManualClock()
+            let clock = TestClock()
+            let verifier = DeepSignatureVerifier(validator: ScriptedSignatureValidator(), now: { wall.now }, clock: clock)
+            #expect(await verifier.verify(path: bundle.path) == .valid)
+            wall.advance(by: -600)
+            #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 0])
+            clock.advance(by: .seconds(60))
+            wall.advance(by: 7_200)
+            #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 60])
+        }
+    }
+
+    /// Die verteilte Revalidierung (#649) liest genau einen Baum, mit Hintergrund-Priorität.
+    @Test func revalidateTreeReadsOneTreeInTheBackground() async throws {
+        try await ScratchDirectory.with(prefix: "deep-one-tree") { directory in
+            let first = try Codesign.bundle(in: directory, named: "First", adHoc: true)
+            let second = try Codesign.bundle(in: directory, named: "Second", adHoc: true)
+            let trees = CountingTreeFingerprint()
+            let verifier = DeepSignatureVerifier(validator: ScriptedSignatureValidator(), treeFingerprint: trees.reader)
+            _ = await verifier.verify(path: first.path)
+            _ = await verifier.verify(path: second.path)
+            let before = trees.count
+
+            #expect(await verifier.revalidateTree(at: second.path) == .valid)
+            #expect(trees.count == before + 1)
+            #expect(trees.reads.last?.path == second.path)
+            #expect(trees.reads.last?.qos == QOS_CLASS_BACKGROUND, "\(trees.reads.map(\.qos.rawValue))")
+        }
+    }
+
+    /// Ein fehlendes Ziel ist abschließend geprüft (nichts zu prüfen) und bleibt kein Dauer-Kandidat des Plans.
+    @Test func missingTargetIsCompletelyChecked() async {
+        let verifier = DeepSignatureVerifier(validator: ScriptedSignatureValidator(), clock: TestClock())
+        #expect(await verifier.verify(path: "/does/not/exist.app") == .unverifiable)
+        #expect(await verifier.completeCheckAges(for: ["/does/not/exist.app"]) == ["/does/not/exist.app": 0])
+    }
+
     @Test func changesDuringValidationNeverBecomeCachedSuccess() async throws {
         try await ScratchDirectory.with(prefix: "deep-changing") { directory in
             let path = try files(1, in: directory)[0]
@@ -275,6 +350,7 @@ struct DeepSignatureVerifierTests {
             try Data("changed".utf8).write(to: URL(fileURLWithPath: path))
             validator.release()
             #expect(await request.value == .unverifiable)
+            #expect(await verifier.completeCheckAges(for: [path]).isEmpty, "nie als aktuell geprüft (#649)")
             #expect(await verifier.cachedVerdicts(for: [path]).isEmpty)
         }
     }
@@ -300,6 +376,46 @@ struct DeepSignatureVerifierTests {
             try Data("x".utf8).write(to: inside)
             try FileManager.default.createSymbolicLink(at: link, withDestinationURL: inside)
             #expect(CodeTreeFingerprint.read(at: bundle.path) != nil, "interne Framework-Links sind cachebar")
+        }
+    }
+
+    /// #650: Ein verwaister Link, dessen fehlendes Ziel im Baum liegt, macht den Baum nicht mehr uncachebar: Der
+    /// unveränderte Baum kommt aus dem Cache. Entsteht das Ziel später, ist das ein neuer Eintrag im Baum, der
+    /// Fingerabdruck ändert sich, und die Tiefenprüfung prüft erneut.
+    @Test func danglingLinkInsideTheTreeIsCacheableUntilItsTargetAppears() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "deep-dangling") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Dangling", adHoc: true)
+            let framework = try Codesign.frameworkWithDanglingLink(in: bundle)
+            let validator = ScriptedSignatureValidator()
+            let verifier = DeepSignatureVerifier(validator: validator, treeFingerprint: CountingTreeFingerprint.canonical)
+            #expect(await verifier.verify(path: bundle.path) == .valid)
+            #expect(await verifier.cachedVerdicts(for: [bundle.path]) == [bundle.path: .valid], "unveränderter Baum")
+            #expect(await verifier.verify(path: bundle.path) == .valid)
+            #expect(validator.calls.count == 1, "keine zweite volle Prüfung")
+
+            let headers = framework.appending(path: "Versions/8.6/PrivateHeaders")
+            try FileManager.default.createDirectory(at: headers, withIntermediateDirectories: true)
+            try Data("x".utf8).write(to: headers.appending(path: "injected.h"))
+            #expect(await verifier.cachedVerdicts(for: [bundle.path]).isEmpty, "Ziel entstanden: Fingerabdruck geändert")
+            _ = await verifier.verify(path: bundle.path)
+            #expect(validator.calls.count == 2)
+        }
+    }
+
+    /// Ersetzter verwaister Link ändert den Fingerabdruck; ein verwaistes Ziel außerhalb des Baums bleibt nicht cachebar.
+    @Test func danglingLinkOutsideTheTreeOrReplacedIsNotTrusted() throws {
+        try ScratchDirectory.withCanonical(prefix: "deep-dangling-out") { directory in
+            let bundle = try Codesign.bundle(in: directory, named: "Dangling", adHoc: true)
+            let framework = try Codesign.frameworkWithDanglingLink(in: bundle)
+            let before = try #require(CodeTreeFingerprint.read(at: bundle.path))
+            let link = framework.appending(path: "PrivateHeaders").path
+            try FileManager.default.removeItem(atPath: link)
+            try FileManager.default.createSymbolicLink(atPath: link, withDestinationPath: "Versions/Current/Headers")
+            #expect(CodeTreeFingerprint.read(at: bundle.path) != before, "ersetzter Link")
+
+            try FileManager.default.createSymbolicLink(atPath: bundle.appending(path: "Contents/outside").path,
+                                                       withDestinationPath: "../../fehlt-ausserhalb")
+            #expect(CodeTreeFingerprint.read(at: bundle.path) == nil, "fehlendes Ziel außerhalb des Baums")
         }
     }
 

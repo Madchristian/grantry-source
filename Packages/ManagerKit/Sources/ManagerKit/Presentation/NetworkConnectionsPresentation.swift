@@ -197,9 +197,13 @@ public struct NetworkConnectionCounts: Hashable, Sendable {
 public struct NetworkConnectionsPresentation: Hashable, Sendable {
     /// Alle Sockets, auch die eben geschlossenen.
     public let all: [NetworkSocketRow]
-    /// Sichtbare Zeilen nach Filter und Suche.
+    /// Sichtbare Zeilen nach Filter, Suche und Klickfiltern.
     public let rows: [NetworkSocketRow]
     public let counts: NetworkConnectionCounts
+    /// Ziele aus dem Bogenfächer, auf die die Tabelle zusätzlich gefiltert ist (#633); `nil` ohne.
+    public let destinationFilter: NetworkDestinationFilter?
+    /// Programme aus dem Radar „Erreichbarkeit“, auf die die Tabelle zusätzlich gefiltert ist (#640); `nil` ohne.
+    public let echoFilter: NetworkEchoFilter?
 
     public static let empty = NetworkConnectionsPresentation(frame: .empty, filter: .all, query: "")
 
@@ -237,14 +241,22 @@ public struct NetworkConnectionsPresentation: Hashable, Sendable {
 
     /// - Parameters:
     ///   - query: Teil des Prozessnamens oder eine Portnummer.
+    ///   - destination: Ziele aus dem Bogenfächer; wirkt zusätzlich zu Segment und Suche.
+    ///   - echo: Programme aus dem Radar „Erreichbarkeit“; wirkt zusätzlich zu Segment, Suche und Zielfilter.
     ///   - userName: Kurzname zur UID des Prozesses.
     ///   - regions: ordnet Gegenstellen offline ihrem Land zu; ohne Tabelle bleiben öffentliche Adressen unbekannt.
     public init(frame: ActivityFrame, filter: NetworkConnectionFilter, query: String,
+                destination: NetworkDestinationFilter? = nil, echo: NetworkEchoFilter? = nil,
                 userName: (UInt32) -> String = UserNameCache.shared.name(for:),
                 regions: RemoteRegionResolver = .unavailable) {
         all = Self.rows(frame: frame, userName: userName, regions: regions)
+        destinationFilter = destination
+        echoFilter = echo
         let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        rows = all.filter { filter.includes($0) && (query.isEmpty || $0.matches(query)) }
+        rows = all.filter {
+            filter.includes($0) && (query.isEmpty || $0.matches(query)) && destination?.includes($0) != false
+                && echo?.includes($0) != false
+        }
         let open = all.filter { !$0.isGone }
         counts = NetworkConnectionCounts(
             sockets: open.count,
@@ -252,6 +264,24 @@ public struct NetworkConnectionsPresentation: Hashable, Sendable {
             exposed: open.count(where: \.isExposed),
             processes: Set(open.map(\.process)).count
         )
+    }
+
+    /// Ob zu keinem Ziel des Zielfilters mehr eine Verbindung offen ist; der Filter bleibt trotzdem stehen.
+    public var isFilteredDestinationGone: Bool { destinationFilter?.isGone(in: all) ?? false }
+
+    /// Ob keines der Programme des Programmfilters mehr offen ist; der Filter bleibt trotzdem stehen.
+    public var isFilteredEchoGone: Bool { echoFilter?.isGone(in: all) ?? false }
+
+    /// Die Klickfilter zusammen.
+    public var picks: NetworkPickFilters { NetworkPickFilters(destination: destinationFilter, echo: echoFilter) }
+
+    /// Hinweis für die leere Tabelle mit Klickfilter: zuerst ein Filter, dessen Gefiltertes verschwunden ist, sonst
+    /// der Programmfilter vor dem Zielfilter; `nil` ohne Klickfilter.
+    public func pickNotice(locale: Locale = .current) -> NetworkPickNotice? {
+        let candidates = picks.active
+        let gone = candidates.first { $0.filter.isGone(in: all) }
+        guard let (kind, filter) = gone ?? candidates.first else { return nil }
+        return NetworkPickNotice(kind: kind, message: filter.emptyMessage(isGone: gone != nil, locale: locale))
     }
 
     /// Zeile mit `id` unter allen Sockets, unabhängig von Filter und Suche.

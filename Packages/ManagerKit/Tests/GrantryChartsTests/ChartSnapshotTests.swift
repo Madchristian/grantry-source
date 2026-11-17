@@ -43,6 +43,13 @@ import Testing
                                  appearance: appearance)
     }
 
+    /// Chip-Tab mit Super-, Leistungs- und Effizienzkernen (#592): Panels und Taktbänder je Kernklasse.
+    @Test(arguments: ChartAppearance.allCases)
+    func chipThreeClasses(_ appearance: ChartAppearance) throws {
+        try ChartSnapshot.verify(SnapshotGallery.chipThreeClasses, named: "chip-drei-klassen",
+                                 size: CGSize(width: 1180, height: 1240), appearance: appearance)
+    }
+
     /// Panel „Takt und Thermik“: mit Helper, mit Drosselung (Befund-Punkt, mehr Cluster), ohne Helper.
     @Test(arguments: ChartAppearance.allCases)
     func clockThermal(_ appearance: ChartAppearance) throws {
@@ -129,7 +136,7 @@ import Testing
     /// Ohne Referenzbilder liefe jeder Vergleich in die Aufzeichnung; sie gehören eingecheckt dazu.
     @Test func everyReferenceIsCheckedIn() throws {
         let names = ["live-graph", "mirror-graph", "memory", "core-grid", "tiles", "metric-cards", "heat-table", "instrument",
-                     "chip", "chip-ultra", "energy-charging", "energy-akkubetrieb", "energy-ladeschutz", "clock-thermal",
+                     "chip", "chip-ultra", "chip-drei-klassen", "energy-charging", "energy-akkubetrieb", "energy-ladeschutz", "clock-thermal",
                      "clock-thermal-throttled", "clock-thermal-without-helper", "verdict-storage"]
         let missing = names.flatMap { name in ChartAppearance.allCases.map { "\(name)-\($0.rawValue).png" } }
             .filter { !FileManager.default.fileExists(atPath: ChartSnapshot.references.appending(path: $0).path) }

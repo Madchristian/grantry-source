@@ -2,9 +2,9 @@ import Foundation
 import Testing
 @testable import GrantryCharts
 
-/// Kernarten in der Übersicht der Menüleiste und im Chip-Tab (#495, Abnahme Christian 09.11.2026): Leistungskerne
-/// (`cpu`) und Effizienzkerne (`efficiencyCores`) müssen sich in hell, dunkel und bei „Kontrast erhöhen“ auch bei
-/// Rot-, Grün- und Blau-Sehschwäche deutlich unterscheiden. Simulation nach Machado, Oliveira und Fernandes (2009,
+/// Kernarten in der Übersicht der Menüleiste und im Chip-Tab (#495, Abnahme Christian 09.11.2026; Super-Kerne #592):
+/// Super-Kerne (`superCores`), Leistungskerne (`cpu`) und Effizienzkerne (`efficiencyCores`) müssen sich paarweise in
+/// hell, dunkel und bei „Kontrast erhöhen“ auch bei Rot-, Grün- und Blau-Sehschwäche deutlich unterscheiden. Simulation nach Machado, Oliveira und Fernandes (2009,
 /// Schweregrad 1), Abstand als euklidischer Abstand in CIELAB.
 @Suite struct ColorVisionTests {
     typealias Matrix = [[Double]]
@@ -51,5 +51,18 @@ import Testing
 
     @Test func performanceAndEfficiencyCoresStayApart() {
         #expect(Self.smallestDistance(.cpu, .efficiencyCores) >= Self.minimumDistance)
+    }
+
+    @Test(arguments: [InstrumentHue.cpu, .efficiencyCores])
+    func superCoresStayApart(from other: InstrumentHue) {
+        #expect(Self.smallestDistance(.superCores, other) >= Self.minimumDistance)
+    }
+
+    /// Jede Kernart hat ihren eigenen Ton; Kernraster, Taktbänder und Menüleiste lesen ihn aus der Art.
+    @Test func everyCoreKindHasItsOwnHue() {
+        #expect(CoreGrid.Cluster.Kind.super.hue == .superCores)
+        #expect(CoreGrid.Cluster.Kind.performance.hue == .cpu)
+        #expect(CoreGrid.Cluster.Kind.efficiency.hue == .efficiencyCores)
+        #expect(CoreGrid.Cluster.Kind.uniform.hue == .cpu)
     }
 }

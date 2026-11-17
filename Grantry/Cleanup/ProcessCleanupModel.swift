@@ -3,9 +3,9 @@ import ManagerKit
 import Observation
 import os
 
-/// Zustand des Segments „Prozesse“ (#221): Scan auf Knopfdruck, Auswahl, Beenden nach Bestätigung, SIGKILL nur nach
-/// zweiter Bestätigung, Ergebnis und Protokoll (`CleanupLog`, geteilt mit „Speicher“). Lebt im `AppModel`; automatisch
-/// wird nie etwas beendet.
+/// Zustand des Segments „Prozesse“ (#221): Scan auf Knopfdruck (abbrechbar, #611), Auswahl, Beenden nach Bestätigung,
+/// SIGKILL nur nach zweiter Bestätigung, Ergebnis und Protokoll (`CleanupLog`, geteilt mit „Speicher“). Lebt im
+/// `AppModel`; automatisch wird nie etwas beendet.
 @MainActor
 @Observable
 final class ProcessCleanupModel {
@@ -21,6 +21,12 @@ final class ProcessCleanupModel {
     /// IDs aus `treeSelectionID(_:)` und `simulatorSelectionID(_:)`.
     var selection: Set<String> = []
     private(set) var lastOutcomes: [ProcessCleanupOutcome] = []
+    /// Der Nutzer hat das Ergebnis-Banner geschlossen; Ausgänge und „Sofort beenden“ bleiben bis zur nächsten Aktion.
+    private(set) var isResultDismissed = false
+    /// Ende des Scans, der `overview` geliefert hat (#611).
+    private(set) var scannedAt: Date?
+    /// Der letzte Scan wurde abgebrochen; `overview` ist dann das frühere vollständige Ergebnis oder `nil`.
+    private(set) var isScanCancelled = false
     /// Leiste über der Prozessliste (#270): Schritte sind die `ProcessScanStep`s.
     let scanProgress = SegmentScanProgress()
 
@@ -28,6 +34,8 @@ final class ProcessCleanupModel {
     @ObservationIgnored private let cleaner: ProcessCleaner
     @ObservationIgnored private let log: CleanupLog
     @ObservationIgnored private var task: Task<Void, Never>?
+    /// Der Scanner blockiert auf einer seriellen Queue: Ein Neustart nach dem Abbruch wartet auf deren Ende (#611).
+    @ObservationIgnored private let scanRunner = SerialScanRunner()
 
     init(scanner: ProcessOverviewScanner = ProcessOverviewScanner(), cleaner: ProcessCleaner = ProcessCleaner(),
          log: CleanupLog) {
@@ -54,30 +62,50 @@ final class ProcessCleanupModel {
     func scan() {
         guard phase != .scanning, phase != .cleaning else { return }
         phase = .scanning
+        isScanCancelled = false
         let step = scanProgress.begin(steps: ProcessScanStep.allCases.map(\.rawValue))
-        task = Task { [weak self, scanner] in
-            let result: Result<ProcessOverview, any Error>
+        scanRunner.start({ [scanner] () async -> Result<ProcessOverview, any Error> in
             do {
-                result = .success(try await scanner.scan { await step($0.map(\.rawValue)) })
+                return .success(try await scanner.scan { await step($0.map(\.rawValue)) })
             } catch {
-                result = .failure(error)
+                return .failure(error)
             }
-            guard let self else { return }
-            switch result {
-            case .success(let overview):
-                let previous = Set(self.overview.map { $0.agentTrees.orphans.map(Self.treeSelectionID) } ?? [])
-                self.overview = overview
-                self.scanError = nil
-                let trees = overview.agentTrees.orphans.map(Self.treeSelectionID)
-                let simulators = overview.simulators.map(Self.simulatorSelectionID)
-                // Gewählte Posten bleiben gewählt; neu gefundene Bäume kommen vorausgewählt dazu.
-                self.selection = self.selection.intersection(trees + simulators).union(trees.filter { !previous.contains($0) })
-            case .failure(let error):
-                self.scanError = error.readableDescription
-            }
-            self.phase = self.overview == nil ? .idle : .scanned
-            self.scanProgress.finish()
+        }) { [weak self] result in
+            self?.show(result, at: .now)
         }
+    }
+
+    /// Bricht den laufenden Scan ab: Ein Teilergebnis gibt es nicht, ein früheres vollständiges Ergebnis bleibt mit
+    /// seiner Zeit stehen. Erneutes Scannen ist sofort möglich; es reicht seine Arbeit erst nach dem Ende der
+    /// abgebrochenen ein (`SerialScanRunner`).
+    func cancelScan() {
+        guard phase == .scanning else { return }
+        scanRunner.cancel()
+        scanProgress.cancel()
+        isScanCancelled = true
+        phase = overview == nil ? .idle : .scanned
+    }
+
+    func dismissResult() {
+        isResultDismissed = true
+    }
+
+    private func show(_ result: Result<ProcessOverview, any Error>, at date: Date) {
+        switch result {
+        case .success(let overview):
+            let previous = Set(self.overview.map { $0.agentTrees.orphans.map(Self.treeSelectionID) } ?? [])
+            self.overview = overview
+            scannedAt = date
+            scanError = nil
+            let trees = overview.agentTrees.orphans.map(Self.treeSelectionID)
+            let simulators = overview.simulators.map(Self.simulatorSelectionID)
+            // Gewählte Posten bleiben gewählt; neu gefundene Bäume kommen vorausgewählt dazu.
+            selection = selection.intersection(trees + simulators).union(trees.filter { !previous.contains($0) })
+        case .failure(let error):
+            scanError = error.readableDescription
+        }
+        phase = overview == nil ? .idle : .scanned
+        scanProgress.finish()
     }
 
     /// Bestätigte Auswahl: Bäume mit SIGTERM (nach Neuprüfung im `ProcessCleaner`), Simulatoren herunterfahren.
@@ -115,6 +143,7 @@ final class ProcessCleanupModel {
             }
             guard let self else { return }
             self.lastOutcomes = outcomes
+            self.isResultDismissed = false
             self.phase = .scanned
             self.scan()
         }

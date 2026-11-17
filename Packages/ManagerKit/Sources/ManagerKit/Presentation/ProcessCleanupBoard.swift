@@ -13,14 +13,18 @@ public struct ProcessCleanupVerdict: Hashable, Sendable {
 
     /// - Parameters:
     ///   - overview: letztes Ergebnis; `nil` vor dem ersten Scan.
+    ///   - isCancelled: der letzte Scan wurde abgebrochen (#611); ohne früheres Ergebnis keine Entwarnung.
     ///   - scanError: Prozesse nicht lesbar.
     ///   - survivorCount: Prozesse, die nach SIGTERM weiterlaufen (`ProcessCleanupModel.forceOffer`).
-    public init(overview: ProcessOverview?, isScanning: Bool, scanError: String?, survivorCount: Int) {
+    public init(overview: ProcessOverview?, isScanning: Bool, isCancelled: Bool = false, scanError: String?,
+                survivorCount: Int) {
         guard let overview else {
             if scanError != nil {
                 self.init(title: Self.incompleteTitle, shield: .finding, items: [], facts: "Prozesse nicht lesbar")
             } else if isScanning {
                 self.init(title: "Scan läuft", shield: .open, items: [], facts: "Prozesse und Simulatoren")
+            } else if isCancelled {
+                self.init(title: "Scan abgebrochen", shield: .open, items: [], facts: "liest nur auf Knopfdruck")
             } else {
                 self.init(title: "Noch nicht gescannt", shield: .open, items: [], facts: "liest nur auf Knopfdruck")
             }
@@ -81,10 +85,23 @@ extension ProcessCleanupPresentation {
         public let isComplete: Bool
     }
 
-    public static func scanState(_ overview: ProcessOverview) -> ScanState {
+    /// - Parameter scannedAt: Ende des Scans, der `overview` geliefert hat; die Zeit steht wie bei den App-Reste im Detail.
+    public static func scanState(_ overview: ProcessOverview, scannedAt: Date?) -> ScanState {
         overview.simulatorError == nil
-            ? ScanState(title: "Scan vollständig", detail: "Prozesse und Simulatoren gelesen", isComplete: true)
-            : ScanState(title: "Scan unvollständig", detail: "Simulatoren nicht lesbar", isComplete: false)
+            ? ScanState(title: "Scan vollständig",
+                        detail: CleanupScanTime.appending(to: "Prozesse und Simulatoren gelesen", scannedAt: scannedAt),
+                        isComplete: true)
+            : ScanState(title: "Scan unvollständig",
+                        detail: CleanupScanTime.appending(to: "Simulatoren nicht lesbar", scannedAt: scannedAt),
+                        isComplete: false)
+    }
+
+    /// Satz im Banner nach einem abgebrochenen Scan (#611): Ein Teilergebnis gibt es nicht; ein früheres vollständiges
+    /// Ergebnis bleibt mit seiner Zeit stehen.
+    public static func cancelledMessage(scannedAt: Date?) -> String {
+        guard let scannedAt else { return "Scan abgebrochen – es wird nichts angeboten." }
+        return "Scan abgebrochen – angezeigt bleibt das Ergebnis des vollständigen Scans von "
+            + "\(CleanupScanTime.clockText(scannedAt))."
     }
 
     /// Speicher eines Simulators rechts in der Zeile; „–“, wenn unbekannt.

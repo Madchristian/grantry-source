@@ -7,7 +7,9 @@ import CoreGraphics
 ///
 /// Jede Beschriftung nimmt den ersten freien Platz ihrer Vorzugsreihenfolge am Punkt (darunter, vom Mittelpunkt weg,
 /// darüber, seitlich, schräg). Findet sich keiner, steht sie gekürzt da, danach eine Zeile weiter weg; passt auch das
-/// nicht, bleibt der Punkt ohne Beschriftung – die Liste für VoiceOver und die Tabelle daneben nennen ihn weiter.
+/// nicht, bleibt der Punkt ohne Beschriftung – die Liste für VoiceOver und die Tabelle daneben nennen ihn weiter. Jedes
+/// Echo hat eine Klickfläche über Punkt und Beschriftung (#640); das Sammel-Echo vertritt die Echos, die keinen Platz
+/// fanden.
 struct RingRadarLayout: Equatable {
     struct Ring: Equatable {
         let title: String
@@ -38,6 +40,15 @@ struct RingRadarLayout: Equatable {
         let point: CGPoint
         /// `nil`, wenn für die Beschriftung kein freier Platz blieb.
         let caption: Caption?
+        /// Kennungen der Echos, für die der Punkt steht: das Echo selbst bzw. beim Sammel-Echo alle zusammengefassten.
+        let members: [String]
+
+        /// Klickfläche: die Fläche um den Punkt (mindestens `hitSize` breit und hoch) samt Beschriftung.
+        var hitFrame: CGRect {
+            let half = RingRadarLayout.hitSize / 2
+            let dot = CGRect(x: point.x - half, y: point.y - half, width: 2 * half, height: 2 * half)
+            return caption.map { dot.union($0.frame) } ?? dot
+        }
     }
 
     let center: CGPoint
@@ -68,11 +79,13 @@ struct RingRadarLayout: Equatable {
     static let centerRadius: CGFloat = 22
     /// Länge einer gekürzten Beschriftung in Zeichen.
     static let shortenedLength = 12
+    /// Kantenlänge der Klickfläche um einen Peilpunkt.
+    static let hitSize: CGFloat = 18
 
     /// - Parameters:
     ///   - isExpanded: Vergrößerte Karte: Ringe tragen so viele Echos, wie ihr Umfang fasst.
-    ///   - preferred: Echo, dessen Beschriftung zuerst einen Platz bekommt (das gewählte).
-    init(size: CGSize, rings: [Ring], entries: [Entry], isExpanded: Bool = false, preferred: String? = nil,
+    ///   - preferred: Echos, deren Beschriftungen zuerst einen Platz bekommen (gewählte und gefilterte).
+    init(size: CGSize, rings: [Ring], entries: [Entry], isExpanded: Bool = false, preferred: Set<String> = [],
          measure: RingRadarTextMeasure) {
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         let base = max(min(size.width, size.height) / 2 - (isExpanded ? Self.expandedMargin : Self.compactMargin), 0)
@@ -100,10 +113,9 @@ struct RingRadarLayout: Equatable {
                                   y: titlePoints[index].y - titleSize.height / 2,
                                   width: titleSize.width, height: titleSize.height))
         }
-        // Das gewählte Echo zuerst, dann von innen nach außen: innen ist am wenigsten Platz.
-        let order = arranged.indices.sorted { lhs, rhs in
-            (arranged[lhs].entry.id == preferred ? 0 : 1, lhs) < (arranged[rhs].entry.id == preferred ? 0 : 1, rhs)
-        }
+        // Gewählte Echos zuerst, dann von innen nach außen: innen ist am wenigsten Platz.
+        func rank(_ index: Int) -> Int { preferred.contains(arranged[index].entry.id) ? 0 : 1 }
+        let order = arranged.indices.sorted { lhs, rhs in (rank(lhs), lhs) < (rank(rhs), rhs) }
         var captions = [Caption?](repeating: nil, count: arranged.count)
         for index in order {
             let item = arranged[index]
@@ -130,7 +142,7 @@ struct RingRadarLayout: Equatable {
         marks = arranged.indices.map { index in
             let item = arranged[index]
             return Mark(id: item.entry.id, label: item.entry.label, ring: item.entry.ring, isSummary: item.isSummary,
-                        degrees: item.degrees, point: points[index], caption: captions[index])
+                        degrees: item.degrees, point: points[index], caption: captions[index], members: item.members)
         }
     }
 
@@ -157,21 +169,24 @@ struct RingRadarLayout: Equatable {
     /// Echos je Ring mit Winkel (Grad); über der Grenze des Rings ein Sammel-Echo „+n“. Die Ringe sind gegeneinander
     /// versetzt, damit Beschriftungen benachbarter Ringe nicht übereinander liegen; oben bleibt Platz für den Ringtitel.
     /// Echos ohne passenden Ring fallen weg.
-    static func arranged(_ entries: [Entry], capacities: [Int]) -> [(entry: Entry, isSummary: Bool, degrees: Double)] {
-        capacities.indices.flatMap { index -> [(entry: Entry, isSummary: Bool, degrees: Double)] in
+    static func arranged(_ entries: [Entry], capacities: [Int])
+        -> [(entry: Entry, isSummary: Bool, degrees: Double, members: [String])] {
+        capacities.indices.flatMap { index -> [(entry: Entry, isSummary: Bool, degrees: Double, members: [String])] in
             let capacity = max(capacities[index], 1)
-            var members = entries.filter { $0.ring == index }.map { (entry: $0, isSummary: false) }
+            let onRing = entries.filter { $0.ring == index }
+            var members = onRing.map { (entry: $0, isSummary: false, members: [$0.id]) }
             if members.count > capacity {
-                let rest = members.count - (capacity - 1)
+                let rest = onRing.dropFirst(capacity - 1)
                 members = Array(members.prefix(capacity - 1))
-                    + [(Entry(id: "more-\(index)", label: "+\(rest)", ring: index), true)]
+                    + [(Entry(id: "more-\(index)", label: "+\(rest.count)", ring: index), true, rest.map(\.id))]
             }
             // Bogen von 300° über unten bis 240° (oben bleibt frei); je Ring um ein Viertel Schritt versetzt.
             let step = arcDegrees / Double(max(members.count, 1))
             let shift = 0.25 * Double(index - 1)
             return members.enumerated().map { position, member in
                 (member.entry, member.isSummary,
-                 (arcDegrees + step * (Double(position) + 0.5 + shift)).truncatingRemainder(dividingBy: 360))
+                 (arcDegrees + step * (Double(position) + 0.5 + shift)).truncatingRemainder(dividingBy: 360),
+                 member.members)
             }
         }
     }

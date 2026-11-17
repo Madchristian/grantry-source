@@ -4,11 +4,13 @@ import ManagerKit
 import SwiftUI
 
 /// Segment „Speicher“ im Lagebild (LB-4.3, #549; Entwurf LB-4.1, #547, Spec Speicher §2): Zustandszeile mit der
-/// aufräumbaren Größe, Umschalter mit Scan-Fortschritt bzw. Stand als Spur, Banner für fehlenden Festplattenvollzugriff
-/// (schon vor dem Scan) und das Ergebnis der letzten Aktion, im Panel Hinweise (nicht erfasste Ordner, keiner Kategorie
-/// zugeordneter Platz #226, Neustart #229), Ausgänge je Eintrag, Kategorien nach Größe mit Spur des Anteils, aufklappbar
-/// mit Häkchenzeilen, Time-Machine-Vorschläge mit eigenem Bestätigungsdialog (#227) und „Zuletzt aufgeräumt“; unten die
-/// Aktionsleiste mit Scannen bzw. Abbrechen, Optionen, Umfang der Auswahl und „Aufräumen …“ mit Sammeldialog.
+/// aufräumbaren Größe, gelesenen von allen Kategorien und Scanzeit (#611), Umschalter mit Scan-Fortschritt bzw. Stand als
+/// Spur, Banner für fehlenden Festplattenvollzugriff (schon vor dem Scan) und das Ergebnis der letzten Aktion (zum
+/// Schließen), im Panel Hinweise (nicht erfasste Ordner, keiner Kategorie zugeordneter Platz #226, Neustart #229),
+/// Ausgänge je Eintrag, Kategorien nach Größe mit Spur des Anteils, aufklappbar mit Häkchenzeilen (Risiko je Eintrag,
+/// wenn es von „gering“ abweicht), Time-Machine-Vorschläge mit eigenem Bestätigungsdialog (#227) und „Zuletzt
+/// aufgeräumt“; unten die Aktionsleiste mit Scannen bzw. Abbrechen, Optionen, Umfang der Auswahl und „Aufräumen …“ mit
+/// Sammeldialog.
 struct StorageCleanupView: View {
     @Bindable var model: StorageCleanupModel
     /// Öffnet die Einstellungen zum Festplattenvollzugriff; `nil`, wenn er nicht fehlt.
@@ -25,9 +27,7 @@ struct StorageCleanupView: View {
     @State private var showsOptions = false
 
     var body: some View {
-        CleanupBoard(head: StorageBoardMapping.head(reports: model.reports, timeMachine: model.timeMachine,
-                                                    isScanning: model.phase == .scanning),
-                     progress: StorageBoardMapping.progress(model.scanProgress.current, reports: model.reports)) {
+        CleanupBoard(head: StorageBoardMapping.head(model), progress: StorageBoardMapping.progress(model)) {
             CleanupSegmentSwitcher()
         } banner: {
             banners
@@ -67,10 +67,12 @@ struct StorageCleanupView: View {
                 openFullDiskAccess: openFullDiskAccess, showSetup: showSetup
             )
         }
-        if !model.lastOutcomes.isEmpty {
+        if !model.lastOutcomes.isEmpty, !model.isResultDismissed {
             InstrumentBanner(StoragePresentation.outcomeTitle(model.lastOutcomes),
                              message: StoragePresentation.summary(model.lastOutcomes),
-                             tone: StoragePresentation.outcomeTone(model.lastOutcomes).statusTone)
+                             tone: StoragePresentation.outcomeTone(model.lastOutcomes).statusTone) {
+                BannerDismissButton(action: model.dismissResult)
+            }
         }
     }
 
@@ -249,7 +251,7 @@ private struct StorageCategorySection: View {
     private func itemRow(_ item: StorageItem) -> some View {
         if item.isSelectable {
             SelectionCheckRow(item.title, detail: StorageBoardMapping.detail(item), size: item.sizeText,
-                              isOn: isSelected(item))
+                              isOn: isSelected(item), hint: StorageBoardMapping.entryRisk(report.category.risk))
                 .disabled(isLocked)
         } else if let hint = item.hint {
             ReportRow(symbol: "terminal", title: item.title, detail: item.detail ?? "", size: item.sizeText) {

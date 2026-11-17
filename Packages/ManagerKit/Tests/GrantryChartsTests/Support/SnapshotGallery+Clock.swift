@@ -73,6 +73,27 @@ extension SnapshotGallery {
         )
     }
 
+    /// Drei Kernklassen (#592): Super-Kerne nahe am Höchsttakt, Leistungs- und Effizienzkerne mäßig.
+    static var clockPanelThreeClasses: ClockThermalPanel {
+        ClockThermalPanel(
+            head: .init(title: "Takt und Thermik",
+                        detail: "Super-Kerne: 1 Cluster, 4 Kerne · Leistungskerne: 1 Cluster, 6 Kerne · Effizienzkerne: 1 Cluster, 4 Kerne",
+                        value: "4,30 GHz", fraction: 0.93, finding: nil),
+            caption: "Anteil der aktiven Zeit je Taktstufe, letzte 60 Sekunden",
+            bands: [
+                band("Cluster S", hue: .superCores, steps: m4PerformanceSteps,
+                     shares: shares(count: 20, peak: 17.5, width: 2, top: 0.38)),
+                band("Cluster P", hue: .cpu, steps: m4PerformanceSteps,
+                     shares: shares(count: 20, peak: 9, width: 2.4, top: 0.04)),
+                band("Cluster E", hue: .efficiencyCores, steps: m4EfficiencySteps,
+                     shares: shares(count: 7, peak: 3, width: 1.6, top: 0.08)),
+            ],
+            thermal: thermal([.init(start: 0, end: 1, title: "Normal", tone: .positive)],
+                             current: StatusItem("Normal", tone: .positive), detail: "Druck: nominal"),
+            thermalTitle: "Thermik"
+        )
+    }
+
     /// M2 Ultra mit Helper unter Dauerlast: Druck ernst, Leistungscluster deutlich unter dem Höchsttakt – Drosselung.
     static var clockPanelThrottled: ClockThermalPanel {
         let ultra = { (title: String, peak: Double) in

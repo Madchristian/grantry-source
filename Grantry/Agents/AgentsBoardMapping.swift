@@ -6,6 +6,9 @@ import ManagerKit
 // Stelle für Zustandszeile, Listenzeilen und die Details von MCP-Server und automatischer Freigabe.
 
 enum AgentsBoardMapping {
+    /// Kennung der Listenzeilen für die Performance-UI-Tests (Barrierefreiheit, #612).
+    static let rowIdentifier = "agentRow"
+
     /// Kennungen der Gruppen im Detail, an denen die Ansicht Knöpfe bzw. Sprungzeilen anhängt.
     enum GroupID {
         static let configuration = "configuration"
@@ -60,7 +63,7 @@ enum AgentsBoardMapping {
             badges: presentation.badges.badges(for: server.id).map(\.instrumentBadge),
             status: server.isEnabled == true ? nil : server.enabledText.map { StatusItem($0, tone: .neutral) },
             finding: presentation.highestSeverity(for: server.id) != nil
-        ))
+        ), accessibilityIdentifier: rowIdentifier)
     }
 
     static func approvalItem(_ approval: AgentAutoApproval,
@@ -70,7 +73,7 @@ enum AgentsBoardMapping {
             detail: withScope(approval.settingText, approval.scope),
             badges: presentation.badges.badges(for: approval.id).map(\.instrumentBadge),
             finding: presentation.highestSeverity(for: approval.id) != nil
-        ))
+        ), accessibilityIdentifier: rowIdentifier)
     }
 
     private static func withScope(_ text: String, _ scope: AgentScope) -> String {

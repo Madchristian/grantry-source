@@ -87,13 +87,37 @@ import Testing
     // MARK: - Stand des Scans
 
     @Test func scanStateNamesMissingSimulators() {
-        let complete = P.scanState(overview())
+        let complete = P.scanState(overview(), scannedAt: nil)
         #expect(complete.title == "Scan vollständig")
         #expect(complete.detail == "Prozesse und Simulatoren gelesen")
         #expect(complete.isComplete)
-        let partial = P.scanState(overview(simulatorError: "simctl antwortet nicht"))
+        let partial = P.scanState(overview(simulatorError: "simctl antwortet nicht"), scannedAt: nil)
         #expect(partial.title == "Scan unvollständig")
         #expect(!partial.isComplete)
+    }
+
+    /// Scanzeit im Stand wie die Suchzeit der App-Reste (#611).
+    @Test func scanStateCarriesTheScanTime() {
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let time = date.formatted(date: .omitted, time: .shortened)
+        #expect(CleanupScanTime.text(date) == "Scan \(time)")
+        #expect(P.scanState(overview(), scannedAt: date).detail == "Prozesse und Simulatoren gelesen · Scan \(time)")
+        #expect(P.scanState(overview(simulatorError: "x"), scannedAt: date).detail
+                == "Simulatoren nicht lesbar · Scan \(time)")
+    }
+
+    /// Abgebrochener Scan (#611): ohne Ergebnis keine Entwarnung, mit früherem Ergebnis dessen Zeit.
+    @Test func cancelledScanIsNamedHonestly() {
+        let verdict = ProcessCleanupVerdict(overview: nil, isScanning: false, isCancelled: true, scanError: nil,
+                                            survivorCount: 0)
+        #expect(verdict.title == "Scan abgebrochen")
+        #expect(verdict.shield == .open)
+        #expect(verdict.items.isEmpty)
+        let date = Date(timeIntervalSince1970: 1_800_000_000)
+        let time = date.formatted(date: .omitted, time: .shortened)
+        #expect(P.cancelledMessage(scannedAt: nil) == "Scan abgebrochen – es wird nichts angeboten.")
+        #expect(P.cancelledMessage(scannedAt: date)
+                == "Scan abgebrochen – angezeigt bleibt das Ergebnis des vollständigen Scans von \(time).")
     }
 
     // MARK: - Zeilen und Umfang

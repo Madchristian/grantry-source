@@ -30,10 +30,12 @@ import Testing
     }
 
     private func presentation(_ processes: [ProcessActivity], filter: NetworkConnectionFilter = .all, query: String = "",
+                              destination: NetworkDestinationFilter? = nil, echo: NetworkEchoFilter? = nil,
                               programs: [Int32: NetworkProgram] = [:],
                               regions: RemoteRegionResolver = .unavailable) -> NetworkConnectionsPresentation {
         NetworkConnectionsPresentation(frame: TestData.activityFrame(processes, programs: programs), filter: filter,
-                                       query: query, userName: { $0 == 0 ? "root" : "anna" }, regions: regions)
+                                       query: query, destination: destination, echo: echo, userName: { $0 == 0 ? "root" : "anna" },
+                                       regions: regions)
     }
 
     /// Feste Zuordnung der Dokumentationsnetze: `192.0.2.0/24` Deutschland, `198.51.100.0/24` USA, `2001:db8::/32`
@@ -379,5 +381,170 @@ import Testing
         let date = DateComponents(year: 2026, month: 11, day: 13)
         #expect(NetworkConnectionTexts.dataDate(date, locale: Self.german) == "Länderdaten: Stand November 2026")
         #expect(NetworkConnectionTexts.dataDate(nil, locale: Self.german) == nil)
+    }
+
+    // MARK: Zielfilter aus dem Bogenfächer (#633)
+
+    private func germany() -> NetworkDestinationFilter? { NetworkDestinationFilter(regions: [.country("DE")]) }
+
+    @Test func destinationFilterKeepsOnlyConnectionsToItsRegions() {
+        let filtered = presentation(travelling, destination: germany(), regions: Self.regions)
+        #expect(filtered.rows.map(\.region) == [.country("DE"), .country("DE")])
+        #expect(filtered.sections(by: .country, locale: Self.german).map(\.title) == ["Deutschland"])
+        let local = presentation(travelling, destination: NetworkDestinationFilter(regions: [.localNetwork, .thisMac]),
+                                 regions: Self.regions)
+        #expect(Set(local.rows.map(\.title)) == ["node", "postgres"])
+        #expect(local.rows.allSatisfy { $0.kind == .connected })
+    }
+
+    /// Der Zielfilter wirkt zusätzlich zu Segment und Suche; der Fächer zeigt weiter alle Ziele.
+    @Test func destinationFilterCombinesWithSegmentAndSearch() {
+        let unknownAndGermany = NetworkDestinationFilter(regions: [.country("DE"), .unknown])
+        #expect(Set(presentation(travelling, destination: unknownAndGermany, regions: Self.regions).rows.map(\.title))
+            == ["safari", "mail"])
+        #expect(presentation(travelling, query: "mail", destination: unknownAndGermany, regions: Self.regions).rows
+            .map(\.title) == ["mail"])
+        let listening = presentation(travelling, filter: .listening, destination: germany(), regions: Self.regions)
+        #expect(listening.rows.isEmpty)
+        #expect(listening.destinations(locale: Self.german).count == 6)
+    }
+
+    @Test func emptyDestinationFilterDoesNotExist() {
+        #expect(NetworkDestinationFilter(regions: []) == nil)
+        #expect(NetworkDestinationFilter(regions: [.unknown, .unknown])?.regions == [.unknown])
+    }
+
+    /// Ein Klick filtert auf das Ziel, derselbe Klick noch einmal hebt den Filter auf; der Sammel-Ast filtert auf alle
+    /// Ziele, die er vertritt, in der Reihenfolge des Fächers.
+    @Test func pickingADestinationTogglesTheFilter() {
+        let destinations = presentation(travelling, regions: Self.regions).destinations(locale: Self.german)
+        let ids = destinations.map(\.id)
+        let picked = NetworkDestinationFilter.picking([ids[0]], in: destinations, current: nil)
+        #expect(picked?.regions == [.country("DE")])
+        #expect(NetworkDestinationFilter.picking([ids[0]], in: destinations, current: picked) == nil)
+        let summary = NetworkDestinationFilter.picking(Set(ids.suffix(3)), in: destinations, current: picked)
+        #expect(summary?.regions == [.unknown, .localNetwork, .thisMac])
+        #expect(summary?.destinationIDs(in: destinations) == Set(ids.suffix(3)))
+        #expect(NetworkDestinationFilter.picking(["fehlt"], in: destinations, current: picked) == picked)
+    }
+
+    @Test func destinationFilterNamesItsRegions() {
+        #expect(germany()?.title(locale: Self.german) == "Deutschland")
+        #expect(NetworkDestinationFilter(regions: [.country("DE"), .unknown])?.title(locale: Self.german)
+            == "Deutschland und Land unbekannt")
+        #expect(NetworkDestinationFilter(regions: [.country("NL"), .unknown, .localNetwork, .thisMac])?
+            .title(locale: Self.german) == "Niederlande und 3 weitere")
+        #expect(germany()?.label == "Ziel")
+        #expect(NetworkDestinationFilter(regions: [.country("DE"), .unknown])?.label == "Ziele")
+    }
+
+    /// Verschwindet das gefilterte Ziel, bleibt der Filter stehen und die Tabelle zeigt den Leerzustand mit Hinweis.
+    @Test func destinationFilterStaysWhenItsTargetDisappears() {
+        let gone = presentation([process(11, "mail", connections: [socket(remote: "203.0.113.25", 993)])],
+                                destination: germany(), regions: Self.regions)
+        #expect(gone.rows.isEmpty)
+        #expect(gone.destinationFilter == germany())
+        #expect(gone.isFilteredDestinationGone)
+        #expect(gone.destinations(locale: Self.german).map(\.region) == [.unknown])
+        #expect(gone.destinationFilter?.emptyMessage(isGone: true, locale: Self.german)
+            == "Gerade ist keine Verbindung zu „Deutschland“ offen. Der Filter bleibt, bis du ihn aufhebst.")
+        let hidden = presentation(travelling, query: "mail", destination: germany(), regions: Self.regions)
+        #expect(hidden.rows.isEmpty)
+        #expect(!hidden.isFilteredDestinationGone)
+        #expect(hidden.destinationFilter?.emptyMessage(isGone: false, locale: Self.german)
+            == "Suche und Filter lassen keine Verbindung zu „Deutschland“ übrig.")
+        #expect(!presentation(travelling, regions: Self.regions).isFilteredDestinationGone)
+    }
+
+    /// Eben geschlossene Verbindungen zählen nicht als offenes Ziel.
+    @Test func closedConnectionsDoNotKeepAFilteredDestinationAlive() {
+        let closing = [process(10, "safari", connections: [socket(remote: "192.0.2.10", 443, isGone: true)])]
+        let filtered = presentation(closing, destination: germany(), regions: Self.regions)
+        #expect(filtered.rows.count == 1)
+        #expect(filtered.isFilteredDestinationGone)
+    }
+
+    // MARK: Programmfilter aus dem Radar „Erreichbarkeit“ (#640)
+
+    /// Lauschende und gebundene Programme je Port auf dem Ring ihrer Erreichbarkeit, ohne Verbindungen und Geschlossene;
+    /// IPv4 und IPv6 auf demselben Port sind ein Echo.
+    @Test func reachEchoesNameEachProgramPortOnce() {
+        let echoes = presentation(sample + [process(50, "sshd", listening: [listening(22)], isGone: true)]).reachEchoes()
+        #expect(echoes.map(\.label) == ["node :3000", "postgres :5432", "mDNSResponder :5353"])
+        #expect(echoes.map(\.reach) == [.network, .thisMac, .network])
+        #expect(Set(echoes.map(\.id)).count == echoes.count)
+    }
+
+    private func echoFilter(_ label: String, in processes: [ProcessActivity]) -> NetworkEchoFilter? {
+        let echoes = presentation(processes).reachEchoes()
+        return NetworkEchoFilter.picking(Set(echoes.filter { $0.label == label }.map(\.id)), in: echoes, current: nil)
+    }
+
+    /// Das Echo steht für das Programm auf seinem Port: die lauschenden Sockets (IPv4 und IPv6) und die Verbindungen,
+    /// die auf diesem Port ankommen.
+    @Test func echoFilterKeepsTheProgramOnItsPort() {
+        let node = echoFilter("node :3000", in: sample)
+        let rows = presentation(sample, echo: node).rows
+        #expect(rows.map(\.title) == ["node", "node", "node"])
+        #expect(rows.map(\.kind) == [.listening, .listening, .connected])
+        #expect(presentation(sample, filter: .listening, echo: node).rows.count == 2)
+        #expect(presentation(sample, query: "postgres", echo: node).rows.isEmpty)
+    }
+
+    /// Mit dem Zielfilter zusammen bleiben die Verbindungen aus diesem Ziel zum Programm.
+    @Test func echoFilterCombinesWithTheDestinationFilter() {
+        let node = echoFilter("node :3000", in: travelling)
+        let local = NetworkDestinationFilter(regions: [.localNetwork])
+        let both = presentation(travelling, destination: local, echo: node, regions: Self.regions)
+        #expect(both.rows.map(\.title) == ["node"])
+        #expect(both.rows.first?.kind == .connected)
+        #expect(presentation(travelling, destination: germany(), echo: node, regions: Self.regions).rows.isEmpty)
+    }
+
+    /// Ein Klick filtert auf das Echo, derselbe Klick hebt auf; das Sammel-Echo filtert auf alle, die es vertritt.
+    @Test func pickingAnEchoTogglesTheFilter() {
+        let echoes = presentation(sample).reachEchoes()
+        let ids = echoes.map(\.id)
+        let picked = NetworkEchoFilter.picking([ids[0]], in: echoes, current: nil)
+        #expect(picked?.title() == "node :3000")
+        #expect(picked?.label == "Programm")
+        #expect(picked?.echoIDs(in: echoes) == [ids[0]])
+        #expect(NetworkEchoFilter.picking([ids[0]], in: echoes, current: picked) == nil)
+        let summary = NetworkEchoFilter.picking(Set(ids), in: echoes, current: picked)
+        #expect(summary?.label == "Programme")
+        #expect(summary?.title() == "node :3000 und 2 weitere")
+        #expect(NetworkEchoFilter.picking(["fehlt"], in: echoes, current: picked) == picked)
+        #expect(NetworkEchoFilter(echoes: []) == nil)
+    }
+
+    /// Verschwindet das Programm, bleibt der Filter stehen und die Tabelle nennt den Grund; beide Filter zusammen
+    /// nennen den, der die Tabelle leert.
+    @Test func echoFilterStaysWhenItsProgramDisappears() {
+        let node = echoFilter("node :3000", in: sample)
+        let gone = presentation([process(30, "postgres", listening: [listening(5432, address: "127.0.0.1")])], echo: node)
+        #expect(gone.rows.isEmpty)
+        #expect(gone.isFilteredEchoGone)
+        let notice = gone.pickNotice(locale: Self.german)
+        #expect(notice?.kind == .echo)
+        #expect(notice?.message == "Gerade ist „node :3000“ nicht offen. Der Filter bleibt, bis du ihn aufhebst.")
+        let hidden = presentation(sample, query: "postgres", echo: node)
+        #expect(!hidden.isFilteredEchoGone)
+        #expect(hidden.pickNotice(locale: Self.german)?.message
+            == "Suche und Filter lassen von „node :3000“ nichts übrig.")
+        let both = presentation(travelling, destination: germany(), echo: echoFilter("node :3000", in: travelling),
+                                regions: Self.regions)
+        #expect(both.pickNotice(locale: Self.german)?.kind == .echo)
+        let destinationGone = presentation(sample, destination: germany(), echo: node, regions: Self.regions)
+        #expect(destinationGone.pickNotice(locale: Self.german)?.kind == .destination)
+        #expect(presentation(sample).pickNotice() == nil)
+    }
+
+    @Test func clearingOnePickFilterKeepsTheOther() {
+        var picks = NetworkPickFilters(destination: germany(), echo: echoFilter("node :3000", in: sample))
+        picks.clear(.destination)
+        #expect(picks.destination == nil)
+        #expect(picks.echo != nil)
+        picks.clear(.echo)
+        #expect(picks.isEmpty)
     }
 }

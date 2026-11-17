@@ -163,6 +163,39 @@ public struct AreaCoverage: Hashable, Sendable, Identifiable {
         }
     }
 
+    /// Wie viele der erwarteten Quellen gelesen wurden (#613) – Grundlage der Abdeckungs-Spur über den Listen.
+    /// Vollständig gelesen ist eine Quelle, die nachweislich geliefert hat und keine Lücke und keine fortgeschriebenen
+    /// Einträge hat; teilweise gelesen eine gelieferte mit Einschränkung, nur Zwischenmessung oder alten Einträgen;
+    /// ausgefallene und nie gelieferte Quellen zählen nicht.
+    public struct SourceReading: Hashable, Sendable {
+        public let expected: Int
+        public let complete: Int
+        public let partial: Int
+
+        public init(expected: Int, complete: Int, partial: Int) {
+            self.expected = expected
+            self.complete = complete
+            self.partial = partial
+        }
+
+        /// Anteil gelesener Quellen; eine teilweise gelesene zählt zur Hälfte, damit sie weder als voll noch als leer
+        /// erscheint. `1` nur, wenn alle erwarteten Quellen vollständig gelesen wurden; `nil` ohne erwartete Quelle.
+        public var fraction: Double? {
+            guard expected > 0 else { return nil }
+            return (Double(complete) + Double(partial) / 2) / Double(expected)
+        }
+
+        /// „alle 2 Quellen gelesen“, „1 von 2 Quellen gelesen, 1 teilweise“, „Quelle teilweise gelesen“.
+        public var text: String {
+            switch expected {
+            case 0: "keine Quelle vorgesehen"
+            case 1: complete == 1 ? "Quelle gelesen" : partial == 1 ? "Quelle teilweise gelesen" : "Quelle nicht gelesen"
+            case complete: "alle \(expected) Quellen gelesen"
+            default: "\(complete) von \(expected) Quellen gelesen" + (partial > 0 ? ", \(partial) teilweise" : "")
+            }
+        }
+    }
+
     public let area: InventoryArea
     public let state: State
     /// Zeitpunkt, für den die Liste gilt: bei `.current`/`.partial` die älteste Lieferung einer Quelle des Bereichs (ohne
@@ -178,6 +211,8 @@ public struct AreaCoverage: Hashable, Sendable, Identifiable {
     /// Zwischenmessungen nach der letzten vollständigen Lieferung je Quelle (`Snapshot.lastInterimDeliveryBySource`):
     /// Sie ersetzen deren Zeitpunkt nicht, `notes(now:)` nennt sie (#142).
     public let interimMeasurements: [SourceID: Date]
+    /// Anteil gelesener Quellen (#613); voll genau dann, wenn `isComplete`.
+    public let readSources: SourceReading
 
     public var id: InventoryArea { area }
 
@@ -208,7 +243,8 @@ public struct AreaCoverage: Hashable, Sendable, Identifiable {
         } + snapshot.sourceLimitations.filter { sources.contains($0.source) }.map {
             Gap(source: $0.source, kind: .limited(isRetryable: $0.isRetryable), message: $0.message)
         }
-        let outdated = area == .autostart ? snapshot.autostartItems.count { !$0.isCurrent } : 0
+        let outdatedItems = area == .autostart ? snapshot.autostartItems.filter { !$0.isCurrent } : []
+        let outdated = outdatedItems.count
         let carried = failed.filter { hasDelivered($0.source) }
 
         self.area = area
@@ -231,6 +267,19 @@ public struct AreaCoverage: Hashable, Sendable, Identifiable {
             checkedAt = delivered.compactMap { snapshot.lastDeliveryBySource[$0] ?? snapshot.lastInterimDeliveryBySource[$0] }
                 .min() ?? snapshot.takenAt
         }
+        readSources = Self.reading(expected: expected.count, delivered: delivered,
+                                   partlyRead: Set(gaps.map(\.source) + outdatedItems.map(\.source)),
+                                   isComplete: state == .current)
+    }
+
+    /// Zählt die gelieferten Quellen in vollständig und teilweise gelesen. Liegt die Ursache einer Unvollständigkeit bei
+    /// keiner erwarteten Quelle (etwa alte Einträge einer nicht gescannten), zählt eine Quelle als teilweise gelesen:
+    /// Die Spur ist nie voll, solange der Bereich unvollständig ist.
+    private static func reading(expected: Int, delivered: [SourceID], partlyRead: Set<SourceID>,
+                                isComplete: Bool) -> SourceReading {
+        var complete = delivered.count { !partlyRead.contains($0) }
+        if !isComplete, expected > 0, complete == expected { complete -= 1 }
+        return SourceReading(expected: expected, complete: complete, partial: delivered.count - complete)
     }
 
     /// `true`, wenn alles gelesen wurde – nur dann ist eine leere Liste eine Entwarnung.
@@ -279,6 +328,26 @@ public struct AreaCoverage: Hashable, Sendable, Identifiable {
     /// Zustandszeile: „Teilweise geprüft · Geprüft heute, 10:50“.
     public func statusLine(now: Date, calendar: Calendar = .current) -> String {
         "\(headline) · \(timeText(now: now, calendar: calendar))"
+    }
+
+    /// Titel der Abdeckungs-Spur über den Listen (#613, Entwurf LB-2.1): „Abdeckung vollständig“, „Abdeckung
+    /// unvollständig“, ohne bekannten Stand „Abdeckung unbekannt“.
+    public var spurTitle: String {
+        switch state {
+        case .current: "Abdeckung vollständig"
+        case .partial, .lastKnown: "Abdeckung unvollständig"
+        case .unread: Self.spurTitleBeforeScan
+        }
+    }
+
+    /// Titel und Detail der Spur vor dem ersten Scan (ohne Snapshot, leere Spur im neutralen Ton).
+    public static let spurTitleBeforeScan = "Abdeckung unbekannt"
+    public static let spurDetailBeforeScan = "noch nichts gelesen"
+
+    /// Detail der Spur, passend zu ihrem Anteil: „1 von 2 Quellen gelesen · Stand von gestern, 10:50“.
+    public func spurDetail(now: Date, calendar: Calendar = .current) -> String {
+        let time = state == .unread ? "kein bekannter Stand" : timeText(now: now, calendar: calendar)
+        return "\(readSources.text) · \(time)"
     }
 
     /// Kompakte Zeile für Übersicht und Menüleiste: „Autostart: Teilweise geprüft · Geprüft heute, 10:50“.

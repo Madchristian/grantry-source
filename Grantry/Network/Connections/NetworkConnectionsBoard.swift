@@ -5,7 +5,10 @@ import SwiftUI
 /// Anordnung der Ansicht „Verbindungen“ (§3.13): links die Grafik-Karte mit dem Datenverkehr und darunter das Detail
 /// des gewählten Sockets, rechts die Sockets nach Erreichbarkeit oder die Verbindungen nach Land (#630) mit Filter. Die
 /// Karte folgt der Gruppierung: nach Erreichbarkeit das Radar, nach Land der Bogenfächer „Ziele“ von diesem Mac zu den
-/// Ländern. Beide lassen sich auf die ganze Seite vergrößern (`instrumentExpansion`). Zeigt nur fertige Stände
+/// Ländern. Beide Karten nehmen Klicks gleich an: ein Klick auf ein Ziel (#633) bzw. auf ein Echo des Radars (#640)
+/// filtert die Tabelle darauf, der Filter steht als Chip bei den übrigen und lässt sich dort oder mit einem zweiten
+/// Klick aufheben; beide Filter gelten zusammen. Beide Karten lassen sich auf die ganze Seite vergrößern
+/// (`instrumentExpansion`). Zeigt nur fertige Stände
 /// (`NetworkConnectionsPresentation`); Messung, Suche und Aktionen liegen bei `NetworkConnectionsView`.
 struct NetworkConnectionsBoard<Detail: View, Empty: View>: View {
     let presentation: NetworkConnectionsPresentation
@@ -14,6 +17,8 @@ struct NetworkConnectionsBoard<Detail: View, Empty: View>: View {
     @Binding var filter: NetworkConnectionFilter
     @Binding var grouping: NetworkConnectionGrouping
     @Binding var query: String
+    /// Klickfilter aus Bogenfächer und Radar; gelten bis zum Verlassen der Ansicht.
+    @Binding var picks: NetworkPickFilters
     @Binding var selection: NetworkSocketRow.ID?
     /// Wessen Sockets sichtbar sind, etwa „alle Benutzer“.
     let visibility: String
@@ -28,7 +33,8 @@ struct NetworkConnectionsBoard<Detail: View, Empty: View>: View {
     /// - Parameter isRadarExpanded: Anfangszustand der Grafik-Karte (vergrößert, für Bilder).
     init(presentation: NetworkConnectionsPresentation, total: TrafficRate, history: [TrafficRate],
          filter: Binding<NetworkConnectionFilter>, grouping: Binding<NetworkConnectionGrouping>,
-         query: Binding<String>, selection: Binding<NetworkSocketRow.ID?>,
+         query: Binding<String>, picks: Binding<NetworkPickFilters>,
+         selection: Binding<NetworkSocketRow.ID?>,
          visibility: String, countryDataDate: DateComponents?, isRadarExpanded: Bool = false,
          @ViewBuilder detail: () -> Detail, @ViewBuilder empty: () -> Empty = { EmptyView() }) {
         _isRadarExpanded = State(initialValue: isRadarExpanded)
@@ -38,6 +44,7 @@ struct NetworkConnectionsBoard<Detail: View, Empty: View>: View {
         _filter = filter
         _grouping = grouping
         _query = query
+        _picks = picks
         _selection = selection
         self.visibility = visibility
         self.countryDataDate = countryDataDate
@@ -84,11 +91,12 @@ struct NetworkConnectionsBoard<Detail: View, Empty: View>: View {
     private var graphPanel: some View {
         switch grouping {
         case .reach:
-            ReachPanel(presentation: presentation, total: total, history: history, expansion: $isRadarExpanded)
+            ReachPanel(echoes: presentation.reachEchoes(), filter: $picks.echo, total: total, history: history,
+                       expansion: $isRadarExpanded)
         case .country:
             DestinationsPanel(destinations: presentation.destinations(),
-                              selected: presentation.row(withID: selection)?.region, total: total, history: history,
-                              expansion: $isRadarExpanded)
+                              selected: presentation.row(withID: selection)?.region, filter: $picks.destination,
+                              total: total, history: history, expansion: $isRadarExpanded)
         }
     }
 }
@@ -101,6 +109,10 @@ extension NetworkConnectionsBoard {
                                options: NetworkConnectionFilter.displayOrder.map { ($0, $0.title) })
             InstrumentSegments(String(localized: "Gruppierung"), selection: $grouping,
                                options: NetworkConnectionGrouping.allCases.map { ($0, $0.title) })
+            ForEach(picks.active, id: \.kind) { pick in
+                InstrumentFilterChip(pick.filter.label, value: pick.filter.title(locale: .current),
+                                     removeHint: pick.kind.removeHint) { picks.clear(pick.kind) }
+            }
         } trailing: {
             Text(verbatim: count)
                 .font(InstrumentFont.body)
@@ -118,49 +130,57 @@ private extension NetworkConnectionFilter {
 }
 
 /// Erreichbarkeitsradar mit Peilkopf, darunter der Datenverkehr des Systems als Spiegel. Vergrößert (`expansion`) füllt
-/// das Radar die Höhe der Seite und zeigt jedes Programm einzeln.
+/// das Radar die Höhe der Seite und zeigt jedes Programm einzeln. Ein Klick auf ein Echo filtert die Tabelle auf das
+/// Programm an diesem Port, derselbe Klick hebt den Filter auf; das Sammel-Echo filtert auf alle, die es vertritt
+/// (#640). Zeichnet nur, wenn sich die Echos oder der Filter ändern – Raten gehen nicht ein (`ReachRadar` vergleicht
+/// ohne den Rückruf).
 private struct ReachPanel: View {
-    let presentation: NetworkConnectionsPresentation
+    let echoes: [NetworkReachEcho]
+    @Binding var filter: NetworkEchoFilter?
     let total: TrafficRate
     let history: [TrafficRate]
     @Binding var expansion: Bool
 
     var body: some View {
-        let echoes = Self.echoes(presentation.all)
-        let network = echoes.count { $0.ring == .network }
+        let network = echoes.count { $0.reach == .network }
         GraphPanel(total: total, history: history, isExpanded: expansion) {
             PeilHead(String(localized: "Erreichbarkeit"), detail: String(localized: "Wer diesen Mac erreichen kann"),
                      value: "\(network)", finding: network > 0, expansion: $expansion)
         } graph: {
-            ReachRadar(echoes: echoes, isExpanded: expansion)
+            // Gleiche Echos geben das gleiche Radar: Ein älterer Rückruf sieht dieselben Echos.
+            let echoes = echoes
+            let filter = $filter
+            ReachRadar(echoes: echoes.map(Self.echo), picked: filter.wrappedValue?.echoIDs(in: echoes) ?? [],
+                       isExpanded: expansion,
+                       pickHint: String(localized: "Filtert die Tabelle auf dieses Programm; ein zweiter Klick hebt den Filter auf")
+            ) { ids in
+                filter.wrappedValue = NetworkEchoFilter.picking(ids, in: echoes, current: filter.wrappedValue)
+            }
+            .equatable()
         }
     }
 
-    /// Lauschende und gebundene Programme je Port auf dem Ring ihrer Erreichbarkeit.
-    static func echoes(_ rows: [NetworkSocketRow]) -> [ReachRadar.Echo] {
-        var seen = Set<String>()
-        return rows.filter { !$0.isGone && $0.kind != .connected }.compactMap { row in
-            let port = row.socket.local.port.map { ":\($0)" } ?? ""
-            let ring: ReachRadar.Ring = switch row.reach {
-            case .network: .network
-            case .localNetwork: .localNetwork
-            case .thisMac, .connected: .thisMac
-            }
-            let id = "\(row.title)\(port)\(ring.rawValue)"
-            guard seen.insert(id).inserted else { return nil }
-            return ReachRadar.Echo(id: id, label: "\(row.title) \(port)", ring: ring)
+    /// Ein Echo auf dem Ring seiner Erreichbarkeit.
+    static func echo(_ echo: NetworkReachEcho) -> ReachRadar.Echo {
+        let ring: ReachRadar.Ring = switch echo.reach {
+        case .network: .network
+        case .localNetwork: .localNetwork
+        case .thisMac, .connected: .thisMac
         }
+        return ReachRadar.Echo(id: echo.id, label: echo.label, ring: ring)
     }
 }
 
 /// Bogenfächer „Ziele“ (#630): von diesem Mac zu den Ländern seiner offenen Verbindungen, dazu Gegenstellen ohne Land
 /// (unbekannt, lokales Netz, dieser Mac). Die Linienstärke folgt der Zahl der Verbindungen, gestrichelt heißt nur
-/// eingehend. Vergrößert zeigt jedes Ziel seine Programme. Zeichnet nur, wenn sich die Zusammensetzung ändert – Raten
-/// gehen nicht ein.
+/// eingehend. Vergrößert zeigt jedes Ziel seine Programme. Ein Klick auf ein Ziel filtert die Tabelle darauf, derselbe
+/// Klick hebt den Filter auf; der Sammel-Ast filtert auf alle Ziele, die er vertritt (#633). Zeichnet nur, wenn sich
+/// die Zusammensetzung oder der Filter ändert – Raten gehen nicht ein (`ArcFan` vergleicht ohne den Rückruf).
 private struct DestinationsPanel: View {
     let destinations: [NetworkDestination]
     /// Region der gewählten Verbindung; ihr Ziel ist im Fächer hervorgehoben.
     let selected: RemoteRegion?
+    @Binding var filter: NetworkDestinationFilter?
     let total: TrafficRate
     let history: [TrafficRate]
     @Binding var expansion: Bool
@@ -171,13 +191,22 @@ private struct DestinationsPanel: View {
             PeilHead(title, detail: String(localized: "Wohin dieser Mac verbindet, Länder"),
                      value: "\(destinations.count(where: \.isCountry))", expansion: $expansion)
         } graph: {
+            // Gleiche Äste geben den gleichen Fächer: Ein älterer Rückruf sieht dieselben Ziele.
+            let destinations = destinations
+            let filter = $filter
             ArcFan(branches: destinations.map(Self.branch), originSymbol: "laptopcomputer", title: title,
-                   selection: destinations.first { $0.region == selected }?.id, isExpanded: expansion)
-                .overlay {
-                    if destinations.isEmpty {
-                        Text("Keine offenen Verbindungen.").font(InstrumentFont.body).foregroundStyle(.instrumentSecondary)
-                    }
+                   selection: destinations.first { $0.region == selected }?.id,
+                   picked: filter.wrappedValue?.destinationIDs(in: destinations) ?? [], isExpanded: expansion,
+                   pickHint: String(localized: "Filtert die Tabelle auf dieses Ziel; ein zweiter Klick hebt den Filter auf")
+            ) { ids in
+                filter.wrappedValue = NetworkDestinationFilter.picking(ids, in: destinations, current: filter.wrappedValue)
+            }
+            .equatable()
+            .overlay {
+                if destinations.isEmpty {
+                    Text("Keine offenen Verbindungen.").font(InstrumentFont.body).foregroundStyle(.instrumentSecondary)
                 }
+            }
         }
     }
 
@@ -194,7 +223,7 @@ private struct DestinationsPanel: View {
             leaves: destination.programs.map {
                 ArcFan.Leaf(id: "\(destination.id)|\($0.title)", label: $0.title, weight: $0.connectionCount)
             },
-            accessibilityLabel: destination.accessibilityLabel
+            accessibilityValue: destination.accessibilityValue
         )
     }
 }
@@ -244,6 +273,23 @@ struct NetworkConnectionNoRemotes: View {
     }
 }
 
+/// Über der Tabelle, wenn mit einem Klickfilter keine Zeile bleibt: Das Gefilterte ist verschwunden, oder Suche und
+/// andere Filter lassen nichts davon übrig. Der Filter bleibt stehen, bis er aufgehoben wird (#633, #640).
+struct NetworkPickFilterEmpty: View {
+    let notice: NetworkPickNotice
+    let reset: () -> Void
+
+    var body: some View {
+        ContentUnavailableView {
+            Label(notice.title, systemImage: notice.symbol)
+        } description: {
+            Text(verbatim: notice.message).foregroundStyle(.instrumentSecondary)
+        } actions: {
+            Button(notice.resetTitle, action: reset)
+        }
+    }
+}
+
 /// Leeres Detail, solange kein Socket gewählt ist.
 struct NetworkConnectionNoSelection: View {
     var body: some View {
@@ -266,14 +312,17 @@ struct NetworkConnectionNoSelection: View {
     @Previewable @State var filter = NetworkConnectionFilter.all
     @Previewable @State var grouping = NetworkConnectionGrouping.country
     @Previewable @State var query = ""
+    @Previewable @State var picks = NetworkPickFilters()
     @Previewable @State var selection: NetworkSocketRow.ID?
     let frame = NetworkConnectionsPreviewData.frame
     let presentation = NetworkConnectionsPresentation(frame: frame, filter: filter, query: "",
+                                                      destination: picks.destination, echo: picks.echo,
                                                       userName: NetworkConnectionsPreviewData.userName,
                                                       regions: NetworkConnectionsPreviewData.regions)
     NetworkConnectionsBoard(
         presentation: presentation, total: frame.report.total, history: frame.report.history, filter: $filter,
-        grouping: $grouping, query: $query, selection: $selection, visibility: "alle Benutzer",
+        grouping: $grouping, query: $query, picks: $picks, selection: $selection,
+        visibility: "alle Benutzer",
         countryDataDate: NetworkConnectionsPreviewData.regions.dataDate
     ) {
         if let row = presentation.row(withID: selection ?? presentation.rows.first?.id) {

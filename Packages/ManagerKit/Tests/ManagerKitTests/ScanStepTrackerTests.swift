@@ -160,6 +160,23 @@ import Testing
         #expect(ProcessScanStep.allCases == [.processTable, .simulators])
     }
 
+    /// Abbruch (#611): Nach der Prozesstabelle startet kein `simctl` mehr, der Scan endet mit `CancellationError`.
+    @Test func cancelledProcessScanSkipsTheSimulators() async {
+        struct Table: ProcessTableReading {
+            func entries() throws -> [ProcessEntry] { [] }
+        }
+        let scanner = ProcessOverviewScanner(
+            table: Table(), detector: OrphanAgentTreeDetector(),
+            simulators: BootedSimulatorReader(runner: ProcessCommandRunner(), home: "/nonexistent", isDirectory: { _ in false })
+        )
+        let events = StepEvents<ProcessScanStep>()
+        let scan = Task { try await scanner.scan { await events.append($0) } }
+        scan.cancel()
+        let result = await scan.result
+        #expect(throws: CancellationError.self) { try result.get() }
+        #expect(await !events.all.contains(.completed(.simulators, succeeded: true)))
+    }
+
     @Test func eventsMapToAnotherStepType() {
         #expect(ScanStepEvent.completed(ProcessScanStep.simulators, succeeded: false).map(\.rawValue)
                 == .completed("simulators", succeeded: false))

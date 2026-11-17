@@ -16,15 +16,11 @@ struct PermissionsView: View {
         @Bindable var window = window
         let presentation = appModel.presentation
         InventoryBoard(head: PermissionsBoardMapping.head(presentation, scannedAt: appModel.monitoring.snapshot?.takenAt)) {
-            HStack(alignment: .top, spacing: InstrumentSpacing.panel) {
+            InventoryCoverageControls(coverage: coverage, flagged: presentation?.metrics.flagged, area: .permissions,
+                                      filter: window.filter(for: .permissions).findings) {
                 InstrumentSegments(String(localized: "Gruppierung"), selection: $window.permissionsGrouping,
                                    options: PermissionsGrouping.allCases.map { ($0, $0.title) })
                     .frame(width: InstrumentSize.columnNarrow)
-                VStack(alignment: .leading, spacing: 0) {
-                    if let coverage { AreaCoverageBar(coverage: coverage) }
-                    FlaggedNoticeBar(breakdown: presentation?.metrics.flagged, area: .permissions,
-                                     filter: window.filter(for: .permissions).findings)
-                }
             }
         } list: {
             switch window.permissionsGrouping {

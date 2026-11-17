@@ -31,6 +31,11 @@ final class PrerequisitesModel {
     private(set) var launchAtLoginError: String?
     /// `true`, solange „Beim Anmelden starten“ geändert wird.
     private(set) var isChangingLaunchAtLogin = false
+    /// Die Registrierung des Helpers wird beim Start nach einem Austausch des App-Bundles erneuert – von der Erzeugung bis
+    /// zum Ende von `renewHelperRegistrationIfNeeded()`. So lange gilt der Helper als in Prüfung
+    /// (`SetupStatus.isRenewingHelper`): Die Prüfung des Fensters beim Start lief vor der Erneuerung, sah den alten Helper
+    /// (`.outdated`, Protokoll 8 statt 9) und zeigte „Grantry einrichten“, obwohl alles erfüllt war (#566).
+    private var isRenewingHelperAtLaunch: Bool
 
     private let helperManager: HelperManager
     private let notifier: UNUserNotificationCenterNotifier
@@ -56,6 +61,7 @@ final class PrerequisitesModel {
     ///   - helperClient: gemeinsame XPC-Verbindung zum Helper (dieselbe wie die der BTM-Quelle).
     ///   - helperActivity: dieselbe Sperre wie die des `ActionRunner`.
     ///   - abandonRunningAction: bricht die laufende Aktion des `ActionRunner` ab.
+    ///   - renewsHelperAtLaunch: Der Start ruft `renewHelperRegistrationIfNeeded()` auf (Release-Builds).
     ///   - afterHelperRegistration: nach jeder (Neu-)Registrierung des Helpers (`HelperManager`), z. B.
     ///     `ListenerHelperSchedule.reset()`, damit der nächste Teilscan den Helper sofort fragt.
     ///   - onPrerequisiteBecameAvailable: z. B. ein Scan, damit die neuen Quellen sofort ihre Baseline erhalten.
@@ -63,6 +69,7 @@ final class PrerequisitesModel {
         helperClient: HelperClient,
         helperActivity: HelperActivityLock,
         abandonRunningAction: @escaping @MainActor () async -> Void,
+        renewsHelperAtLaunch: Bool = false,
         notifier: UNUserNotificationCenterNotifier = UNUserNotificationCenterNotifier(),
         loginItem: LaunchAtLogin = LaunchAtLogin(),
         afterHelperRegistration: @escaping @Sendable () -> Void = {},
@@ -74,6 +81,7 @@ final class PrerequisitesModel {
         self.notifier = notifier
         self.loginItem = loginItem
         self.onPrerequisiteBecameAvailable = onPrerequisiteBecameAvailable
+        isRenewingHelperAtLaunch = renewsHelperAtLaunch && helperManager.registrationRenewal.shouldRenew
     }
 
     /// Checkliste zum aktuellen Zustand (Onboarding, Einstellungen).
@@ -135,6 +143,7 @@ final class PrerequisitesModel {
     /// statt zu entfallen. Liefert `true`, wenn neu registriert wurde.
     @discardableResult
     func renewHelperRegistrationIfNeeded() async -> Bool {
+        defer { isRenewingHelperAtLaunch = false }
         guard helperManager.assessRegistrationRenewalAtLaunch().shouldRenew else { return false }
         await maintainHelper(waitsWhileBusy: true) { try await self.helperManager.renewRegistration() }
         return true
@@ -205,7 +214,8 @@ final class PrerequisitesModel {
 
     private func status(helper: HelperState?) -> SetupStatus {
         SetupStatus(
-            fullDiskAccess: fullDiskAccess, helper: helper, notifications: notifications, launchAtLogin: launchAtLogin
+            fullDiskAccess: fullDiskAccess, helper: helper, notifications: notifications, launchAtLogin: launchAtLogin,
+            isRenewingHelper: isRenewingHelperAtLaunch
         )
     }
 

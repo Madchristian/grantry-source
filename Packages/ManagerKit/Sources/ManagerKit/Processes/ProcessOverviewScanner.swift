@@ -40,11 +40,14 @@ public struct ProcessOverviewScanner: Sendable {
 
     /// - Parameter onStep: erhält je erledigtem `ProcessScanStep` genau einen Abschluss; nach einem Fehler der
     ///   Prozesstabelle keinen mehr.
+    /// - Throws: `CancellationError`, wenn der Scan nach der Prozesstabelle abgebrochen ist; `simctl` startet dann nicht
+    ///   mehr (#611). Die Abfrage der Prozesstabelle selbst läuft bis zu ihrem Ende.
     public func scan(onStep: ScanStepHandler<ProcessScanStep>? = nil) async throws -> ProcessOverview {
         let (entries, trees, memory) = try await Self.queue.runThrowing { [table, detector] in
             let entries = try table.entries()
             return (entries, detector.scan(entries), MemoryStatus.current(processCount: entries.count))
         }
+        try Task.checkCancellation()
         await onStep?(.completed(.processTable, succeeded: true))
         let overview: ProcessOverview
         do {

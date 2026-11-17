@@ -1190,6 +1190,37 @@ struct MonitoringEngineTests {
         }
     }
 
+    /// #650: Ein Bundle mit verwaistem Link im Baum prüft nicht mehr jeder Vollscan nativ nach; entsteht das fehlende
+    /// Ziel, prüft der nächste Vollscan erneut.
+    @Test func danglingLinkBundleIsRecheckedOnlyAfterItChanges() async throws {
+        try await ScratchDirectory.withCanonical(prefix: "engine-dangling") { directory in
+            let app = try Codesign.bundle(in: directory, named: "Python", adHoc: true)
+            let framework = try Codesign.frameworkWithDanglingLink(in: app)
+            let validator = ScriptedSignatureValidator()
+            let harness = try Harness(
+                script: [contribution(sensitiveGrant(clientAt: app.path))],
+                deepVerifier: DeepSignatureVerifier(validator: validator, treeFingerprint: CountingTreeFingerprint.canonical)
+            )
+            var states = await harness.engine.states().makeAsyncIterator()
+            await harness.engine.start()
+            _ = try #require(await states.next { $0.lastCheckedAt == harness.now && !$0.isScanning && $0.pendingSignatureChecks == 0 })
+            #expect(validator.calls.count == 1)
+
+            harness.advance(seconds: 60)
+            await harness.engine.scanNow()
+            _ = try #require(await states.next { $0.lastCheckedAt == harness.now && !$0.isScanning && $0.pendingSignatureChecks == 0 })
+            #expect(validator.calls.count == 1, "unveränderter Baum: keine erneute native Prüfung")
+
+            let headers = framework.appending(path: "Versions/8.6/PrivateHeaders")
+            try FileManager.default.createDirectory(at: headers, withIntermediateDirectories: true)
+            harness.advance(seconds: 60)
+            await harness.engine.scanNow()
+            _ = try #require(await states.next { $0.lastCheckedAt == harness.now && !$0.isScanning && $0.pendingSignatureChecks == 0 })
+            #expect(validator.calls.count == 2, "Ziel entstanden: erneut geprüft")
+            await harness.engine.stop()
+        }
+    }
+
     @Test func stopDoesNotWaitForARunningDeepCheck() async throws {
         try await ScratchDirectory.with(prefix: "engine-deep") { directory in
             let app = directory.appending(path: "Xcode-like.app")

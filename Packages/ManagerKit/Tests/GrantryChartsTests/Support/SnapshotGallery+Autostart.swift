@@ -131,8 +131,8 @@ private struct AutostartSample: View {
                                                items: [StatusItem("1 Quelle fehlt", tone: .finding),
                                                        StatusItem("1 deaktiviert", tone: .neutral)],
                                                facts: "2 Einträge · Scan 14:32")) {
-                ProgressSpur(title: "Abdeckung unvollständig", detail: "Hintergrundobjekte nicht gelesen",
-                             fraction: 3.0 / 4, tone: .finding)
+                ProgressSpur(title: "Abdeckung unvollständig", detail: "1 von 2 Quellen gelesen · Stand von gestern, 18:05",
+                             fraction: 1.0 / 2, tone: .finding)
             } list: {
                 InstrumentList("Einträge", count: "2", sections: [SnapshotGallery.autostartSections[0]],
                                selection: .constant(nil))
@@ -159,7 +159,7 @@ private struct AutostartSample: View {
     }
 
     private var complete: ProgressSpur<EmptyView> {
-        ProgressSpur(title: "Abdeckung vollständig", detail: "alle Quellen gelesen · 14:32", fraction: 1,
+        ProgressSpur(title: "Abdeckung vollständig", detail: "alle 2 Quellen gelesen · Geprüft heute, 14:32", fraction: 1,
                      tone: .positive)
     }
 

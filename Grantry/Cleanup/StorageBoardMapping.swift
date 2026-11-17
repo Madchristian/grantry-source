@@ -9,12 +9,20 @@ enum StorageBoardMapping {
     // MARK: - Zustandszeile
 
     /// Vor dem ersten Ergebnis und während des Scans die offene Schildform ohne Chips (Korrektur 3); danach die
-    /// aufräumbare Größe, ohne vollständige Erfassung mit Befund.
-    static func head(reports: [StorageCategoryReport], timeMachine: TimeMachineReport?,
+    /// aufräumbare Größe, ohne vollständige Erfassung mit Befund. Rechts gelesene von allen Kategorien und die Scanzeit
+    /// (#611).
+    @MainActor
+    static func head(_ model: StorageCleanupModel) -> InventoryHead {
+        head(reports: model.reports, total: model.categoryCount, scannedAt: model.scannedAt,
+             timeMachine: model.timeMachine, isScanning: model.phase == .scanning)
+    }
+
+    static func head(reports: [StorageCategoryReport], total: Int, scannedAt: Date?, timeMachine: TimeMachineReport?,
                      isScanning: Bool) -> InventoryHead {
         if isScanning {
             return InventoryHead(verdict: String(localized: "Scan läuft"), shield: .open, items: [],
-                                 facts: String(localized: "\(StoragePresentation.categoryCountText(reports.count)) gelesen"))
+                                 facts: StoragePresentation.categoryFacts(read: reports.count, total: total,
+                                                                          scannedAt: nil))
         }
         guard !reports.isEmpty else {
             return InventoryHead(verdict: String(localized: "Noch nicht gescannt"), shield: .open, items: [],
@@ -32,28 +40,35 @@ enum StorageBoardMapping {
                                              : String(localized: "\(suggestions) Vorschläge Time Machine"),
                                          tone: .neutral) : nil,
         ]
-        return InventoryHead(verdict: StoragePresentation.cleanableText(reports),
-                             finding: !StoragePresentation.isComplete(reports), items: candidates.compactMap(\.self),
-                             facts: StoragePresentation.categoryCountText(reports.count))
+        let stand = StoragePresentation.scanStand(reports, total: total, scannedAt: scannedAt)
+        return InventoryHead(verdict: StoragePresentation.cleanableText(reports), finding: !stand.isComplete,
+                             items: candidates.compactMap(\.self),
+                             facts: StoragePresentation.categoryFacts(read: reports.count, total: total,
+                                                                      scannedAt: scannedAt))
     }
 
     // MARK: - Spur neben dem Umschalter
 
-    /// Scan-Fortschritt als Spur (ohne bekannten Anteil leere Bahn); danach der Stand des Ergebnisses; vor dem ersten
-    /// Scan keine Spur.
-    static func progress(_ scan: ScanProgress?, reports: [StorageCategoryReport]) -> CleanupProgress? {
-        if let scan { return .scanning(scan) }
-        guard !reports.isEmpty else { return nil }
-        let detail = String(localized: "\(StoragePresentation.categoryCountText(reports.count)) gelesen")
-        return StoragePresentation.isComplete(reports)
-            ? CleanupProgress(title: String(localized: "Scan vollständig"), detail: detail, fraction: 1, tone: .positive)
-            : CleanupProgress(title: String(localized: "Scan unvollständig"), detail: detail, fraction: 1, tone: .finding)
+    /// Scan-Fortschritt als Spur (ohne bekannten Anteil leere Bahn); danach der Stand des Ergebnisses mit gelesenen von
+    /// allen Kategorien und Scanzeit (#611) – ein abgebrochener Scan bleibt unvollständig; vor dem ersten Scan keine Spur.
+    @MainActor
+    static func progress(_ model: StorageCleanupModel) -> CleanupProgress? {
+        if let scan = model.scanProgress.current { return .scanning(scan) }
+        guard !model.reports.isEmpty else { return nil }
+        let stand = StoragePresentation.scanStand(model.reports, total: model.categoryCount, scannedAt: model.scannedAt)
+        return CleanupProgress(title: stand.title, detail: stand.detail, fraction: 1,
+                               tone: stand.isComplete ? .positive : .finding)
     }
 
     // MARK: - Kategorien
 
     static func risk(_ risk: StorageRisk) -> StatusItem {
         StatusItem(StoragePresentation.riskText(risk), tone: .neutral)
+    }
+
+    /// Risiko neben einem wählbaren Eintrag (Entwurf LB-4.1, #611): nur abweichend von „gering“.
+    static func entryRisk(_ risk: StorageRisk) -> StatusItem? {
+        StoragePresentation.entryRiskText(risk).map { StatusItem($0, tone: .neutral) }
     }
 
     static func status(_ status: StorageCategoryStatus) -> StatusItem? {

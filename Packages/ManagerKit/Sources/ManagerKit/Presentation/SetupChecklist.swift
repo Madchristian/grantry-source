@@ -42,17 +42,23 @@ public struct SetupStatus: Equatable, Sendable {
     public var helper: HelperState?
     public var notifications: NotificationAuthorization?
     public var launchAtLogin: LoginItemStatus?
+    /// Die Registrierung des Helpers wird nach einem Austausch des App-Bundles beim Start erneuert
+    /// (`HelperManager.renewRegistration()`). Bis dahin meldet der alte Helper ein anderes Protokoll oder antwortet nicht;
+    /// der Schritt gilt als in Prüfung statt als offen (#566).
+    public var isRenewingHelper: Bool
 
     public init(
         fullDiskAccess: Bool? = nil,
         helper: HelperState? = nil,
         notifications: NotificationAuthorization? = nil,
-        launchAtLogin: LoginItemStatus? = nil
+        launchAtLogin: LoginItemStatus? = nil,
+        isRenewingHelper: Bool = false
     ) {
         self.fullDiskAccess = fullDiskAccess
         self.helper = helper
         self.notifications = notifications
         self.launchAtLogin = launchAtLogin
+        self.isRenewingHelper = isRenewingHelper
     }
 }
 
@@ -166,7 +172,7 @@ public struct SetupChecklist: Hashable, Sendable {
             case nil: checking(step)
             }
         case .helper:
-            status.helper.map { helperItem($0) } ?? checking(step)
+            status.isRenewingHelper ? checking(step) : status.helper.map { helperItem($0) } ?? checking(step)
         case .notifications:
             switch status.notifications {
             case .authorized?: Item(step: step, state: .done, text: "Erlaubt", tone: .positive, action: nil)

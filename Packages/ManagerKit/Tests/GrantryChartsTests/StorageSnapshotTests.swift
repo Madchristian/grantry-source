@@ -12,4 +12,12 @@ import Testing
         try ChartSnapshot.verify(SnapshotGallery.storage(scene), named: "speicher-\(scene.rawValue)",
                                  size: SnapshotGallery.storageSize, appearance: appearance)
     }
+
+    /// Risiko je Eintrag (#611): VoiceOver liest den Chip im Wert der Häkchenzeile mit.
+    @Test func entryReadsItsRisk() async throws {
+        let nodes = try await AccessibilityTree.nodes(of: SnapshotGallery.storage(.result),
+                                                      size: SnapshotGallery.storageSize)
+        #expect(nodes.contains { $0.label == "Archives" && $0.value.hasPrefix("nicht ausgewählt, Risiko mittel") },
+                "\(nodes)")
+    }
 }

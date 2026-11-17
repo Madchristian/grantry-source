@@ -3,24 +3,36 @@ import SwiftUI
 
 /// Karte „Erreichbarkeit“ (Netzwerk › Verbindungen) mit vielen lauschenden Programmen: in der Spalte und auf die ganze
 /// Seite vergrößert. Stand wie im Auftrag zum Vergrößern: sechs Programme nur auf diesem Mac, zwei im lokalen Netz und
-/// 17 aus dem Netz erreichbar.
+/// 17 aus dem Netz erreichbar. Mit Programmfilter (#640) ein gewähltes Echo, das gewählte Sammel-Echo „+n“ und ein
+/// gewähltes Echo auf der vergrößerten Seite.
 @MainActor
 extension SnapshotGallery {
     enum ReachRadarScene: String, CaseIterable, Sendable {
         case card = "karte"
         case page = "seite"
+        case picked = "karte-gefiltert"
+        case pickedSummary = "karte-gefiltert-sammel"
+        case pickedPage = "seite-gefiltert"
 
-        var isExpanded: Bool { self == .page }
+        var isExpanded: Bool { self == .page || self == .pickedPage }
+
+        /// Echos des Programmfilters: eines bzw. alle, die das Sammel-Echo des äußeren Rings vertritt.
+        var picked: Set<ReachRadar.Echo.ID> {
+            switch self {
+            case .card, .page: []
+            case .picked, .pickedPage: [SnapshotGallery.pickedEcho]
+            case .pickedSummary:
+                Set(SnapshotGallery.reachEchoes.filter { $0.ring == .network }
+                    .dropFirst(ReachRadar.maximumPerRing - 1).map(\.id))
+            }
+        }
 
         var size: CGSize {
-            switch self {
-            case .card: CGSize(width: InstrumentSize.columnRadar, height: 372)
-            case .page: CGSize(width: 1100, height: 760)
-            }
+            isExpanded ? CGSize(width: 1100, height: 760) : CGSize(width: InstrumentSize.columnRadar, height: 372)
         }
     }
 
-    static let reachEchoes: [ReachRadar.Echo] = {
+    nonisolated static let reachEchoes: [ReachRadar.Echo] = {
         let thisMac = ["ACCpromAdapterDaemon :9200", "Discord :6463", "launchd :8021", "node :3456", "Orca :64270",
                        "Warp :9277"]
         let localNetwork = ["mDNSResponder :5353", "sharingd :8770"]
@@ -34,14 +46,17 @@ extension SnapshotGallery {
         return echoes(thisMac, .thisMac) + echoes(localNetwork, .localNetwork) + echoes(network, .network)
     }()
 
+    /// Echo des Programmfilters: „Orca :6768“ auf dem Ring „aus dem Netz“, in der Karte einzeln zu sehen.
+    nonisolated static let pickedEcho = "Orca :6768\(ReachRadar.Ring.network.rawValue)"
+
     static func reachRadar(_ scene: ReachRadarScene) -> some View {
         VStack(alignment: .leading, spacing: InstrumentSpacing.cell) {
             PeilHead("Erreichbarkeit", detail: "Wer diesen Mac erreichen kann", value: "17", finding: true,
                      expansion: .constant(scene.isExpanded))
             if scene.isExpanded {
-                ReachRadar(echoes: reachEchoes, isExpanded: true).frame(maxHeight: .infinity)
+                ReachRadar(echoes: reachEchoes, picked: scene.picked, isExpanded: true).frame(maxHeight: .infinity)
             } else {
-                ReachRadar(echoes: reachEchoes).frame(height: InstrumentSize.radar)
+                ReachRadar(echoes: reachEchoes, picked: scene.picked).frame(height: InstrumentSize.radar)
             }
         }
         .instrumentPanel()

@@ -208,8 +208,8 @@ private struct AppsSample: View {
                                                items: [StatusItem("1 Quelle fehlt", tone: .finding),
                                                        StatusItem("2 prüfen", tone: .finding)],
                                                facts: "2 Apps · Scan 14:32")) {
-                ProgressSpur(title: "Abdeckung unvollständig", detail: "Programme anderer Benutzer nicht gelesen",
-                             fraction: 2.0 / 3, tone: .finding)
+                ProgressSpur(title: "Abdeckung unvollständig", detail: "Quelle teilweise gelesen · Geprüft heute, 14:32",
+                             fraction: 1.0 / 2, tone: .finding)
             } list: {
                 InstrumentList("Apps", count: "2", sections: [SnapshotGallery.appSections[0]],
                                selection: .constant(nil))
@@ -225,7 +225,7 @@ private struct AppsSample: View {
     }
 
     private var complete: ProgressSpur<EmptyView> {
-        ProgressSpur(title: "Abdeckung vollständig", detail: "alle Quellen gelesen · 14:32", fraction: 1,
+        ProgressSpur(title: "Abdeckung vollständig", detail: "Quelle gelesen · Geprüft heute, 14:32", fraction: 1,
                      tone: .positive)
     }
 

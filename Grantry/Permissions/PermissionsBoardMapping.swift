@@ -22,6 +22,9 @@ extension RecordBadge {
 }
 
 enum PermissionsBoardMapping {
+    /// Kennung der Listenzeilen für die Performance-UI-Tests (Barrierefreiheit, #612).
+    static let rowIdentifier = "permissionRow"
+
     /// Zustandszeile (Spec §11.2 a) über alle Apps mit Berechtigungen, unabhängig von Suche und Filter.
     static func head(_ presentation: PresentationSnapshot?, scannedAt: Date?) -> InventoryHead {
         guard let presentation else {
@@ -58,14 +61,14 @@ enum PermissionsBoardMapping {
             symbol: "app", title: group.app.displayName,
             detail: group.grants.map(\.serviceName).joined(separator: ", "),
             badges: badges(group.grants, presentation: presentation).map(\.instrumentBadge), finding: group.isFlagged
-        ))
+        ), accessibilityIdentifier: rowIdentifier)
     }
 
     static func serviceItem(_ group: ServiceGroup, presentation: PresentationSnapshot) -> InstrumentListItem<String> {
         InstrumentListItem(id: group.id, content: InstrumentRowContent(
             symbol: "hand.raised", title: group.service.displayName, detail: appCount(group.grants.count),
             badges: badges(group.grants, presentation: presentation).map(\.instrumentBadge), finding: group.isFlagged
-        ))
+        ), accessibilityIdentifier: rowIdentifier)
     }
 
     // MARK: - Detail
