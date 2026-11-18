@@ -179,6 +179,196 @@ import Testing
     @Test func noTargetsNoStep() {
         #expect(schedule.nextStep(targets: [], completedAt: [:], attemptedAt: [:], previousStep: start, now: start) == nil)
     }
+
+    // MARK: Sichtbare Livewerte (#662)
+
+    /// Ohne sichtbare Livewerte zielt der Plan `lead` vor die Frist; sichtbare schieben bis zur Frist auf.
+    @Test func visibleLiveViewsDeferUntilTheDeadline() {
+        let completed = ["a": start, "b": start.addingTimeInterval(100)]
+        let hidden = try! #require(schedule.nextStep(targets: ["a", "b"], completedAt: completed, attemptedAt: [:],
+                                                     previousStep: start.addingTimeInterval(700), now: start.addingTimeInterval(700)))
+        #expect(hidden == .init(path: "a", date: start.addingTimeInterval(schedule.period)))
+        let visible = schedule.nextStep(targets: ["a", "b"], completedAt: completed, attemptedAt: [:],
+                                        previousStep: start.addingTimeInterval(700), liveViews: .visible,
+                                        now: start.addingTimeInterval(700))
+        #expect(visible == .init(path: "a", date: start.addingTimeInterval(schedule.deadlineAge), isForced: true))
+        #expect(schedule.deadlineAge - schedule.period == schedule.lead)
+    }
+
+    /// Nach dem Verdecken wartet der Plan `settle` – außer die Frist eines Baums endet vorher.
+    @Test func settleDelaysHiddenStepsButNeverPastTheDeadline() {
+        let now = start.addingTimeInterval(820)
+        let completed = ["a": start, "b": start.addingTimeInterval(300)]
+        let settling = schedule.nextStep(targets: ["a", "b"], completedAt: completed, attemptedAt: [:], previousStep: start,
+                                         liveViews: .hidden(since: now), now: now)
+        #expect(settling == .init(path: "a", date: start.addingTimeInterval(schedule.deadlineAge), isForced: true),
+                "die Frist von a endet vor der Ruhezeit")
+        let fresh = ["a": start.addingTimeInterval(500), "b": start.addingTimeInterval(600)]
+        let calm = schedule.nextStep(targets: ["a", "b"], completedAt: fresh, attemptedAt: [:], previousStep: start,
+                                     liveViews: .hidden(since: now), now: now)
+        #expect(calm == .init(path: "a", date: now.addingTimeInterval(schedule.settle)))
+    }
+
+    /// Ein erzwungener Durchgang nimmt alle Bäume, die innerhalb von `forcedHorizon` beginnen müssen, früheste zuerst
+    /// (je Baum `defaultTreeWork` Arbeit vor ihm).
+    @Test func forcedOrderTakesTheTreesThatMustStartWithinTheHorizon() {
+        let now = start.addingTimeInterval(schedule.deadlineAge)
+        let completed = ["fällig": start, "bald": start.addingTimeInterval(schedule.forcedHorizon - 1),
+                         "später": start.addingTimeInterval(schedule.forcedHorizon + 3 * schedule.defaultTreeWork + 1)]
+        #expect(schedule.forcedOrder(["später", "bald", "nie", "fällig"], completedAt: completed, attemptedAt: [:], now: now)
+            == ["nie", "fällig", "bald"])
+    }
+
+    /// Codex-Review zu PR 665: Zehn gleich alte Bäume mit je 6 s Arbeit (Blöcke samt Pausen) beginnen so früh, dass auch
+    /// der letzte vor seiner Frist an der Reihe ist – nicht erst, wenn der erste seine Frist erreicht.
+    @Test func forcedStartLeavesRoomForTheWorkOfEarlierTrees() {
+        let targets = (0..<10).map { "t\($0)" }
+        let completed = Dictionary(uniqueKeysWithValues: targets.enumerated().map { ($1, start.addingTimeInterval(Double($0))) })
+        let work = Dictionary(uniqueKeysWithValues: targets.map { ($0, 6.0) })
+        let now = start.addingTimeInterval(100)
+        let step = try! #require(schedule.nextStep(targets: targets, completedAt: completed, attemptedAt: [:],
+                                                   previousStep: now, liveViews: .visible, work: work, now: now))
+        #expect(step == .init(path: "t0", date: start.addingTimeInterval(schedule.deadlineAge + 9 - 9 * 6), isForced: true))
+        #expect(schedule.forcedOrder(targets, completedAt: completed, attemptedAt: [:], work: work, now: step.date)
+            == targets, "alle zehn im selben Durchgang")
+        var begin = step.date
+        for path in targets {
+            let deadline = try! #require(completed[path]).addingTimeInterval(schedule.deadlineAge)
+            #expect(begin <= deadline, "\(path) beginnt vor seiner Frist")
+            begin.addTimeInterval(work[path] ?? 0)
+        }
+    }
+
+    /// Die Pause zwischen zwei Blöcken entfällt nur, solange ein Baum seine Frist noch halten kann: ein wartender ab
+    /// seinem spätesten Beginn, der laufende erst ab der halben Reserve (sie gehört seinen eigenen Blöcken).
+    @Test func deadlineIsPressingBetweenTheLatestStartAndTheMaximumAge() {
+        func pressing(_ age: TimeInterval?, running: Bool = false) -> Bool {
+            schedule.deadlineIsPressing(completed: age.map { start.addingTimeInterval(-$0) }, running: running, now: start)
+        }
+        #expect(!pressing(schedule.deadlineAge + 1, running: true))
+        #expect(pressing(schedule.deadlineAge + schedule.reserve / 2, running: true))
+        #expect(!pressing(schedule.deadlineAge - 1))
+        #expect(pressing(schedule.deadlineAge))
+        #expect(pressing(schedule.maximumAge - 1))
+        #expect(!pressing(schedule.maximumAge + 1), "überfällig: Nachholen im üblichen Takt")
+        #expect(!pressing(nil))
+        #expect(!pressing(-10), "Zeitstempel in der Zukunft")
+    }
+
+    /// Simuliert den Plan wie die Engine: Ein Schritt läuft zu seinem Zeitpunkt, ein erzwungener prüft `forcedOrder`,
+    /// ein regulärer `blockSize` Bäume in Fristreihenfolge. `visible` sind die Zeiten mit sichtbaren Livewerten; die
+    /// Engine plant bei jedem Wechsel neu (hier: Schritt am Wechsel abbrechen und neu fragen).
+    private func simulateLiveViews(
+        targets: [String], completedAt initial: [String: Date], until end: Date, visible: [Range<Date>],
+        blockSize: Int = 1
+    ) -> [(step: SignatureRevalidationSchedule.Step, path: String)] {
+        func liveViews(at date: Date) -> SignatureRevalidationSchedule.LiveViews {
+            if visible.contains(where: { $0.contains(date) }) { return .visible }
+            return .hidden(since: visible.map(\.upperBound).filter { $0 <= date }.max())
+        }
+        var completedAt = initial
+        var previous = start
+        var previousBlock = 1
+        var now = start
+        var checks: [(step: SignatureRevalidationSchedule.Step, path: String)] = []
+        while now < end, let step = schedule.nextStep(
+            targets: targets, completedAt: completedAt, attemptedAt: [:], previousStep: previous,
+            previousBlockSize: previousBlock, liveViews: liveViews(at: now), now: now
+        ) {
+            let change = visible.flatMap { [$0.lowerBound, $0.upperBound] }.filter { $0 > now }.min()
+            if let change, change < step.date {
+                now = change
+                continue
+            }
+            now = max(now, step.date)
+            let order = step.isForced
+                ? schedule.forcedOrder(targets, completedAt: completedAt, attemptedAt: [:], now: now)
+                : Array(schedule.dueOrder(targets, completedAt: completedAt, attemptedAt: [:], now: now).prefix(blockSize))
+            for path in order {
+                checks.append((step, path))
+                completedAt[path] = now
+            }
+            previous = now
+            previousBlock = order.count
+        }
+        return checks
+    }
+
+    private func randomStart(_ targets: [String], seed: Int) -> [String: Date] {
+        var generator = SeededGenerator(seed: UInt64(seed))
+        var completed: [String: Date] = [:]
+        for target in targets where Int.random(in: 0..<10, using: &generator) > 0 {
+            completed[target] = start.addingTimeInterval(-TimeInterval.random(in: 0...schedule.deadlineAge, using: &generator))
+        }
+        return completed
+    }
+
+    private func expectDeadlineKept(_ checks: [(step: SignatureRevalidationSchedule.Step, path: String)],
+                                    targets: [String], completedAt: [String: Date], until end: Date,
+                                    sourceLocation: SourceLocation = #_sourceLocation) {
+        for target in targets {
+            let dates = [completedAt[target]].compactMap(\.self) + checks.filter { $0.path == target }.map(\.step.date)
+            let gaps = zip(dates, dates.dropFirst()).map { $1.timeIntervalSince($0) }
+            #expect(gaps.allSatisfy { $0 <= schedule.maximumAge }, "\(target): \(gaps)", sourceLocation: sourceLocation)
+            #expect(end.timeIntervalSince(dates.last ?? start) <= schedule.maximumAge, "\(target)",
+                    sourceLocation: sourceLocation)
+        }
+    }
+
+    /// Dauerhaft sichtbar über drei Stunden, verschiedene Ausgangslagen: Jeder Schritt ist erzwungen, die Zusage hält,
+    /// und Durchgänge liegen mindestens `forcedHorizon` auseinander (wenige, dafür mehrere Bäume).
+    @Test(arguments: [0, 1, 2, 3])
+    func permanentlyVisibleKeepsEveryDeadlineInFewPasses(seed: Int) {
+        let targets = (0..<61).map { "/Applications/App\($0).app" }
+        let completed = randomStart(targets, seed: seed)
+        let end = start.addingTimeInterval(3 * 3_600)
+        let checks = simulateLiveViews(targets: targets, completedAt: completed, until: end,
+                                       visible: [start..<end.addingTimeInterval(1)])
+        #expect(checks.allSatisfy { $0.step.isForced })
+        expectDeadlineKept(checks, targets: targets, completedAt: completed, until: end)
+        let passes = Set(checks.map(\.step.date)).sorted()
+        #expect(zip(passes, passes.dropFirst()).dropFirst().allSatisfy {
+            $1.timeIntervalSince($0) >= schedule.forcedHorizon - 0.001
+        }, "nach dem Nachholen höchstens ein Durchgang je forcedHorizon")
+    }
+
+    /// Sichtbar und verdeckt im Wechsel (5 min sichtbar, 2 min verdeckt): Sichtbar und in der Ruhezeit nur erzwungene
+    /// Schritte, die Zusage hält.
+    @Test(arguments: [0, 1, 2])
+    func alternatingVisibilityKeepsEveryDeadline(seed: Int) {
+        let targets = (0..<61).map { "/Applications/App\($0).app" }
+        let completed = randomStart(targets, seed: seed)
+        let end = start.addingTimeInterval(3 * 3_600)
+        let visible = stride(from: 0.0, to: 3 * 3_600, by: 420).map {
+            start.addingTimeInterval($0)..<start.addingTimeInterval($0 + 300)
+        }
+        let checks = simulateLiveViews(targets: targets, completedAt: completed, until: end, visible: visible, blockSize: 8)
+        expectDeadlineKept(checks, targets: targets, completedAt: completed, until: end)
+        for check in checks where !check.step.isForced {
+            #expect(!visible.contains { $0.contains(check.step.date) }, "verdeckt")
+            #expect(!visible.contains {
+                check.step.date >= $0.upperBound && check.step.date < $0.upperBound.addingTimeInterval(schedule.settle)
+            }, "nach der Ruhezeit")
+        }
+        #expect(checks.contains { check in !visible.contains { $0.contains(check.step.date) } }, "auch verdeckt geprüft")
+    }
+
+    /// Ohne sichtbare Livewerte prüft der Plan im eingeschwungenen Zustand mit Vorlauf: jeder Baum nach höchstens
+    /// `period` plus einem Abstand, also deutlich vor der Frist.
+    @Test func hiddenPaceRunsTheLeadAheadOfTheDeadline() {
+        let targets = (0..<61).map { "/Applications/App\($0).app" }
+        let completed = Dictionary(uniqueKeysWithValues: targets.map { ($0, start) })
+        let end = start.addingTimeInterval(3 * 3_600)
+        let checks = simulateLiveViews(targets: targets, completedAt: completed, until: end, visible: [], blockSize: 8)
+        let settled = start.addingTimeInterval(2 * schedule.period)
+        let gap = schedule.gap(forTargetCount: targets.count)
+        for target in targets {
+            let dates = checks.filter { $0.path == target }.map(\.step.date)
+            let gaps = zip(dates, dates.dropFirst()).filter { $0.0 >= settled }.map { $1.timeIntervalSince($0) }
+            #expect(gaps.allSatisfy { $0 <= schedule.period + gap + 0.001 }, "\(target): \(gaps)")
+        }
+        #expect(checks.allSatisfy { !$0.step.isForced })
+    }
 }
 
 /// Welche Bäume ein Vollscan komplett prüft (#649): Start und manueller Scan alle, eine Dateiänderung den Baum, in dem

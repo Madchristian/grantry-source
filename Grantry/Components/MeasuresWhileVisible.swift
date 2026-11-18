@@ -1,5 +1,6 @@
 import AppKit
 import GrantryCharts
+import ManagerKit
 import SwiftUI
 
 /// Sichtbarkeit des Fensters einer Ansicht: `onDisappear` feuert nicht beim Minimieren, ⌘H, Wechsel des Space,
@@ -16,7 +17,8 @@ extension View {
     /// Ruft `start` auf, solange die Ansicht angezeigt wird und ihr Fenster sichtbar ist, sonst `stop`. Wird das
     /// Fenster nur verdeckt, wartet `stop` `hiddenDelay` (20 s) ab – ein kurzer Blick in Mission Control, auf einen
     /// anderen Space oder in ein anderes Fenster setzt so die Summen „seit Öffnen“ nicht zurück. Verschwindet die
-    /// Ansicht oder schließt das Fenster, folgt `stop` sofort.
+    /// Ansicht oder schließt das Fenster, folgt `stop` sofort. Solange sie misst, meldet die Ansicht das an
+    /// `LiveViewPresence` (#662): Die verteilte Signaturprüfung schiebt dann auf.
     func measuresWhileVisible(
         hiddenDelay: Duration = .seconds(20), start: @escaping () -> Void, stop: @escaping () -> Void
     ) -> some View {
@@ -47,6 +49,8 @@ private struct MeasuresWhileVisible: ViewModifier {
     @State private var isPresent = false
     @State private var visibility = WindowVisibility.visible
     @State private var pendingStop: Task<Void, Never>?
+    /// Kennung dieser Ansicht in `LiveViewPresence`.
+    @State private var presenceID = UUID()
 
     private var measures: Bool { isPresent && visibility == .visible }
 
@@ -61,6 +65,7 @@ private struct MeasuresWhileVisible: ViewModifier {
             .onChange(of: measures) { _, measures in
                 if measures {
                     cancelPendingStop()
+                    LiveViewPresence.shared.setMeasuring(true, for: presenceID)
                     start()
                 } else if !isPresent || visibility == .closed {
                     stopNow()
@@ -72,7 +77,7 @@ private struct MeasuresWhileVisible: ViewModifier {
 
     private func stopNow() {
         cancelPendingStop()
-        stop()
+        end()
     }
 
     private func stopLater() {
@@ -82,8 +87,13 @@ private struct MeasuresWhileVisible: ViewModifier {
             try? await Task.sleep(for: delay)
             guard !Task.isCancelled else { return }
             pendingStop = nil
-            stop()
+            end()
         }
+    }
+
+    private func end() {
+        LiveViewPresence.shared.setMeasuring(false, for: presenceID)
+        stop()
     }
 
     private func cancelPendingStop() {

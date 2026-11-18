@@ -105,4 +105,47 @@ import Testing
         history.recordGap(10_000)
         #expect(history.series.isEmpty)
     }
+
+    /// Blöcke (#663): über Blockgrenzen hinweg dieselben Werte wie ein einfacher Ringpuffer, auch mit Lücken und bei
+    /// einer Kapazität, die kein Vielfaches der Blockgröße ist.
+    @Test(arguments: [(1, 1), (3, 2), (5, 2), (7, 3), (9, 4), (12, 4), (60, 60)])
+    func blocksKeepTheNewestValuesLikeARing(capacity: Int, blockSize: Int) {
+        var series = MetricSeries(capacity: capacity, blockSize: blockSize)
+        var ring: [Double?] = []
+        for step in 0..<40 {
+            let value: Double? = step % 7 == 3 ? nil : Double(step)
+            series.append(value)
+            ring = Array((ring + [value]).suffix(capacity))
+            #expect(series.values == ring, "nach Wert \(step)")
+            #expect(series.suffix(2) == Array(ring.suffix(2)))
+        }
+    }
+
+    /// Ein Stand, den ein Frame noch hält, ändert sich nicht, wenn der Verlauf weiterläuft (Wertsemantik trotz
+    /// geteilter Blöcke).
+    @Test func heldHistoryKeepsItsValues() {
+        var history = SampleHistory(interval: .seconds(1))
+        for value in 0..<130 { history.record([.cpuTotal: Double(value)]) }
+        let held = history
+        for value in 130..<200 { history.record([.cpuTotal: Double(value)]) }
+        #expect(held.points(for: .cpuTotal, in: .oneMinute) == (70..<130).map { Double($0) })
+        #expect(history.points(for: .cpuTotal, in: .oneMinute) == (140..<200).map { Double($0) })
+    }
+
+    /// Ursache von #663: Jeder Takt kopierte alle Ringpuffer (je Prozess 900 Werte, 16 KB), weil der vorige Frame den
+    /// Verlauf noch hielt; jeder weitere Halter (Bedienungshilfen, Ansichten) hielt eine ganze Kopie fest. Jetzt teilen
+    /// sich alter und neuer Stand alle vollen Blöcke, ein Takt legt je Reihe höchstens den jüngsten Block neu an.
+    @Test func recordingWhileAFrameHoldsTheHistorySharesFullBlocks() throws {
+        var history = SampleHistory(interval: .seconds(1))
+        let processes = (1...50).map { MetricKey.processCPU(ProcessKey(pid: Int32($0), startTime: 1)) }
+        for tick in 0..<300 { history.record(Dictionary(uniqueKeysWithValues: processes.map { ($0, Double(tick)) })) }
+        let held = history
+        history.record(Dictionary(uniqueKeysWithValues: processes.map { ($0, 1) }))
+        for key in processes {
+            let before = try #require(held.series[key]).fullBlocks
+            let after = try #require(history.series[key]).fullBlocks
+            #expect(before.count == 5)
+            #expect(after.prefix(before.count) == before[...])
+        }
+    }
 }

@@ -1,29 +1,82 @@
-/// Ringpuffer einer Metrik, älteste zuerst; `nil` = in diesem Takt nicht gemessen. Anhängen ist O(1).
+/// Die letzten `capacity` Werte einer Metrik, älteste zuerst; `nil` = in diesem Takt nicht gemessen. Anhängen ist O(1).
+///
+/// Gespeichert in Blöcken (#663): volle Blöcke sind unveränderlich und werden zwischen Ständen geteilt, nur der jüngste
+/// wächst. Jeder Frame gibt den Verlauf an den Main Actor weiter und hält ihn bis zum nächsten Takt; ein Ringpuffer am
+/// Stück wurde deshalb je Takt per Copy-on-Write ganz kopiert – in „Details“ rund 1 200 Prozesse zu je 16 KB – und jeder
+/// weitere Halter (Ansichten, Bedienungshilfen) hielt eine ganze Kopie fest. Jetzt kopiert ein Takt je Reihe höchstens
+/// den jüngsten Block.
 public struct MetricSeries: Sendable {
+    /// Voller, unveränderlicher Block; geteilt zwischen allen Ständen, die ihn enthalten.
+    private final class Block: Sendable {
+        let values: [Double?]
+
+        init(_ values: [Double?]) {
+            self.values = values
+        }
+    }
+
+    /// Eine Minute bei 1 s Takt: Ein Takt kopiert höchstens so viele Werte, ein Stand aus 15 Minuten hat 15 Blöcke.
+    static let defaultBlockSize = 60
+
     public let capacity: Int
-    private var storage: [Double?] = []
-    /// Index des ältesten Werts, sobald der Puffer voll ist.
-    private var head = 0
+    private let blockSize: Int
+    /// Volle Blöcke, älteste zuerst.
+    private var blocks: [Block] = []
+    /// Abgelaufene Werte am Anfang des ältesten Blocks.
+    private var dropped = 0
+    /// Jüngster Block, noch nicht voll.
+    private var tail: [Double?] = []
     /// Takte seit dem letzten gemessenen Wert.
     private(set) var trailingGap = 0
 
-    init(capacity: Int) {
+    init(capacity: Int, blockSize: Int = MetricSeries.defaultBlockSize) {
         precondition(capacity > 0, "Kapazität muss positiv sein")
+        precondition(blockSize > 0, "Blockgröße muss positiv sein")
         self.capacity = capacity
-        storage.reserveCapacity(capacity)
+        // Höchstens die Kapazität: So liegt jeder abgelaufene Wert in einem vollen Block.
+        self.blockSize = min(blockSize, capacity)
     }
 
+    /// Anzahl der Werte, höchstens `capacity`.
+    var count: Int { blocks.count * blockSize - dropped + tail.count }
+
     mutating func append(_ value: Double?) {
-        if storage.count < capacity {
-            storage.append(value)
-        } else {
-            storage[head] = value
-            head = (head + 1) % capacity
+        tail.append(value)
+        if tail.count == blockSize {
+            blocks.append(Block(tail))
+            tail = []
+        }
+        if count > capacity {
+            dropped += 1
+            if dropped == blockSize {
+                blocks.removeFirst()
+                dropped = 0
+            }
         }
         trailingGap = value == nil ? trailingGap + 1 : 0
     }
 
-    public var values: [Double?] { Array(storage[head...] + storage[..<head]) }
+    public var values: [Double?] { suffix(count) }
+
+    /// Die neuesten `length` Werte, älteste zuerst; ohne die übrigen zu kopieren.
+    func suffix(_ length: Int) -> [Double?] {
+        var skip = count - min(max(length, 0), count) + dropped
+        var result: [Double?] = []
+        result.reserveCapacity(count + dropped - skip)
+        for block in blocks {
+            if skip >= blockSize {
+                skip -= blockSize
+                continue
+            }
+            result.append(contentsOf: block.values[skip...])
+            skip = 0
+        }
+        result.append(contentsOf: tail[skip...])
+        return result
+    }
+
+    /// Kennungen der vollen Blöcke, älteste zuerst – für Tests der geteilten Speicherung.
+    var fullBlocks: [ObjectIdentifier] { blocks.map(ObjectIdentifier.init) }
 
     /// Im ganzen Zeitraum nichts gemessen (z. B. beendeter Prozess).
     var hasNoValues: Bool { trailingGap >= capacity }
@@ -78,8 +131,14 @@ public struct SampleHistory: Equatable, Sendable {
         for (key, value) in values {
             series[key, default: MetricSeries(capacity: capacity)].append(value)
         }
-        series = series.filter { !$0.value.hasNoValues }
+        dropSeriesWithoutValues()
         recordedCount += 1
+    }
+
+    /// Entfernt Metriken ohne Wert im ganzen Zeitraum; baut das Verzeichnis nur neu, wenn es eine gibt.
+    private mutating func dropSeriesWithoutValues() {
+        guard series.values.contains(where: \.hasNoValues) else { return }
+        series = series.filter { !$0.value.hasNoValues }
     }
 
     /// Trägt `count` Takte ohne Messung ein, etwa für die Zeit, in der der Task-Manager verdeckt war: Die Graphen zeigen
@@ -91,7 +150,7 @@ public struct SampleHistory: Equatable, Sendable {
         for key in series.keys {
             for _ in 0..<gap { series[key]?.append(nil) }
         }
-        series = series.filter { !$0.value.hasNoValues }
+        dropSeriesWithoutValues()
         recordedCount += count
     }
 
@@ -105,16 +164,19 @@ public struct SampleHistory: Equatable, Sendable {
         let taktCount = Self.taktCount(in: window.duration, interval: interval)
         let bucketSize = max(1, Int((Double(taktCount) / Double(Self.displayedPointCount)).rounded(.up)))
         let spacing = interval * bucketSize
-        guard let values = series[key]?.values, !values.isEmpty else {
+        guard let metric = series[key], metric.count > 0 else {
             return HistoryPoints(values: [], spacing: spacing, latestOffset: .zero)
         }
-        // Alle Reihen enden am letzten Takt; ihr erster Wert liegt `values.count - 1` Takte davor.
-        let lastTakt = recordedCount - 1, firstTakt = recordedCount - values.count
+        // Alle Reihen enden am letzten Takt; ihr erster Wert liegt `metric.count - 1` Takte davor.
+        let lastTakt = recordedCount - 1, firstTakt = recordedCount - metric.count
         let lastBucket = lastTakt / bucketSize
         let firstBucket = max(firstTakt / bucketSize, lastBucket - Self.displayedPointCount + 1)
+        // Nur die Takte ab dem ersten Abschnitt: Eine Zeile von „Details“ braucht 60 der bis zu 900 Werte.
+        let firstShown = max(firstBucket * bucketSize, firstTakt)
+        let values = metric.suffix(recordedCount - firstShown)
         let points = (firstBucket...lastBucket).map { bucket -> Double? in
             let start = max(bucket * bucketSize, firstTakt), end = min((bucket + 1) * bucketSize, lastTakt + 1)
-            let measured = (start..<end).compactMap { values[$0 - firstTakt] }
+            let measured = (start..<end).compactMap { values[$0 - firstShown] }
             return measured.isEmpty ? nil : measured.reduce(0, +) / Double(measured.count)
         }
         return HistoryPoints(values: points, spacing: spacing,

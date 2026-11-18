@@ -171,6 +171,9 @@ public enum DeepSignatureRevalidation: Sendable {
 /// Traversierung wie im Cache, abgeschlossene Tiefenprüfung des unveränderten Baums oder ein fehlendes Ziel. Bundle-Stempel
 /// zählen nicht; ein veränderter Baum verliert ihn, bis die Tiefenprüfung ihn wieder bestätigt. Gemessen auf der monotonen
 /// Uhr `clock` (Standard `ContinuousClock`, läuft im Ruhezustand weiter), nicht auf der Wanduhr `now`, und nur im Prozess.
+///
+/// Die verteilte Komplettprüfung liest einen Baum in Blöcken bis zu einem CPU-Budget (`revalidateTree(at:cpuBudget:)`,
+/// #662) und hält dafür höchstens einen angefangenen Baum.
 public actor DeepSignatureVerifier {
     public static let timeoutRetryDelay: TimeInterval = 30 * 60
 
@@ -191,6 +194,12 @@ public actor DeepSignatureVerifier {
     private var confirmations: [String: Confirmation] = [:]
     /// Beginn der letzten Komplettprüfung je Pfad in Sekunden von `elapsed` (#649), nur im Prozess.
     private var completeChecks: [String: TimeInterval] = [:]
+    /// Durchlauf in Blöcken (#662).
+    private let treeWalk: @Sendable (String) -> (any CodeTreeWalking)?
+    /// Angefangene Komplettprüfung in Blöcken, höchstens eine (#662).
+    private var partialCheck: (path: String, check: PartialTreeCheck)?
+    /// Zählt je Pfad jede Bestätigung und jedes Verwerfen: Ein Block, der danach endet, ist überholt.
+    private var generations: [String: Int] = [:]
     private(set) var requestCount = 0
 
     private struct CheckResult: Sendable {
@@ -220,6 +229,26 @@ public actor DeepSignatureVerifier {
         let task: Task<CheckResult, Never>
     }
 
+    /// Angefangene Komplettprüfung: Durchlauf, kanonisches Ziel und Bundle-Stempel bei Beginn, Beginn des ersten Blocks
+    /// (Sekunden von `elapsed`).
+    private struct PartialTreeCheck: Sendable {
+        let walk: any CodeTreeWalking
+        let target: String
+        let stamp: String?
+        let checkedAt: TimeInterval
+    }
+
+    /// Ergebnis eines Blocks auf der Metadaten-Queue.
+    private enum TreeBlock: Sendable {
+        /// Kein Cache-Eintrag oder kein lesbarer Baum: nichts zu bestätigen.
+        case stale
+        /// Bundle-Stempel oder Ziel seit dem ersten Block verändert.
+        case changed
+        case partial(PartialTreeCheck, cpuTime: Duration)
+        /// Zu Ende gelesen; `fingerprint` nur, wenn Ziel und Stempel noch die vom Beginn sind.
+        case finished(PartialTreeCheck, fingerprint: String?, cpuTime: Duration)
+    }
+
     /// - Parameters:
     ///   - now: Wanduhr (Wiederholpause nach Zeitüberschreitungen).
     ///   - clock: monotone Uhr der Prüfalter (`completeCheckAges(for:)`).
@@ -230,22 +259,25 @@ public actor DeepSignatureVerifier {
         cacheURL: URL? = nil
     ) {
         self.init(validator: validator, now: now, clock: clock, cacheURL: cacheURL,
-                  treeFingerprint: { CodeTreeFingerprint.read(at: $0) })
+                  treeFingerprint: { CodeTreeFingerprint.read(at: $0) }, treeWalk: { CodeTreeWalk(path: $0) })
     }
 
-    /// `treeFingerprint` ersetzt in Tests `CodeTreeFingerprint.read`, etwa um vollständige Traversierungen zu zählen.
+    /// `treeFingerprint` ersetzt in Tests `CodeTreeFingerprint.read`, etwa um vollständige Traversierungen zu zählen;
+    /// `treeWalk` den Durchlauf in Blöcken. Ohne `treeWalk` liest ein Block den ganzen Baum über `treeFingerprint`.
     init(
         validator: any SignatureValidating = SecuritySignatureValidator(),
         now: @escaping @Sendable () -> Date = Date.init,
         clock: any Clock<Duration> = ContinuousClock(),
         cacheURL: URL? = nil,
-        treeFingerprint: @escaping @Sendable (String) -> String?
+        treeFingerprint: @escaping @Sendable (String) -> String?,
+        treeWalk: (@Sendable (String) -> (any CodeTreeWalking)?)? = nil
     ) {
         self.validator = validator
         self.now = now
         elapsed = ElapsedTime(clock)
         self.cacheURL = cacheURL
         self.treeFingerprint = treeFingerprint
+        self.treeWalk = treeWalk ?? { path in WholeTreeWalk(path: path, read: treeFingerprint) }
     }
 
     private func loadCache() async {
@@ -277,10 +309,58 @@ public actor DeepSignatureVerifier {
         await lookUp(paths, revalidation: revalidation, qos: .utility)
     }
 
-    /// Komplettprüfung genau eines Baums mit Hintergrund-Priorität für die verteilte Revalidierung (#649): das Urteil,
-    /// wenn der vollständige Baum dem Cache entspricht, sonst `nil` – dann braucht das Ziel `verify(path:)`.
-    public func revalidateTree(at path: String) async -> DeepSignatureVerdict? {
-        await lookUp([path], revalidation: .completeTree, qos: .background)[path]
+    /// Ein Block der Komplettprüfung von `path` für die verteilte Revalidierung (#649, #662), mit Hintergrund-Priorität:
+    /// liest den Baum, bis er zu Ende ist oder die Rechenzeit `cpuBudget` erreicht (`nil`: am Stück). Ein angefangener
+    /// Baum setzt beim nächsten Aufruf fort, sofern Ziel und Bundle-Stempel unverändert sind; sonst verfällt er, gilt nicht
+    /// als geprüft, und der nächste Aufruf beginnt von vorn. Zu Ende gelesen: das Urteil, wenn der vollständige Baum dem
+    /// Cache entspricht (datiert auf den Beginn des ersten Blocks), sonst `nil` – dann braucht das Ziel `verify(path:)`.
+    public func revalidateTree(at path: String, cpuBudget: Duration?) async -> TreeRevalidationStep {
+        await loadCache()
+        let hasEntry = cache?.entries[path] != nil
+        let generation = generations[path, default: 0]
+        let partial = partialCheck?.path == path ? partialCheck?.check : nil
+        partialCheck = nil
+        let (treeWalk, elapsed) = (treeWalk, elapsed)
+        let block = await metadata(qos: .background) { () -> TreeBlock in
+            let target = FileFingerprint.target(of: path)
+            let stamp = CodeTreeFingerprint.stamp(at: target)
+            let check: PartialTreeCheck
+            if let partial {
+                // Änderung zwischen zwei Blöcken: Der halb gelesene Baum ist kein Beleg mehr.
+                guard partial.target == target, partial.stamp == stamp else { return .changed }
+                check = partial
+            } else {
+                let checkedAt = elapsed.seconds
+                guard hasEntry, let walk = treeWalk(target) else { return .stale }
+                check = PartialTreeCheck(walk: walk, target: target, stamp: stamp, checkedAt: checkedAt)
+            }
+            let step = check.walk.advance(cpuBudget: cpuBudget)
+            guard case .finished(let fingerprint) = step.progress else { return .partial(check, cpuTime: step.cpuTime) }
+            let unchanged = FileFingerprint.target(of: path) == target && CodeTreeFingerprint.stamp(at: target) == check.stamp
+            return .finished(check, fingerprint: unchanged ? fingerprint : nil, cpuTime: step.cpuTime)
+        }
+        switch block {
+        case .stale, .changed:
+            guard generations[path, default: 0] == generation else { return TreeRevalidationStep(outcome: .superseded) }
+            forget(path)
+            return TreeRevalidationStep(outcome: .finished(nil))
+        case .partial(let check, let cpuTime):
+            guard generations[path, default: 0] == generation else {
+                return TreeRevalidationStep(outcome: .superseded, cpuTime: cpuTime)
+            }
+            partialCheck = (path, check)
+            return TreeRevalidationStep(outcome: .partial, cpuTime: cpuTime)
+        case .finished(let check, let fingerprint, let cpuTime):
+            guard generations[path, default: 0] == generation else {
+                return TreeRevalidationStep(outcome: .superseded, cpuTime: cpuTime)
+            }
+            guard let fingerprint, let entry = cache?.entries[path], entry.fingerprint == fingerprint else {
+                forget(path)
+                return TreeRevalidationStep(outcome: .finished(nil), cpuTime: cpuTime)
+            }
+            confirm(entry.verdict, for: path, stamp: check.stamp, checkedAt: check.checkedAt)
+            return TreeRevalidationStep(outcome: .finished(entry.verdict), cpuTime: cpuTime)
+        }
     }
 
     /// Alter der letzten Komplettprüfung je Pfad aus `paths` in Sekunden seit ihrem Beginn, auf der monotonen Uhr des
@@ -336,12 +416,20 @@ public actor DeepSignatureVerifier {
     private func confirm(_ verdict: DeepSignatureVerdict, for path: String, stamp: String?, checkedAt: TimeInterval) {
         confirmations[path] = stamp.map { Confirmation(stamp: $0, verdict: verdict) }
         completeChecks[path] = checkedAt
+        settle(path)
     }
 
     /// Kein bestätigtes Ergebnis mehr für `path`: Teilscans übernehmen nichts, und der Baum gilt nicht als geprüft.
     private func forget(_ path: String) {
         confirmations[path] = nil
         completeChecks[path] = nil
+        settle(path)
+    }
+
+    /// Neuer Stand für `path`: Ein angefangener Durchlauf und Blöcke, die noch laufen, sind überholt (#662).
+    private func settle(_ path: String) {
+        generations[path, default: 0] += 1
+        if partialCheck?.path == path { partialCheck = nil }
     }
 
     public func verify(path: String) async -> DeepSignatureVerdict {
@@ -419,5 +507,47 @@ public actor DeepSignatureVerifier {
             timeouts[path] = (fingerprint, now())
         }
         return result.validation.verdict
+    }
+}
+
+/// Ergebnis eines Blocks der Komplettprüfung (`DeepSignatureVerifier.revalidateTree(at:cpuBudget:)`, #662).
+public struct TreeRevalidationStep: Equatable, Sendable {
+    public enum Outcome: Equatable, Sendable {
+        /// Budget erschöpft; der nächste Block setzt fort.
+        case partial
+        /// Baum zu Ende geprüft: das bestätigte Urteil, `nil` für einen veränderten oder nicht bestätigbaren Baum (die
+        /// Tiefenprüfung folgt).
+        case finished(DeepSignatureVerdict?)
+        /// Während des Blocks hat ein Scan oder die Tiefenprüfung den Baum neu bewertet; dieser Block zählt nicht.
+        case superseded
+    }
+
+    public let outcome: Outcome
+    /// Rechenzeit des Blocks.
+    public let cpuTime: Duration
+
+    public init(outcome: Outcome, cpuTime: Duration = .zero) {
+        self.outcome = outcome
+        self.cpuTime = cpuTime
+    }
+}
+
+/// Liest den ganzen Baum in einem Block über `read` (Tests, die nur `treeFingerprint` ersetzen).
+private final class WholeTreeWalk: CodeTreeWalking, @unchecked Sendable {
+    private let path: String
+    private let read: @Sendable (String) -> String?
+    private var result: String??
+
+    init(path: String, read: @escaping @Sendable (String) -> String?) {
+        self.path = path
+        self.read = read
+    }
+
+    func advance(cpuBudget: Duration?) -> CodeTreeWalkStep {
+        if let result { return CodeTreeWalkStep(progress: .finished(result), cpuTime: .zero) }
+        let started = ThreadCPUTime.now
+        let fingerprint = read(path)
+        result = .some(fingerprint)
+        return CodeTreeWalkStep(progress: .finished(fingerprint), cpuTime: ThreadCPUTime.now - started)
     }
 }

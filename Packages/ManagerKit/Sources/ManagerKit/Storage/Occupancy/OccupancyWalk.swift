@@ -119,20 +119,15 @@ final class OccupancyWalk: Sendable {
     }
 
     private func readUntilDone() {
-        var cpuTime = Self.threadCPUTime()
+        var cpuTime = ThreadCPUTime.now
         while let item = stack.next() {
             let more = isCancelled.load(ordering: .relaxed) ? [] : process(item)
             stack.complete(adding: more)
-            let now = Self.threadCPUTime()
+            let now = ThreadCPUTime.now
             let pause = cpuBudget.charge(now - cpuTime)
             cpuTime = now
             if pause > .zero, !isCancelled.load(ordering: .relaxed) { Thread.sleep(forTimeInterval: pause / .seconds(1)) }
         }
-    }
-
-    /// Rechenzeit des aufrufenden Threads.
-    private static func threadCPUTime() -> Duration {
-        .nanoseconds(clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID))
     }
 
     private func result() -> Result<OccupancyTree, any Error> {

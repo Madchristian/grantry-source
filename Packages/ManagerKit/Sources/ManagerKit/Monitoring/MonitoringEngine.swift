@@ -83,9 +83,12 @@ extension ScanTriggers: ScanTriggering {}
 /// Komplettprüfung der Code-Bäume (#649): Start und manueller Scan traversieren alle Bäume am Stück; Intervall- und
 /// Teilscans bestätigen nur die Bundle-Stempel, ein Dateiänderungs-Scan dazu den Baum, in dem die Änderung liegt
 /// (`CompleteTreeSelection`). Die übrigen Komplettprüfungen verteilt eine Plan-Task (`SignatureRevalidationSchedule`)
-/// Baum für Baum mit Hintergrund-Priorität über die Periode; jeder Baum ist spätestens `maximumAge` nach seiner letzten
-/// Komplettprüfung erneut geprüft. Ein Baum, dessen Komplettprüfung länger zurückliegt oder fehlt, zählt in
-/// `pendingSignatureChecks` als offen, bis der Plan ihn nachgeholt hat.
+/// Baum für Baum mit Hintergrund-Priorität über die Periode, in Blöcken kleiner Rechenzeit; solange ein Fenster oder
+/// Popover Livewerte misst (`setLiveViewsVisible(_:)`), schiebt sie auf, bis die Frist sie verlangt (#662). Jeder Baum ist
+/// spätestens `maximumAge` nach seiner letzten Komplettprüfung erneut geprüft. Ein Baum, dessen Komplettprüfung länger
+/// zurückliegt oder fehlt, zählt in `pendingSignatureChecks` als offen, bis der Plan ihn nachgeholt hat. Jeden Block und
+/// jede Tiefenprüfung protokolliert die Engine als Debug-Eintrag (`signatureWorkMessage`), damit die Abnahme Messfenster
+/// mit dieser Hintergrundarbeit erkennt.
 ///
 /// Lebenszyklus: `idle` → `starting` → `running` → `stopped`, wobei `stopped` endgültig ist – `ScanTriggers` liefert
 /// seinen Strom nur einem Konsumenten. `start()` und `stop()` setzen den Übergang vor ihrem ersten `await`, deshalb
@@ -102,7 +105,7 @@ public actor MonitoringEngine {
         case idle, starting, running, stopped
     }
 
-    private static let logger = Logger(subsystem: ManagerKit.logSubsystem, category: "monitoring")
+    fileprivate static let logger = Logger(subsystem: ManagerKit.logSubsystem, category: "monitoring")
 
     private let coordinator: ScanCoordinator
     private let store: any SnapshotStore
@@ -148,11 +151,23 @@ public actor MonitoringEngine {
     /// Ziele ohne Komplettprüfung) und als wievielter (Reihenfolge bei gleicher Frist).
     private var revalidationVisits: [String: (date: Date, order: Int)] = [:]
     private var revalidationVisitCount = 0
+    /// Wanduhr-Zeit (Zeitachse des Plans) der letzten Komplettprüfung je Ziel durch den Plan: ihre Abschnitte plus je eine
+    /// Blockpause, auch wenn eine Pause wegen der Frist entfiel (sonst schätzte der Plan zu knapp und verlöre die Pausen
+    /// dauerhaft). Damit rechnet er, wann gleich alte Bäume spätestens beginnen müssen
+    /// (`SignatureRevalidationSchedule.latestStarts`).
+    private var revalidationWork: [String: TimeInterval] = [:]
+    /// Ende des letzten Blocks (Sekunden der Zeitachse des Plans): Der nächste beginnt frühestens `blockPause` danach,
+    /// auch im nächsten Durchgang.
+    private var lastBlockEnd = -TimeInterval.infinity
     private let signatureSchedule: SignatureRevalidationSchedule
     /// Uhr der Plan-Task: Sie schläft darauf, und ihre Zeitachse (`scheduleTime`) trägt Fristen und Prüfalter – monoton,
     /// unabhängig von der Wanduhr `now` (Codex-Review zu PR 655).
     private let clock: any Clock<Duration>
     private let scheduleTime: ElapsedTime
+    /// Ob Fenster oder Popover Livewerte messen (#662); synchron gesetzt, damit die Reihenfolge der Meldungen gilt.
+    private let liveViews = Mutex(SignatureRevalidationSchedule.LiveViews.hidden(since: nil))
+    /// Schlaf der Plan-Task bis zum nächsten Schritt; `wakeRevalidationPlan()` beendet ihn vorzeitig.
+    private var planSleep: Task<Void, any Error>?
 
     public init(
         coordinator: ScanCoordinator,
@@ -244,6 +259,19 @@ public actor MonitoringEngine {
     /// Teilscan: liest nur die Quellen `sources` neu (etwa die Lauscher nach „Der Dienst läuft nicht mehr.“).
     public func scanNow(only sources: Set<SourceID>) async {
         await triggers.requestScan(only: sources)
+    }
+
+    /// Meldet, ob ein Fenster oder Popover Livewerte misst (`MeasuresWhileVisible` der App, #662). Solange ja, schiebt
+    /// die verteilte Komplettprüfung auf, bis die Frist sie verlangt; nach dem Verdecken folgt sie nach einer Ruhezeit.
+    /// Kein eigener Zeitgeber: Eine Änderung weckt nur die schlafende Plan-Task, die neu plant.
+    public nonisolated func setLiveViewsVisible(_ visible: Bool) {
+        let since = scheduleTime.date
+        let changed = liveViews.withLock { state in
+            guard (state == .visible) != visible else { return false }
+            state = visible ? .visible : .hidden(since: since)
+            return true
+        }
+        if changed { Task { await self.wakeRevalidationPlan() } }
     }
 
     public func markAllRead() async {
@@ -469,6 +497,7 @@ public actor MonitoringEngine {
         orderedVerificationTargets = targets
         verificationTargets = Set(targets)
         revalidationVisits = revalidationVisits.filter { verificationTargets.contains($0.key) }
+        revalidationWork = revalidationWork.filter { verificationTargets.contains($0.key) }
         signatureVerdicts = cached
         pendingVerifications = targets.filter { cached[$0] == nil && $0 != activeVerificationPath }
         signatureCheckDates = await completeCheckDates(for: targets)
@@ -496,7 +525,9 @@ public actor MonitoringEngine {
         while let deepVerifier, !Task.isCancelled, !pendingVerifications.isEmpty {
             let path = pendingVerifications.removeFirst()
             activeVerificationPath = path
+            let started = ContinuousClock.now
             let verdict = await deepVerifier.verify(path: path)
+            Self.logger.debug("\(Self.signatureWorkMessage(.deepCheck, wall: started.duration(to: .now)), privacy: .public)")
             activeVerificationPath = nil
             guard !Task.isCancelled else { return }
             state.signatureChecksTimedOut = await deepVerifier.hasTimedOutChecks(for: verificationTargets)
@@ -550,14 +581,19 @@ public actor MonitoringEngine {
         revalidation = Task { await self.runRevalidationSchedule() }
     }
 
+    /// Weckt die schlafende Plan-Task, damit sie mit der neuen Sichtbarkeit plant (#662).
+    private func wakeRevalidationPlan() {
+        planSleep?.cancel()
+    }
+
     /// Kürzere Wartezeiten gelten als fällig (Auflösung der Zeitgeber).
     private static let schedulingTolerance: TimeInterval = 0.001
 
-    /// Prüft je Schritt einen Block von Bäumen komplett (`SignatureRevalidationSchedule.nextStep`), dazwischen schläft
-    /// sie höchstens so viele Abstände, wie der vorige Block Bäume hatte, und plant danach neu – so zählen inzwischen
-    /// gelaufene Scans, neue und entfernte Ziele. Nach dem Ruhezustand des Macs feuert der Zeitgeber verspätet: Die Task
-    /// stellt die überfälligen Bäume als offen dar und holt sie im Abstand von `catchUpPause` nach. Endet bei Abbruch
-    /// oder ohne planbare Ziele.
+    /// Prüft je Schritt einen Durchgang von Bäumen komplett (`SignatureRevalidationSchedule.nextStep`), dazwischen schläft
+    /// sie höchstens so viele Abstände, wie der vorige Durchgang Bäume hatte, und plant danach neu – so zählen
+    /// inzwischen gelaufene Scans, neue und entfernte Ziele und die Sichtbarkeit der Livewerte. Nach dem Ruhezustand des
+    /// Macs feuert der Zeitgeber verspätet: Die Task stellt die überfälligen Bäume als offen dar und holt sie im Abstand
+    /// von `catchUpPause` nach. Endet bei Abbruch oder ohne planbare Ziele.
     private func runRevalidationSchedule() async {
         defer { revalidation = nil }
         var previousStep = scheduleTime.date
@@ -572,48 +608,94 @@ public actor MonitoringEngine {
             let attempted = revalidationVisits.mapValues(\.date)
             guard let step = signatureSchedule.nextStep(
                 targets: targets, completedAt: completed, attemptedAt: attempted, previousStep: previousStep,
-                previousBlockSize: previousBlock, now: now
+                previousBlockSize: previousBlock, liveViews: liveViews.withLock { $0 }, work: revalidationWork, now: now
             ) else { return }
             let delay = step.date.timeIntervalSince(now)
             if delay > Self.schedulingTolerance {
                 let wait = min(delay, signatureSchedule.gap(forTargetCount: targets.count) * Double(previousBlock))
-                do { try await clock.sleep(for: .seconds(wait)) } catch { return }
+                guard await sleepPlan(seconds: wait) else { return }
                 continue
             }
             previousStep = now
-            previousBlock = await revalidateBlock(
-                signatureSchedule.dueOrder(targets, completedAt: completed, attemptedAt: attempted, now: now)
-            )
+            let order = step.isForced
+                ? signatureSchedule.forcedOrder(targets, completedAt: completed, attemptedAt: attempted,
+                                                work: revalidationWork, now: now)
+                : signatureSchedule.dueOrder(targets, completedAt: completed, attemptedAt: attempted, now: now)
+            previousBlock = await runStep(order, forced: step.isForced)
         }
     }
 
-    /// Ein Schritt des Plans: die Bäume in Fristreihenfolge komplett prüfen, mindestens den fälligen, weitere solange
-    /// der Block unter `SignatureRevalidationSchedule.blockBudget` Wanduhr-Zeit bleibt (echte Zeit, nicht die Uhr des
-    /// Plans). Liefert die Zahl geprüfter Bäume.
-    private func revalidateBlock(_ paths: [String]) async -> Int {
-        let started = ContinuousClock.now
-        let budget = Duration.seconds(signatureSchedule.blockBudget)
+    /// Schläft `seconds` auf der Uhr des Plans; `wakeRevalidationPlan()` weckt früher. `false`, wenn die Plan-Task
+    /// abgebrochen ist.
+    private func sleepPlan(seconds: TimeInterval) async -> Bool {
+        let clock = clock
+        let sleep = Task { try await clock.sleep(for: .seconds(seconds)) }
+        planSleep = sleep
+        await withTaskCancellationHandler {
+            _ = await sleep.result
+        } onCancel: {
+            sleep.cancel()
+        }
+        if planSleep == sleep { planSleep = nil }
+        return !Task.isCancelled
+    }
+
+    /// Ein Durchgang: die Bäume in `paths` (Fristreihenfolge) komplett prüfen, in Blöcken zu höchstens
+    /// `SignatureRevalidationSchedule.blockBudget` Rechenzeit mit `blockPause` dazwischen; einen begonnenen Baum prüft er
+    /// über mehrere Blöcke zu Ende. Ein erzwungener Durchgang beginnt jeden Baum aus `paths`, ein regulärer nur, solange
+    /// keine Livewerte sichtbar sind, und nach dem ersten nur unter `stepBudget`. Liefert die Zahl geprüfter Bäume.
+    private func runStep(_ paths: [String], forced: Bool) async -> Int {
+        guard let deepVerifier else { return 1 }
+        let blockBudget = Duration.seconds(signatureSchedule.blockBudget)
+        let stepBudget = Duration.seconds(signatureSchedule.stepBudget)
+        var block = SignatureBlock()
+        var stepTime = Duration.zero
         var count = 0
-        for path in paths {
-            guard !Task.isCancelled, count == 0 || started.duration(to: .now) < budget else { break }
+        defer { close(&block) }
+        for (index, path) in paths.enumerated() {
+            guard !Task.isCancelled, forced || liveViews.withLock({ $0 != .visible }) else { break }
+            if count > 0, !forced, stepTime >= stepBudget { break }
             // Inzwischen in der Tiefenprüfung oder kein Ziel mehr: nicht hier.
             guard schedulableTargets.contains(path) else { continue }
-            await revalidateTree(path)
+            revalidationVisitCount += 1
+            revalidationVisits[path] = (scheduleTime.date, revalidationVisitCount)
+            var work: TimeInterval = 0
+            var outcome = TreeRevalidationStep.Outcome.partial
+            while outcome == .partial {
+                if block.cpuTime >= blockBudget { close(&block) }
+                // Ein neuer Block beginnt frühestens `blockPause` nach dem letzten, auch über Durchgänge hinweg; droht ein
+                // Baum dieses Durchgangs seine Frist zu verfehlen, entfällt die Pause (Codex-Review PR 665).
+                let rest = lastBlockEnd + signatureSchedule.blockPause - scheduleTime.seconds
+                if block.started == nil, rest > 0,
+                   !deadlineIsPressing(running: path, waiting: forced ? paths[(index + 1)...] : []) {
+                    do { try await clock.sleep(for: .seconds(rest)) } catch { return max(count, 1) }
+                }
+                guard !Task.isCancelled, verificationTargets.contains(path) else { return max(count, 1) }
+                block.begin()
+                let chunkStarted = scheduleTime.seconds
+                let step = await deepVerifier.revalidateTree(at: path, cpuBudget: blockBudget - block.cpuTime)
+                work += scheduleTime.seconds - chunkStarted + signatureSchedule.blockPause
+                block.add(step.cpuTime, exhausted: step.outcome == .partial, budget: blockBudget)
+                stepTime += step.cpuTime
+                outcome = step.outcome
+            }
+            revalidationWork[path] = work
+            await finishRevalidation(of: path, outcome)
             count += 1
         }
         return max(count, 1)
     }
 
-    /// Baum `path` komplett prüfen. Ist er unverändert, bleibt sein Urteil; sonst entfällt es, und die Tiefenprüfung
-    /// prüft das Ziel neu.
-    private func revalidateTree(_ path: String) async {
-        guard let deepVerifier else { return }
-        revalidationVisitCount += 1
-        revalidationVisits[path] = (scheduleTime.date, revalidationVisitCount)
-        let verdict = await deepVerifier.revalidateTree(at: path)
+    /// Ergebnis der Komplettprüfung von `path`. Ist der Baum unverändert, bleibt sein Urteil; sonst entfällt es, und die
+    /// Tiefenprüfung prüft das Ziel neu. Ein überholter Durchgang (Scan oder Tiefenprüfung dazwischen) ändert nichts.
+    private func finishRevalidation(of path: String, _ outcome: TreeRevalidationStep.Outcome) async {
         let date = await completeCheckDates(for: [path])[path]
         guard !Task.isCancelled, verificationTargets.contains(path) else { return }
         signatureCheckDates[path] = date
+        guard case .finished(let verdict) = outcome else {
+            publishIfSignatureCheckCountChanges()
+            return
+        }
         if verdict == nil { Self.logger.debug("Komplettprüfung: Baum verändert, Tiefenprüfung folgt") }
         publishIfSignatureCheckCountChanges {
             var changed = verdict != signatureVerdicts[path] && record(verdict, for: path)
@@ -624,6 +706,71 @@ public actor MonitoringEngine {
             return changed
         }
         startPendingVerifications()
+    }
+
+    /// Hintergrundarbeit der Signaturprüfung, die die Engine protokolliert.
+    enum SignatureWork {
+        /// Block der verteilten Komplettprüfung mit seiner Rechenzeit.
+        case block(cpu: Duration)
+        /// Tiefenprüfung eines neuen oder veränderten Ziels.
+        case deepCheck
+    }
+
+    /// Debug-Eintrag (Kategorie `monitoring`) je Block und Tiefenprüfung, Zeiten in Sekunden mit Punkt:
+    /// „Signaturprüfung: Block cpu=0.213 wall=0.402“ bzw. „Signaturprüfung: Tiefenprüfung wall=1.250“.
+    /// `scripts/performance/disturbances.py` liest dieses Format; der Eintrag steht am Ende, `wall` reicht zurück zum Beginn.
+    static func signatureWorkMessage(_ work: SignatureWork, wall: Duration) -> String {
+        switch work {
+        case .block(let cpu): "Signaturprüfung: Block cpu=\(cpu.secondsText) wall=\(wall.secondsText)"
+        case .deepCheck: "Signaturprüfung: Tiefenprüfung wall=\(wall.secondsText)"
+        }
+    }
+
+    /// Schließt `block` ab: protokolliert ihn, wenn er gearbeitet hat, merkt sein Ende und beginnt einen neuen.
+    private func close(_ block: inout SignatureBlock) {
+        if block.started != nil {
+            block.log()
+            lastBlockEnd = scheduleTime.seconds
+        }
+        block = SignatureBlock()
+    }
+
+    /// Ob der laufende Baum `running` oder einer der danach im Durchgang wartenden seine Frist zu verfehlen droht
+    /// (`SignatureRevalidationSchedule.deadlineIsPressing`).
+    private func deadlineIsPressing(running: String, waiting: ArraySlice<String>) -> Bool {
+        let now = scheduleTime.date
+        return signatureSchedule.deadlineIsPressing(completed: signatureCheckDates[running], running: true, now: now)
+            || waiting.contains { signatureSchedule.deadlineIsPressing(completed: signatureCheckDates[$0], now: now) }
+    }
+
+    /// Rechenzeit und Wanduhr eines Blocks. Er beginnt vor dem ersten Abschnitt (`begin`), damit die Wanduhr dessen
+    /// Laufzeit enthält (Codex-Review PR 665); protokolliert wird er einmal und nur, wenn er gearbeitet hat.
+    struct SignatureBlock {
+        private(set) var cpuTime = Duration.zero
+        private(set) var started: ContinuousClock.Instant?
+        private var logged = false
+
+        /// Vor dem ersten Abschnitt des Blocks; spätere Aufrufe ändern den Beginn nicht.
+        mutating func begin(at instant: ContinuousClock.Instant = .now) {
+            started = started ?? instant
+        }
+
+        /// Rechenzeit eines Abschnitts; ein unvollständiger Abschnitt (`exhausted`) schöpft das Budget aus.
+        mutating func add(_ time: Duration, exhausted: Bool, budget: Duration) {
+            cpuTime += time
+            if exhausted { cpuTime = max(cpuTime, budget) }
+        }
+
+        /// Der Debug-Eintrag zum Ende `end`; `nil`, wenn der Block nie begonnen hat.
+        func message(endingAt end: ContinuousClock.Instant) -> String? {
+            started.map { MonitoringEngine.signatureWorkMessage(.block(cpu: cpuTime), wall: $0.duration(to: end)) }
+        }
+
+        mutating func log() {
+            guard !logged, let message = message(endingAt: .now) else { return }
+            logged = true
+            MonitoringEngine.logger.debug("\(message, privacy: .public)")
+        }
     }
 
     /// Führt `update` aus und veröffentlicht, wenn es die Findings ändert (Rückgabe `true`) oder sich die Zahl offener
@@ -822,5 +969,14 @@ final class StateBroadcaster<State: Sendable>: Sendable {
         for continuation in continuations {
             continuation.finish()
         }
+    }
+}
+
+private extension Duration {
+    /// Sekunden mit drei Nachkommastellen und Punkt, unabhängig von der Sprache (`signatureWorkMessage`).
+    var secondsText: String {
+        let components = components
+        let seconds = Double(components.seconds) + Double(components.attoseconds) / 1e18
+        return String(format: "%.3f", locale: Locale(identifier: "en_US_POSIX"), seconds)
     }
 }

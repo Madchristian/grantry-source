@@ -286,11 +286,12 @@ struct DeepSignatureVerifierTests {
             #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 0])
 
             clock.advance(by: .seconds(60))
-            #expect(await verifier.revalidateTree(at: bundle.path) == .valid)
+            #expect(await verifier.revalidateTree(at: bundle.path, cpuBudget: nil).outcome == .finished(.valid))
             #expect(await verifier.completeCheckAges(for: [bundle.path]) == [bundle.path: 0])
 
             try Data("neu".utf8).write(to: bundle.appending(path: "Contents/Resources/config.txt"))
-            #expect(await verifier.revalidateTree(at: bundle.path) == nil, "veränderter Baum braucht die Tiefenprüfung")
+            #expect(await verifier.revalidateTree(at: bundle.path, cpuBudget: nil).outcome == .finished(nil),
+                    "veränderter Baum braucht die Tiefenprüfung")
             #expect(await verifier.completeCheckAges(for: [bundle.path]).isEmpty, "nie als aktuell geprüft")
             #expect(await verifier.cachedVerdicts(for: [bundle.path], revalidation: .bundleMetadata).isEmpty,
                     "auch kein Teilscan übernimmt das alte Urteil")
@@ -325,7 +326,7 @@ struct DeepSignatureVerifierTests {
             _ = await verifier.verify(path: second.path)
             let before = trees.count
 
-            #expect(await verifier.revalidateTree(at: second.path) == .valid)
+            #expect(await verifier.revalidateTree(at: second.path, cpuBudget: nil).outcome == .finished(.valid))
             #expect(trees.count == before + 1)
             #expect(trees.reads.last?.path == second.path)
             #expect(trees.reads.last?.qos == QOS_CLASS_BACKGROUND, "\(trees.reads.map(\.qos.rawValue))")

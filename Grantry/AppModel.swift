@@ -309,6 +309,8 @@ final class AppModel {
                 self?.mirror(state)
             }
         }
+        // Sichtbare Livewerte schieben die verteilte Signaturprüfung auf (#662).
+        LiveViewPresence.shared.observe { engine.setLiveViewsVisible($0) }
         await engine.start()
     }
 

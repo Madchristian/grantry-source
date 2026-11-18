@@ -1,31 +1,21 @@
 {
-  "version": "2026.11.16",
-  "intro": "Die Übersicht der Menüleiste nach eigenem Wunsch – und Grafiken, die per Klick filtern.",
+  "version": "2026.11.17",
+  "intro": "Weniger Arbeitsspeicher im Task-Manager und eine ruhigere Signaturprüfung im Hintergrund.",
   "highlights": [
     {
-      "symbol": "square.grid.2x2",
-      "title": "Übersicht selbst zusammenstellen",
-      "body": "Alle Anzeigen der Übersicht gibt es als Kacheln in mehreren Größen. Über „Anpassen“ ziehen, verschieben, vergrößern oder entfernen; ohne Anpassung bleibt alles wie bisher."
-    },
-    {
-      "symbol": "line.3.horizontal.decrease.circle",
-      "title": "Klicken filtert die Verbindungen",
-      "body": "Ein Klick auf ein Ziel im Bogenfächer oder auf ein Programm im Radar filtert die Tabelle; der Chip daneben hebt den Filter wieder auf."
-    },
-    {
-      "symbol": "chart.bar.doc.horizontal",
-      "title": "Abdeckung auf einen Blick",
-      "body": "Berechtigungen, Autostart, Agenten und Apps zeigen über der Liste, wie vollständig Grantry den Bereich lesen konnte."
-    },
-    {
-      "symbol": "xmark.circle",
-      "title": "Aufräumen mit Scanzeit und Abbrechen",
-      "body": "Prozesse und Speicher nennen den Stand des letzten Scans, der Prozess-Scan lässt sich abbrechen."
+      "symbol": "memorychip",
+      "title": "Weniger Arbeitsspeicher",
+      "body": "Details, Prozesse, Energie, Benutzer und Übersicht teilen ihren Verlauf, statt ihn bei jedem Takt zu kopieren – auch mit aktiven Bedienungshilfen wächst der Speicher nicht mehr stufenweise."
     },
     {
       "symbol": "waveform.path.ecg",
-      "title": "Ruhiger im Hintergrund",
-      "body": "Die Signaturprüfung verteilt sich über das Intervall, der Scan alle 15 Minuten erzeugt keine Lastspitze mehr. Nach einem Update erscheint die Einrichtung nicht mehr grundlos."
+      "title": "Ruhiger bei offenem Fenster",
+      "body": "Die Signaturprüfung im Hintergrund läuft in kleineren Schritten und wartet, solange Livewerte sichtbar sind; spätestens nach 15 Minuten prüft Grantry trotzdem."
+    },
+    {
+      "symbol": "square.grid.2x2",
+      "title": "Übersicht selbst zusammenstellen",
+      "body": "Seit 2026.11.16 lassen sich die Kacheln der Übersicht in der Menüleiste über „Anpassen“ ziehen, vergrößern oder entfernen."
     }
   ]
 }
